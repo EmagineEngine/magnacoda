@@ -13,7 +13,7 @@
 - [How do I get started?](#how-do-i-get-started)
   - [Requirements](#requirements)
   - [Quick start](#quick-start)
-    - [On Windows](#on-windows)
+    - [With pipx instead](#with-pipx-instead)
   - [Guided wizard](#guided-wizard)
   - [Interactive shell](#interactive-shell)
   - [Help](#help)
@@ -67,9 +67,9 @@ Check the [requirements](#requirements), install with the [quick start](#quick-s
 
 ### Requirements
 
-- **Python 3.11 or newer.**
+- **Python 3.11 or newer.** You don't need to install it yourself if you use uv, as the quick start does, since uv brings its own.
 - **One browser, not all of them: Chromium or Firefox.** *magnacoda* drives a browser build that Playwright downloads for you; it does not use the Chrome or Firefox already installed on your computer. `magnacoda setup` installs Chromium (about 100 MB), which is the default. To use Firefox instead, run `playwright install firefox` (about 110 MB) and add `--browser firefox` to your scans. You never need both.
-- **Browser versions:** you don't choose them; they come with the Playwright release installed alongside *magnacoda*. *magnacoda* requires **Playwright 1.63 or newer**, which downloads **Chromium 153 and Firefox 155** (or newer), so those are the minimum browser versions.
+- **Browser versions:** you don't choose them; they come with the Playwright release installed alongside *magnacoda*. *magnacoda* uses **Playwright 1.63**, which downloads **Chromium 153 and Firefox 155**.
 
 ### Quick start
 
@@ -79,43 +79,36 @@ Check the [requirements](#requirements), install with the [quick start](#quick-s
 - **macOS:** press `Cmd+Space`, type `Terminal` and press `Enter`.
 - **Linux:** press `Ctrl+Alt+T` (on Ubuntu and many others), or find Terminal in your app menu.
 
-The recommended way to install is [pipx](https://pipx.pypa.io/) ([install pipx](https://pipx.pypa.io/stable/installation/) first, for example with `pip install --user pipx`), which creates an isolated environment for *magnacoda* and puts the command on your PATH automatically, on Linux, macOS and Windows, with no virtual environment to set up or activate.
+The recommended way to install is [uv](https://docs.astral.sh/uv/), a fast installer for Python tools. It brings its own Python, so you don't need to install Python first, and it puts the `magnacoda` command on your PATH, with no virtual environment to set up or activate.
+
+**Install uv** (once), then open a new terminal window so it finds the `uv` command:
+
+- **Linux and macOS:** `curl -LsSf https://astral.sh/uv/install.sh | sh` (on macOS, `brew install uv` works too).
+- **Windows:** `winget install astral-sh.uv`. If you don't have winget (some older Windows 10 installations), uv's own installer does the same: `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`.
+
+**Install *magnacoda*,** then run your first scan:
 
 ```bash
-pipx install magnacoda   # once published to PyPI
-# or straight from GitHub, no local clone needed:
-pipx install "git+https://github.com/emagineengine/magnacoda.git"
-
+uv tool install magnacoda
 magnacoda setup             # one-time: downloads the Chromium browser (~100 MB), and shows how the AI tiers will run
 magnacoda wizard            # a few questions, then it runs the scan for you
 magnacoda scan example.com  # or scan a page straight away; https:// is filled in for you (see URL rules)
 ```
 
-New to *magnacoda*? Start with the [guided wizard](#guided-wizard).
+**Next time,** open a terminal and type `magnacoda` to start the [shell](#interactive-shell), or `magnacoda wizard` to go straight to the [guided wizard](#guided-wizard). For more, including what to do if your terminal doesn't find `magnacoda`, see [Starting *magnacoda*](docs/manual.md#starting-magnacoda) (from the *magnacoda* shell, type `docs starting`).
 
-**Next time,** open a terminal and type `magnacoda` to start the [shell](#interactive-shell), or `magnacoda wizard` to go straight to the wizard. For more, including what to do if your terminal doesn't find `magnacoda`, see [Starting *magnacoda*](docs/manual.md#starting-magnacoda) (from the *magnacoda* shell, type `docs starting`).
+#### With pipx instead
 
-#### On Windows
+If you already use [pipx](https://pipx.pypa.io/), it works just as well. It uses a Python already on your computer, which must be 3.11 or newer (Ubuntu 22.04's is 3.10, too old; uv avoids this). Get pipx from your system's own installer rather than with pip, which recent Linux versions block:
 
-The quickest way is [uv](https://docs.astral.sh/uv/), a fast installer for Python tools that brings its own Python, so you don't need to install Python first. In PowerShell or Windows Terminal:
+- **Ubuntu and Debian:** `sudo apt install pipx`
+- **Fedora:** `sudo dnf install pipx`
+- **macOS:** `brew install pipx`, with [Homebrew](https://brew.sh/)
+- **Windows:** install Python first, from [python.org](https://www.python.org/downloads/windows/) or with `winget install Python.Python.3.12`, then `py -m pip install --user pipx`. Avoid the Microsoft Store version of Python, because it quietly redirects some of the folders *magnacoda* uses and makes its settings and browser hard to find.
 
-```powershell
-winget install astral-sh.uv   # once, then open a new terminal window
-uv tool install magnacoda     # once published to PyPI
-# or straight from GitHub:
-uv tool install "git+https://github.com/emagineengine/magnacoda.git"
+Then run `pipx ensurepath` (on Windows, `py -m pipx ensurepath`), open a new terminal window, and install:
 
-magnacoda setup               # one-time: downloads the Chromium browser
-magnacoda wizard
-```
-
-No winget (some older Windows 10 installations)? uv's own installer does the same: `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`.
-
-Prefer pipx? Install Python first, from [python.org](https://www.python.org/downloads/windows/) or with `winget install Python.Python.3.12`. Avoid the Microsoft Store version of Python, which quietly redirects some of the folders *magnacoda* uses, which makes its settings and browser hard to find. Then:
-
-```powershell
-py -m pip install --user pipx
-py -m pipx ensurepath         # then open a new terminal window
+```bash
 pipx install magnacoda
 magnacoda setup
 ```
@@ -127,15 +120,15 @@ magnacoda setup
   - Windows 10 limits most paths to 260 characters, and the install creates deep folders, so a short starting point helps.
   - Avoid Program Files, which needs administrator rights. Creating `C:\dev` doesn't.
 - **Check the folder:** the path you give pipx or uv must be the folder that directly contains `pyproject.toml`, such as `C:\dev\magnacoda`. Unzipping often creates a doubled folder, `C:\dev\magnacoda\magnacoda`; if so, move everything from the inner folder up into the outer one, then delete the empty inner folder.
-- **Install it** by giving the folder's full path. It doesn't matter which folder your terminal is in, since the installer goes by the path you give. Use one of these two, depending on whether you use pipx or uv (install that first, as shown above):
-  - With pipx: `pipx install C:\dev\magnacoda`
+- **Install it** by giving the folder's full path. It doesn't matter which folder your terminal is in, since the installer goes by the path you give. Use one of these two, depending on whether you use uv or pipx (install that first, as shown above):
   - With uv: `uv tool install C:\dev\magnacoda`
+  - With pipx: `pipx install C:\dev\magnacoda`
 
   Then, either way, run `magnacoda setup` once to download the browser.
 
   An add-on you've downloaded the same way goes into the same install:
-  - With pipx: `pipx inject magnacoda C:\dev\example-addon`
   - With uv: `uv tool install C:\dev\magnacoda --with C:\dev\example-addon` (the install command again, with the add-on added; uv rebuilds the install to include it)
+  - With pipx: `pipx inject magnacoda C:\dev\example-addon`
 
   To learn what add-ons are and how they show up in *magnacoda*, type `help add-ons`. To write your own, see [Writing an add-on](CONTRIBUTING.md#writing-an-add-on).
 - **Keep the folder** if you may want to reinstall from it later. The installer copies everything it needs, so *magnacoda* doesn't run from it.

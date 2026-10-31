@@ -467,7 +467,6 @@ jobs:
 
 Notes for both:
 
-- **Installing:** until *magnacoda* is on PyPI, install it from GitHub instead: `pip install "git+https://github.com/emagineengine/magnacoda.git"`.
 - **The browser:** `python -m playwright install --with-deps chromium` installs Chromium and the system libraries it needs on Linux. That needs administrator rights, which CI jobs have (Playwright uses `sudo` when the job doesn't run as root). On your own computer, `magnacoda setup` downloads the browser instead.
 - **Scanning the site the job builds:** start it in the background, then scan its local address, such as `npx serve dist -l 8080 &` and then `magnacoda scan localhost:8080 --fail-on serious`.
 - **Several pages:** one `magnacoda` line per page, each with `--scans-dir magnacoda-scans`; each gets its own folder there.

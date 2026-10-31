@@ -105,18 +105,9 @@ content-type = "text/markdown"
 [[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
 path = "README.md"
 
-# Left out on PyPI: text between <!-- not-on-pypi --> and <!-- /not-on-pypi -->, and in the install
-# commands, the notes for before magnacoda is on PyPI.
+# Left out on PyPI: text between <!-- not-on-pypi --> and <!-- /not-on-pypi -->.
 [[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
 pattern = '(?s)<!-- not-on-pypi -->.*?<!-- /not-on-pypi -->\n*'
-replacement = ""
-
-[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
-pattern = ' +# once published to PyPI'
-replacement = ""
-
-[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
-pattern = '# or straight from GitHub.*\n.*\n'
 replacement = ""
 
 [[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]

@@ -298,7 +298,7 @@ Anyone can write an add-on, so they vary in quality and in how they're written. 
 - The about screen (`about`) lists every add-on in use, with its version and its commands.
 - When you update *magnacoda* (`update`), add-ons published on PyPI are updated with it.
 
-To install an add-on, add it to the same install as *magnacoda*: `pipx inject magnacoda NAME`, or with uv, `uv tool install magnacoda --with NAME`.
+To install an add-on, add it to the same install as *magnacoda*: with uv, `uv tool install magnacoda --with NAME`, or with pipx, `pipx inject magnacoda NAME`.
 
 ### Make it do more: write an add-on
 
