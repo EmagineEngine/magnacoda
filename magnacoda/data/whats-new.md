@@ -9,6 +9,13 @@ HOW IT IS READ
   * Write for people who use *magnacoda*, not for developers: what they can do now, in plain words, one long line per paragraph. Terms and lists work as in help.md.
 -->
 
+## 0.1.1
+
+A small update that makes updating easier.
+
+- `update`
+  If you installed *magnacoda* with uv, `update` now upgrades it for you, along with any add-ons, instead of showing a command to run yourself. It still asks first.
+
 ## 0.1.0
 
 The first public release of *magnacoda*: scan a web page for WCAG 2 accessibility issues in a real browser, with plain-language explanations and fix suggestions.

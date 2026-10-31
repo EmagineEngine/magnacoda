@@ -26,7 +26,9 @@ dependencies = [
     "click>=8.1",
     "rich>=13.0",
     # Tested releases only: 1.64 changed how actions wait for page loads, which hung the interaction tests
-    # until blocking.py stopped loads in the page. Raise the limit after testing a new release.
+    # until blocking.py stopped loads in the page. Raise the limit after testing a new release, and only
+    # once `update` downloads the new browsers after upgrading (planned for 0.1.2), since uv
+    # upgrades Playwright with magnacoda, and the first scan would then find no browser.
     "playwright>=1.63,<1.65",
     "pydantic>=2.0",
     "packaging>=23.0",  # version numbers for the update check, read as pip reads them
