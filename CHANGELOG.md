@@ -6,10 +6,10 @@ All notable changes to this project are documented in this file.
 
 ### Changed
 
-- `update` now upgrades installs made with uv for you, along with their add-ons, as it already did for pipx.
+- The `update` command now upgrades installations of *magnacoda* that were made with uv, along with any add-ons installed with *magnacoda*. This matches the `update` command's upgrade behavior for pipx.
 - Works with Playwright 1.64, so a new install scans with Chromium 156 and Firefox 157.
-- The README's install steps start with uv on Windows, macOS and Linux, since it brings its own Python. pipx follows as the alternative.
-- A new logo that reads well on GitHub's light and dark themes, with the slogan as text under it.
+- The README's installation steps start with uv on Windows, macOS and Linux, since it brings its own Python. pipx follows as the alternative.
+- A new logo that reads well on GitHub's light and dark themes, with the slogan as text below it.
 
 ### Fixed
 
