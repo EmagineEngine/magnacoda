@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Fields</title></head>
+<body>
+<main>
+  <h1>Sign in and details</h1>
+  <form id="signin" action="/signin" method="post">
+    <label>Email <input id="email" type="email" autocomplete="email"></label>
+    <label>Password <input id="password" type="password" autocomplete="off" onpaste="return false"></label>
+    <label>Verification code <input id="code" autocomplete="one-time-code"></label>
+    <button>Sign in</button>
+  </form>
+  <form id="details" action="/details" method="post">
+    <label>First name <input id="first" name="firstName"></label>
+    <label>Phone <input id="phone" type="tel" autocomplete="off"></label>
+    <label>Postcode <input id="post" name="postcode" autocomplete="postal-code"></label>
+    <label>Favourite colour <input id="colour"></label>
+    <label>Password <input id="password2" type="password" autocomplete="current-password"></label>
+    <button>Save</button>
+  </form>
+  <form role="search" action="/find"><label>City <input id="where"></label><button>Find</button></form>
+</main>
+</body>
+</html>

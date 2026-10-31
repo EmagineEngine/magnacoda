@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Keyboard</title>
+<style>
+  body { margin: 0; font: 16px/1.5 sans-serif; }
+  .skip { position: absolute; left: -9999px; } .skip:focus { position: static; }
+  a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid #1a4fd0; }
+  #no-ring:focus, #no-ring:focus-visible { outline: none; }
+  .spacer { height: 1400px; }
+  #banner { position: fixed; bottom: 0; left: 0; right: 0; height: 120px; background: #222; color: #fff; }
+</style></head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<nav><a href="#one">One</a> <a href="#two">Two</a></nav>
+<main id="main">
+  <h1>Keyboard</h1>
+  <p><a href="#ok" id="ok">Fine link</a></p>
+  <p><a href="#none" id="no-ring">No focus ring</a></p>
+  <p><label>Country <input id="leaves" onfocus="location.href = '/elsewhere'"></label></p>
+  <p><button id="jumpy" onfocus="document.getElementById('hidden-under').focus()">Jumps on focus</button></p>
+  <div class="spacer"></div>
+  <p><button id="hidden-under">Under the banner</button></p>
+  <div style="height: 40px"></div>
+  <p><button id="last">Last</button></p>
+</main>
+<div id="banner">Cookies? <button id="accept">Accept</button></div>
+</body>
+</html>

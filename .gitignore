@@ -1,0 +1,30 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+.DS_Store
+node_modules/
+# Saved scans stay local. --save creates magnacoda-scans/ on first use, so nothing needs to be tracked.
+# (magnacoda-reports/ is the folder's name before 2026-10-12.)
+magnacoda-scans/
+magnacoda-reports/
+# Results saved by hand into the repo folder (-o results.json, --checklist myreport.md, ...).
+results*.json
+report*.json
+report*.md
+checklist*.md
+myreport*
+
+# Private local notes: the detailed development log (the public CHANGELOG.md is short),
+# job-search drafts, etc. Anything named *.local.md stays on this machine.
+*.local.md

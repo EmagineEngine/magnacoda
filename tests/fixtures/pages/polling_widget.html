@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Continuously polling widget fixture</title>
+</head>
+<body>
+  <h1>Page with a perpetually-updating widget</h1>
+  <div id="clock"></div>
+  <script>
+    setInterval(() => {
+      document.getElementById("clock").textContent = Date.now();
+    }, 50);
+  </script>
+</body>
+</html>

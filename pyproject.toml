@@ -1,0 +1,149 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs", "hatch-fancy-pypi-readme"]
+build-backend = "hatchling.build"
+
+[project]
+name = "magnacoda"
+dynamic = ["version", "readme"]
+description = "Scan live pages for WCAG accessibility issues, with plain-language explanations and fix suggestions"
+license = "FSL-1.1-MIT"
+license-files = ["LICENSE.md", "LICENSE-ADDITIONAL-PERMISSION.md"]
+authors = [{ name = "Phillip E. Honstein / EmagineEngine.com" }]
+requires-python = ">=3.10"
+keywords = ["accessibility", "wcag", "a11y", "playwright", "axe-core", "cli", "learning"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+]
+dependencies = [
+    "click>=8.1",
+    "rich>=13.0",
+    "playwright>=1.63",
+    "pydantic>=2.0",
+    "packaging>=23.0",  # version numbers for the update check, read as pip reads them
+    # The Anthropic client, for the AI tiers with an API key. Newest 1.x, never an untested 2.0:
+    # raise the limit after testing a new major version.
+    "anthropic>=0.40,<2",
+    # Draws the saved checklist as HTML on the review page (it also comes with rich).
+    "markdown-it-py>=2.2",
+    # Reads CSS source maps, to say which original file and line a style comes from (BSD-2-Clause).
+    "sourcemap>=0.2.1",
+    # Finds the Documents folder, where scans are saved (MIT).
+    "platformdirs>=4.0",
+    # Menu and desktop shortcuts on Linux, Windows and macOS (MIT); brings pywin32 on Windows.
+    "pyshortcuts>=1.9.11",
+    # The certificates HTTPS trusts (anthropic's connection uses it). Not before 2026.10.19, which drops
+    # the compromised eMudhra emSign certificates.
+    "certifi>=2026.10.19",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-playwright>=0.5",
+    "pytest-xdist>=3.5",  # the Makefile runs the tests in parallel
+    "ruff>=0.6",
+    "mypy>=1.10",
+    "build>=1.2",
+    "twine>=5.0",
+    "hatch-fancy-pypi-readme>=25.1",  # python -m hatch_fancy_pypi_readme previews the PyPI page
+    "pillow>=10",  # scripts/make_icons.py packs the Windows and macOS icons
+]
+
+[project.scripts]
+magnacoda = "magnacoda.start:main"
+magnacode = "magnacoda.start:run_as_magnacoda"  # a common slip of the fingers; see CONTRIBUTING "Command names"
+magnaconda = "magnacoda.start:run_as_magnacoda"  # likewise
+
+# Add-ons that come with magnacoda (magnacoda_addons/), found like installed ones (see plugins.py).
+[project.entry-points."magnacoda.plugins"]
+favorites = "magnacoda_addons.favorites.plugin"
+
+[project.urls]
+Homepage = "https://github.com/emagineengine/magnacoda"
+Website = "https://magnacoda.dev"
+Issues = "https://github.com/emagineengine/magnacoda/issues"
+Documentation = "https://github.com/emagineengine/magnacoda/blob/main/docs/manual.md"
+
+# The version comes from git tags (v0.1.0 -> 0.1.0); commits after a tag are dev versions such as
+# 0.1.1.dev3+gabc1234. The fallback is only for source archives that have neither git nor PKG-INFO.
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+fallback_version = "0.0.0"
+
+[tool.hatch.build.targets.wheel]
+packages = ["magnacoda", "magnacoda_addons"]
+exclude = ["magnacoda_addons/*/tests"]
+
+# Copies of the documents the viewer's Open list offers go into the package (magnacoda/documents.py).
+[tool.hatch.build.targets.wheel.force-include]
+"README.md" = "magnacoda/data/README.md"
+"docs/manual.md" = "magnacoda/data/manual.md"
+"CHANGELOG.md" = "magnacoda/data/CHANGELOG.md"
+"LICENSE.md" = "magnacoda/data/LICENSE.md"
+"LICENSE-ADDITIONAL-PERMISSION.md" = "magnacoda/data/LICENSE-ADDITIONAL-PERMISSION.md"
+"NOTICE.md" = "magnacoda/data/NOTICE.md"
+"TRADEMARK.md" = "magnacoda/data/TRADEMARK.md"
+
+# PyPI's copy of the README (hatch-fancy-pypi-readme): the README with links to repository files made
+# full, since PyPI has only the README.
+# Preview it with `python -m hatch_fancy_pypi_readme`.
+[tool.hatch.metadata.hooks.fancy-pypi-readme]
+content-type = "text/markdown"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+path = "README.md"
+
+# Left out on PyPI: text between <!-- not-on-pypi --> and <!-- /not-on-pypi -->, and in the install
+# commands, the notes for before magnacoda is on PyPI.
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '(?s)<!-- not-on-pypi -->.*?<!-- /not-on-pypi -->\n*'
+replacement = ""
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = ' +# once published to PyPI'
+replacement = ""
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '# or straight from GitHub.*\n.*\n'
+replacement = ""
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '\]\((?!https?://|#|mailto:)([^)\s]+)\)'
+replacement = '](https://github.com/emagineengine/magnacoda/blob/main/\1)'
+
+# Pictures (the logo) from the repository's raw files, since PyPI keeps no copy.
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '(src|srcset)="(?!https?://)([^"]+)"'
+replacement = '\1="https://raw.githubusercontent.com/emagineengine/magnacoda/main/\2"'
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: real headless-browser tests against local fixture pages",
+    "live_api: opt-in tests that call the real Anthropic API (requires ANTHROPIC_API_KEY + MAGNACODA_TEST_LIVE_AI=1)",
+]
+testpaths = ["tests", "magnacoda_addons"]
+pythonpath = ["."]
+
+[tool.mypy]
+python_version = "3.10"
+files = ["magnacoda", "magnacoda_addons"]
+exclude = ["magnacoda_addons/.*/tests/"]
+ignore_missing_imports = true

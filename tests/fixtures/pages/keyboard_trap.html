@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Keyboard trap</title></head>
+<body>
+<a href="#nowhere">Skip to content</a>
+<main>
+  <h1>Trap</h1>
+  <p><a href="#a">Before</a></p>
+  <div id="widget">
+    <button id="t1">One</button> <button id="t2">Two</button>
+  </div>
+  <p><a href="#b" id="after">After</a></p>
+</main>
+<script>
+  // Tab and Shift+Tab never leave the widget, and Escape doesn't help.
+  document.getElementById("widget").addEventListener("keydown", (e) => {
+    if (e.key !== "Tab") return;
+    e.preventDefault();
+    const other = document.activeElement.id === "t1" ? "t2" : "t1";
+    document.getElementById(other).focus();
+  });
+</script>
+</body>
+</html>

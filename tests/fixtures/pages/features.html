@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="refresh" content="3600">
+  <title>Page features fixture</title>
+  <style>
+    header { position: fixed; top: 0; left: 0; right: 0; background: #fff; color: #000; }
+    .pulse { animation: pulse 1s infinite; }
+    @keyframes pulse { from { opacity: 1; } to { opacity: 0.8; } }
+  </style>
+</head>
+<body>
+  <header>Sticky header</header>
+  <main style="margin-top: 3rem;">
+    <h1>Features</h1>
+    <video autoplay muted></video>
+    <audio></audio>
+    <iframe title="embed" src="about:blank"></iframe>
+    <canvas></canvas>
+    <img src="a.png" alt="a">
+    <form>
+      <label>Name <input type="text"></label>
+      <label>Password <input type="password"></label>
+      <div class="g-captcha-box captcha"></div>
+    </form>
+    <div role="dialog" aria-label="Dialog"></div>
+    <div role="status">Saved</div>
+    <div draggable="true">Drag me</div>
+    <button aria-label="Close">x</button>
+    <span title="Tooltip text">hover</span>
+    <div class="pulse">Spinner</div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Layout</title>
+<style>
+  body { margin: 0 8px; font: 16px/20px sans-serif; }
+  #wide { width: 600px; background: #eee; }
+  .scroll { overflow-x: auto; }
+  table { width: 500px; border-collapse: collapse; }
+  #tight { height: 40px; overflow: hidden; width: 300px; }
+  #spill { height: 40px; width: 300px; }
+  #half { width: 50%; height: 44px; overflow: hidden; }
+</style></head>
+<body>
+<main>
+  <h1>Layout</h1>
+  <div id="wide">This banner is always 600 pixels wide.</div>
+  <div class="scroll"><table id="fine"><tr><td>A wide table</td><td>in a scrolling box</td></tr></table></div>
+  <table id="loose"><tr><td>A wide table</td><td>with no scrolling box</td></tr></table>
+  <div id="tight">Two lines of text that fit exactly in this box.</div>
+  <div id="spill">Two lines of text in a box of a fixed height.</div>
+  <div id="half">A sentence that fits on two lines across half of a wide window, but needs more lines when the window is narrower.</div>
+  <p>Text that wraps normally is fine at any width and any spacing.</p>
+</main>
+</body>
+</html>

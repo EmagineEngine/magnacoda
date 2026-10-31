@@ -1,0 +1,7 @@
+.entry a { color: #2a5a9a; text-decoration: none; }
+a:focus { outline: none; }
+.no-underline { text-decoration: none; color: #2a5a9a; }
+body { color: #222222; }
+.card-title { height: 1.2em; overflow: hidden; width: 30em; }
+.pager { display: inline-block; width: 12px; height: 12px; font-size: 10px; text-decoration: underline; }
+/*# sourceMappingURL=site.css.map */

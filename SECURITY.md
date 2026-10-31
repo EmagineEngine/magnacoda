@@ -1,0 +1,28 @@
+# Security
+
+## API keys
+
+`magnacoda` needs your Anthropic API key for `--ai=explain`/`--ai=semantic`. It looks in two places, in order:
+
+1. The environment variable `ANTHROPIC_API_KEY`. This always takes precedence.
+2. A per-user config file, written only if you run `magnacoda setup` and choose to save a key there (or when a scan is rejected for an invalid/expired key and you choose to re-enter one). It lives at `~/.config/magnacoda/credentials.json` on Linux and macOS (or under `$XDG_CONFIG_HOME` if that's set), and `%APPDATA%\magnacoda\credentials.json` on Windows — the same per-user config location convention used by tools like `gh`, `aws`, and `npm`. It is never inside the project directory and is never read or written by anything other than `magnacoda/credentials.py`.
+
+On Linux and macOS, that file is created with owner-only read/write permissions (`0600`). On Windows, protection relies on `%APPDATA%` already being per-user by default. Remove a saved key at any time with `magnacoda setup --forget-key`.
+
+Never pass a key as a plain `--api-key` CLI flag — arguments are visible in shell history and process listings. When `magnacoda` prompts for a key interactively, the input is hidden and is never written to shell history. Never commit a key to a fixture, test, or issue report.
+
+## History
+
+*magnacoda* keeps `history.md` and `preferences.ini` in the same per-user config folder as `credentials.json` (along with small state files such as `news-state.json`, `farewell-state.json` and `tips-state.json`, which hold only dates, counts, version numbers and which tip is next). The history contains the URLs and options of your scans, which can reveal internal hostnames, so on Linux and macOS it is created with owner-only permissions (`0600`), written by `magnacoda/userdir.py`. The values of `--cookie` and `--extra-http-header` are replaced with `<redacted>` before anything is written, so credentials passed that way never reach the history. API keys are never written to it. To stop recording scans, set `[history] max = 0` in `preferences.ini`; to clear it, delete the file. If the folder cannot be written (a read-only home, for example), scans still run and nothing is recorded.
+
+## What data leaves your machine
+
+Nothing about your scans leaves your machine with `--ai=off` (the default), beyond loading the page you scan. (At the end of a scan, *magnacoda* presses Tab through the page, sends a made-up paste to password fields, presses each form's submit button, hovers over and clicks its controls, presses single keys with the fields empty, and changes the fields to see whether that alone sends the form or opens another page; every request the page makes meanwhile is blocked, so nothing is sent. To say where the CSS behind a problem is set, it may also download the scanned site's CSS source maps, the files that point from built stylesheets back to their original source; they come from the same place as the stylesheets, and the CSS rules it finds are saved with the scan, like the HTML snippets.) Separately, once a day *magnacoda* checks `pypi.org` for a newer version and `news.magnacoda.dev` for news, as plain requests for public files that send nothing about you or your scans; text from the news feed is cleaned of control characters before it is shown, so it can't affect your terminal. Turn the checks off with `check = off` under `[news]` in `preferences.ini`, or `MAGNACODA_NEWS=off`; the daily check never runs in CI or scripts. See the manual's [Updates and news](docs/manual.md#updates-and-news). With `--ai=explain` or `--ai=semantic`, see the manual's [AI tiers](docs/manual.md#ai-tiers) table for exactly what is sent to Anthropic per tier. Full-page HTML and screenshots are never sent. (When a Markdown checklist is written, *magnacoda* takes screenshots of the page's images and saves them next to the checklist, on your computer only; like the reports, they can show content from pages behind a login.) The data goes either to Anthropic's API with your key, or, with `--ai-engine claude-code`, through your own Claude Code login, where your Claude plan's terms and data settings apply instead of the API's. Claude Code is run with no tools, no saved session and your hooks switched off, from an empty temporary folder, and the page data is passed on standard input, not on the command line (where other local users could see it in the process list).
+
+## Reporting a vulnerability
+
+Please do not open a public issue for a suspected security vulnerability. Report it privately on GitHub instead: on the repository's Security tab, choose "Report a vulnerability". Or contact the maintainers directly (see `pyproject.toml` for current contact info).
+
+## The review page
+
+`review` shows a saved scan in your browser (its **Recheck fixes** button, like `recheck`, loads the scanned page again with the same settings and no AI; behind a login it uses the saved login file the scan used, whose path, never its contents, is kept in `results.json`; cookies and headers are never kept) through a small web server that runs on your computer only while you review it (Python's built-in `http.server`). It listens only on `127.0.0.1` (not your network), on a free port, and every address contains a new random secret (`secrets.token_urlsafe`); requests without it, with another `Host`, or sent from another website (`Origin`) are refused. It serves only the page and the PNG screenshots in that scan's `images/` folder (no other files, no `../`), and its only change is ticking or unticking one checklist line by its ID. The page is sent with a strict Content-Security-Policy, and all report and page text in it is escaped. It stops when you press Done or Ctrl+C.

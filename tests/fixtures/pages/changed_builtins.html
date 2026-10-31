@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Changed built-ins</title>
+<script>
+  // As some old JavaScript libraries did (this one is from a real page): Array.prototype.find
+  // replaced by one that looks for an item, where the built-in takes a test function.
+  Array.prototype.find = function (item) {
+    for (var i = 0; i < this.length; i++) if (this[i] === item) return this[i];
+  };
+</script>
+<meta http-equiv="Content-Security-Policy" content="script-src 'unsafe-inline'">
+</head>
+<body>
+<main>
+  <h1>Changed built-ins</h1>
+  <p><img src="red.png"></p>
+</main>
+</body>
+</html>

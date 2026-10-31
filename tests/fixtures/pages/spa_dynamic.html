@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>SPA dynamic content fixture</title>
+</head>
+<body>
+  <h1>Loading...</h1>
+  <div id="app"></div>
+  <script>
+    setTimeout(() => {
+      document.getElementById("app").innerHTML = '<img src="late.jpg">';
+    }, 800);
+  </script>
+</body>
+</html>

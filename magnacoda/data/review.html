@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{{title}}</title>
+<!--
+The review page for a saved scan (review_page.py fills in each placeholder in double curly braces; review_server.py serves it).
+Edit the wording and styles freely. Keep it accessible: one h1, headings in order, every checkbox labelled,
+visible focus, enough contrast in light and dark, and everything readable without JavaScript.
+-->
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1a1a1a; --muted: #4a4a4a; --link: #0842a0; --line: #c8c8c8; --panel: #f3f4f6;
+    --focus: #8f1d16; --ok: #155c30;
+    --critical: #8b0000; --serious: #8f1d16; --moderate: #6b4600; --minor: #3d5a80;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121212; --fg: #e8e8e8; --muted: #b8b8b8; --link: #8ab4f8; --line: #444; --panel: #1e1e1e;
+      --focus: #ffb4ab; --ok: #7fd49b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 1.0625rem/1.55 system-ui, sans-serif; }
+  .wrap { max-width: 62rem; margin: 0 auto; padding: 0 1rem; }
+  .main { padding-bottom: 2.5rem; }
+  a { color: var(--link); }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .skip { position: absolute; left: -9999px; }
+  .skip:focus { position: static; display: inline-block; margin: .5rem 0; }
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  header { border-bottom: 1px solid var(--line); padding: .75rem 0; }
+  header .bar { display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; align-items: center; justify-content: space-between; }
+  .product { margin: 0; font-weight: 600; }
+  nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .5rem; }
+  .variants a { display: inline-block; padding: .35rem .75rem; border: 1px solid var(--line); border-radius: .4rem;
+    text-decoration: none; }
+  .variants a[aria-current="page"] { background: var(--fg); color: var(--bg); border-color: var(--fg); font-weight: 600; }
+  form { margin: 0; }
+  .actions { display: flex; gap: .5rem; align-items: center; }
+  button[disabled] { opacity: .7; cursor: progress; }
+  button { font: inherit; padding: .4rem 1rem; border: 1px solid var(--fg); border-radius: .4rem;
+    background: var(--panel); color: var(--fg); cursor: pointer; }
+  h1 { font-size: 1.6rem; line-height: 1.25; margin: 1.25rem 0 .5rem; overflow-wrap: anywhere; }
+  h2 { font-size: 1.4rem; margin-top: 2.5rem; border-bottom: 2px solid var(--line); padding-bottom: .25rem; }
+  h3 { font-size: 1.2rem; margin-top: 2rem; }
+  h4 { font-size: 1.05rem; margin-top: 1.5rem; overflow-wrap: anywhere; }
+  code { font-size: .92em; background: var(--panel); padding: .05rem .3rem; border-radius: .25rem; overflow-wrap: anywhere; }
+  blockquote { margin: 1rem 0; padding: .5rem 1rem; border-left: 4px solid var(--line); background: var(--panel); }
+  img { max-width: 100%; height: auto; border: 1px solid var(--line); background: #fff; }
+  li > img { vertical-align: top; }  /* the bullet beside the image's top, not its bottom */
+  li.item { list-style: none; margin: .5rem 0 .5rem -1.4rem; }
+  #checklist-part li > ul > li { list-style: none; }  /* a detail under its line: indented, no bullet */
+  li.item > input { width: 1.2rem; height: 1.2rem; margin-right: .4rem; vertical-align: -0.2rem; }
+  .table-scroll { overflow-x: auto; margin: .75rem 0; }
+  table { border-collapse: collapse; width: 100%; }
+  caption { text-align: left; font-weight: 600; padding-bottom: .25rem; }
+  th, td { border: 1px solid var(--line); padding: .35rem .5rem; text-align: left; vertical-align: top; }
+  td ul { margin: 0; padding-left: 1.1rem; }
+  .sev { display: inline-block; padding: 0 .45rem; border-radius: .3rem; color: #fff; font-weight: 600; }
+  .sev-critical { background: var(--critical); } .sev-serious { background: var(--serious); }
+  .sev-moderate { background: var(--moderate); } .sev-minor { background: var(--minor); }
+  #status { min-height: 1.5rem; color: var(--ok); font-weight: 600; }
+  .on-page { margin: .25rem 0 0; color: var(--muted); }
+  details.part { margin-top: 2rem; border-top: 2px solid var(--line); }
+  details.part > summary { cursor: pointer; padding: .5rem 0; }
+  details.part > summary h2 { display: inline; margin: 0; border: 0; padding: 0; }
+  details.part > summary .count { margin-left: .75rem; color: var(--muted); }
+  .to-top { margin-top: 3rem; }
+  /* The footer's line runs the full width, like the header's. */
+  footer { border-top: 1px solid var(--line); padding: .75rem 0; }
+  footer p { margin: 0; }
+</style>
+</head>
+<body data-variant="{{variant}}">
+<a class="skip" href="#main">Skip to content</a>
+<header>
+  <div class="wrap bar">
+    <p class="product"><em>{{product}}</em> review</p>
+    {{switcher}}
+    <div class="actions">
+      <button id="recheck" type="button" title="Test the Fix items again, in a few seconds">Recheck fixes</button>
+      <form method="post" action="done"><button id="done" type="submit">Done</button></form>
+    </div>
+  </div>
+</header>
+<main id="main" class="wrap main">
+  <h1 id="top">{{heading}}</h1>
+  <nav aria-label="On this page" class="on-page"><ul><li>On this page:</li><li><a href="#findings">Findings</a></li><li><a href="#checklist">Checklist</a></li></ul></nav>
+  <p id="status" role="status" aria-live="polite"></p>
+  <noscript><p>Ticking items needs JavaScript; everything else on this page works without it. You can also tick items in the checklist file with a Markdown editor.</p></noscript>
+  <!-- Native disclosure sections: open and close without JavaScript. The findings start open, the
+       checklist closed; each line says what's inside. -->
+  <details class="part" id="findings-part" open>
+    <summary><h2 id="findings">Findings</h2><span class="count">{{findings_count}}</span></summary>
+    {{findings}}
+  </details>
+  <details class="part" id="checklist-part">
+    <summary><h2 id="checklist">Checklist</h2><span class="count" id="progress">{{progress}}</span></summary>
+    {{checklist}}
+  </details>
+  <p class="to-top"><a href="#top">Back to top</a></p>
+</main>
+<footer>
+  <div class="wrap"><p>Accessibility scan by <em>{{product}}</em>: <a href="https://magnacoda.dev/">https://magnacoda.dev/</a></p></div>
+</footer>
+<script>
+(() => {
+  const status = document.getElementById("status");
+  const progress = document.getElementById("progress");
+  const variant = document.body.dataset.variant;
+  const say = (text) => {  // cleared first, so the same message is announced again each time
+    status.textContent = "";
+    setTimeout(() => { status.textContent = text; }, 50);
+  };
+  const recount = () => {
+    const boxes = Array.from(document.querySelectorAll("input[data-id]"));
+    progress.textContent = `${boxes.filter((b) => b.checked).length} of ${boxes.length} checked`;
+  };
+  document.addEventListener("change", async (event) => {
+    const box = event.target;
+    if (!box.matches("input[data-id]")) return;
+    try {
+      const response = await fetch("tick", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: box.dataset.id, checked: box.checked, variant }),
+      });
+      if (!response.ok) throw new Error(String(response.status));
+      say(box.checked ? "Saved: ticked." : "Saved: unticked.");
+      recount();
+    } catch (error) {
+      box.checked = !box.checked;
+      say("Couldn't save. Is magnacoda still showing this report?");
+    }
+  });
+  // Recheck the fixes: the server tests them again and updates the saved checklist; then reload to show
+  // it, carrying the outcome over the reload so it is announced.
+  const recheck = document.getElementById("recheck");
+  try {
+    const last = sessionStorage.getItem("magnacoda-recheck");
+    if (last) { sessionStorage.removeItem("magnacoda-recheck"); say(last); }
+  } catch (error) { /* storage unavailable */ }
+  recheck.addEventListener("click", async () => {
+    recheck.disabled = true;
+    say("Rechecking the fixes: loading the page and testing them again, a few seconds a variant...");
+    try {
+      const response = await fetch("recheck", { method: "POST" });
+      if (!response.ok) throw new Error(await response.text());
+      const outcome = await response.json();
+      const text = outcome.errors.length
+        ? "Couldn't recheck: " + outcome.errors.join("; ")
+        : "Rechecked: " + outcome.summary + ".";
+      try { sessionStorage.setItem("magnacoda-recheck", text); } catch (error) { /* ignore */ }
+      location.reload();
+    } catch (error) {
+      say("Couldn't recheck: " + (error.message || "is magnacoda still showing this scan?"));
+      recheck.disabled = false;
+    }
+  });
+  // Remember which parts this browser had open (a convenience: without it the defaults apply).
+  for (const part of document.querySelectorAll("details.part")) {
+    const key = "magnacoda-review-" + part.id;
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved !== null) part.open = saved === "open";
+    } catch (error) { /* storage unavailable */ }
+    part.addEventListener("toggle", () => {
+      try { localStorage.setItem(key, part.open ? "open" : "closed"); } catch (error) { /* ignore */ }
+    });
+  }
+  document.getElementById("done").addEventListener("click", async (event) => {
+    event.preventDefault();
+    try { await fetch("done", { method: "POST" }); } catch (error) { /* already stopped */ }
+    document.getElementById("main").innerHTML =
+      "<h1>Done</h1><p>magnacoda has stopped showing this scan. You can close this tab.</p>";
+    document.title = "Done - " + document.title;
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Form errors</title>
+<style>.wrong { border: 2px solid #b00; } .error { color: #b00; } [hidden] { display: none; }</style></head>
+<body>
+<main>
+  <h1>Forms</h1>
+
+  <!-- The browser's own validation stops it. -->
+  <form id="native" action="/native" method="post">
+    <label>Email <input id="n-email" type="email" required></label>
+    <button>Join</button>
+  </form>
+
+  <!-- Done well: message tied to the field, in an alert, focus on the field. -->
+  <form id="good" action="/good" method="post" novalidate>
+    <label for="g-name">Name</label>
+    <input id="g-name" aria-describedby="g-name-error">
+    <div role="alert"><p id="g-name-error" class="error" hidden>Enter your name, for example Ana Silva.</p></div>
+    <button>Send</button>
+  </form>
+
+  <!-- Only a red border and aria-invalid: no error text at all. -->
+  <form id="bad" action="/bad" method="post" novalidate>
+    <label>Card number <input id="b-card"></label>
+    <button>Pay</button>
+  </form>
+
+  <!-- A message appears, but screen readers aren't told and it isn't tied to the field. -->
+  <form id="quiet" action="/quiet" method="post" novalidate>
+    <label>Phone <input id="q-phone"></label>
+    <p id="q-message" class="error"></p>
+    <button>Call me</button>
+  </form>
+
+  <!-- A search box: sent as it is, which is fine. -->
+  <form id="search" action="/search" method="get">
+    <label>Search <input id="s-q" name="q"></label>
+    <button>Search</button>
+  </form>
+</main>
+<script>
+  document.getElementById("good").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = document.getElementById("g-name");
+    name.setAttribute("aria-invalid", "true");
+    document.getElementById("g-name-error").hidden = false;
+    name.focus();
+  });
+  document.getElementById("bad").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const card = document.getElementById("b-card");
+    card.classList.add("wrong");
+    card.setAttribute("aria-invalid", "true");
+  });
+  document.getElementById("quiet").addEventListener("submit", (e) => {
+    e.preventDefault();
+    document.getElementById("q-message").textContent = "Fill in your phone number.";
+  });
+</script>
+</body>
+</html>

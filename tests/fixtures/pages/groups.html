@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Option groups</title></head>
+<body>
+<main>
+  <h1>Option groups</h1>
+  <form action="/meet" method="post">
+    <fieldset>
+      <legend>How do you meet?</legend>
+      <label class="radio"><input type="radio" name="mode" value="online" required> Online</label>
+      <label class="radio"><input type="radio" name="mode" value="person"> In person</label>
+      <label class="radio"><input type="radio" name="mode" value="hybrid"> Hybrid</label>
+    </fieldset>
+    <p>Size</p>
+    <div class="sizes">
+      <label class="radio"><input type="radio" name="size" value="s"> Small</label>
+      <label class="radio"><input type="radio" name="size" value="l"> Large</label>
+    </div>
+    <div role="group" aria-label="Topics">
+      <label><input type="checkbox" name="topics" value="a"> Agendas</label>
+      <label><input type="checkbox" name="topics" value="n"> Notes</label>
+    </div>
+    <span id="fmt-label">Mostly&hellip; (required)</span>
+    <div class="radios" role="radiogroup" aria-labelledby="fmt-label">
+      <label class="radio"><input type="radio" name="meeting_format" value="online" required> <span>Online</span></label>
+      <label class="radio"><input type="radio" name="meeting_format" value="hybrid" required> <span>Hybrid</span></label>
+    </div>
+    <label><input type="checkbox" name="agree" required> I agree</label>
+    <button>Send</button>
+  </form>
+</main>
+</body>
+</html>

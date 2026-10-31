@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="color-scheme" content="light dark">
+  <title>Dark mode fixture</title>
+  <style>
+    body { background: #ffffff; color: #000000; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #111111; color: #333333; } /* deliberately low contrast in dark only */
+    }
+  </style>
+</head>
+<body>
+  <h1>Dark mode fixture</h1>
+  <p>Readable in light mode, low contrast in dark mode.</p>
+</body>
+</html>

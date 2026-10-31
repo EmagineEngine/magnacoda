@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Responsive fixture</title>
+  <style>
+    /* Hidden on wide screens; only shown on a narrow (phone-sized) window. */
+    .phone-only { display: none; }
+    @media (max-width: 600px) { .phone-only { display: block; } }
+  </style>
+</head>
+<body>
+  <h1>Responsive page</h1>
+  <p style="color:#000;background-color:#fff;">Clean on desktop; the phone layout adds one bad image.</p>
+  <img class="phone-only" src="banner.jpg">
+</body>
+</html>

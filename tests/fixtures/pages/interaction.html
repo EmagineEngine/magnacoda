@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Interaction</title>
+<style>
+  body { font: 16px/1.5 sans-serif; margin: 1rem; }
+  [role="tooltip"] { position: absolute; top: 100%; left: 0; width: 16rem; background: #222; color: #fff;
+    padding: .25rem .5rem; z-index: 1; }
+  .wrap { position: relative; display: inline-block; }
+  .clicky { cursor: pointer; display: inline-block; padding: .25rem; border: 1px solid #888; }
+  #ticker, #news { width: 300px; height: 40px; border: 1px solid #888; }
+</style></head>
+<body>
+<main>
+  <h1>Interaction</h1>
+  <p><input id="search" aria-label="Search"></p>
+
+  <!-- Hover: a bad tooltip (gone when the pointer leaves the button, Escape does nothing) and a good one. -->
+  <p class="wrap"><button id="bad-tip" aria-describedby="t1">Bad tip</button>
+    <span id="t1" role="tooltip" hidden>This tooltip vanishes when you move onto it.</span></p>
+  <p class="wrap" id="good-wrap"><button id="good-tip" aria-describedby="t2">Good tip</button>
+    <span id="t2" role="tooltip" hidden>This tooltip stays while you read it.</span></p>
+
+  <!-- Toggles: one whose aria-expanded never changes, one done right, one without aria-expanded. -->
+  <p><button id="stale" type="button" aria-expanded="false" aria-controls="p1">Stale details</button></p>
+  <div id="p1" hidden><p>Details that open, while the button still says closed.</p></div>
+  <p><button id="right" type="button" aria-expanded="false" aria-controls="p2">Right details</button></p>
+  <div id="p2" hidden><p>Details that open, and the button says so.</p></div>
+  <p><button id="bare" type="button">More options</button></p>
+  <div id="p3" hidden><p>Options shown by a button that doesn't say it opens anything.</p></div>
+
+  <!-- Mouse only, keys that don't work, and a custom button done right. -->
+  <p><span id="mouse-only" class="clicky" onclick="this.textContent = 'Clicked'">Mouse only</span></p>
+  <p><span id="no-keys" class="clicky" role="button" tabindex="0">No keys</span></p>
+  <p><span id="keys" class="clicky" role="button" tabindex="0">Keys work</span></p>
+
+  <!-- Moving by itself, without and with a pause button. -->
+  <div id="ticker">Headline 0</div>
+  <div id="news-box"><div id="news">News 0</div><button id="pause" type="button">Pause</button></div>
+
+  <video id="described" width="200" height="100"><track kind="descriptions" label="Described"></video>
+  <video id="undescribed" width="200" height="100"><track kind="captions" label="English"></video>
+</main>
+<script>
+  const show = (id, on) => { document.getElementById(id).hidden = !on; };
+  const bad = document.getElementById("bad-tip");
+  bad.addEventListener("mouseenter", () => show("t1", true));
+  bad.addEventListener("mouseleave", () => show("t1", false));
+  const wrap = document.getElementById("good-wrap");
+  wrap.addEventListener("mouseenter", () => show("t2", true));
+  wrap.addEventListener("mouseleave", () => show("t2", false));
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") show("t2", false);
+    if (e.key === "/" && document.activeElement === document.body) {
+      e.preventDefault();
+      document.getElementById("search").focus();
+    }
+  });
+  document.getElementById("stale").addEventListener("click", () => {
+    const p = document.getElementById("p1"); p.hidden = !p.hidden;
+  });
+  document.getElementById("right").addEventListener("click", (e) => {
+    const p = document.getElementById("p2"); p.hidden = !p.hidden;
+    e.currentTarget.setAttribute("aria-expanded", String(!p.hidden));
+  });
+  document.getElementById("bare").addEventListener("click", () => {
+    const p = document.getElementById("p3"); p.hidden = !p.hidden;
+  });
+  document.getElementById("no-keys").addEventListener("click", (e) => { e.currentTarget.textContent = "Clicked"; });
+  const keys = document.getElementById("keys");
+  keys.addEventListener("click", () => { keys.textContent = "Clicked"; });
+  keys.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") keys.click(); });
+  let n = 0;
+  setInterval(() => { n++; document.getElementById("ticker").textContent = "Headline " + n; }, 700);
+  let m = 0;
+  setInterval(() => { m++; document.getElementById("news").textContent = "News " + m; }, 700);
+</script>
+</body>
+</html>

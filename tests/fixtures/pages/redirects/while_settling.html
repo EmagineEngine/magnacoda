@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Moves on while it is still changing</title></head>
+<body><main><h1>Loading</h1><p id="ticker">0</p></main>
+<script>
+  // Keeps changing, so the scan is still waiting for it to settle when it moves on.
+  let n = 0;
+  setInterval(() => { document.getElementById("ticker").textContent = String(++n); }, 100);
+  setTimeout(() => location.replace("target.html"), 900);
+</script>
+</body>
+</html>

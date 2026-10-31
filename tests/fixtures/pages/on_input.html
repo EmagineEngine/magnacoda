@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>On input</title></head>
+<body>
+<main>
+  <h1>Settings</h1>
+  <form id="settings" action="/saved" method="post">
+    <label>Name <input id="name" name="name"></label>
+    <label>Language
+      <select id="language" onchange="location.href = '/' + this.value">
+        <option value="en">English</option><option value="fr">Français</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="news" onchange="this.form.submit()"> Send me news</label>
+    <label>Size
+      <select id="size"><option>Small</option><option>Large</option></select>
+    </label>
+    <label>Search <input id="search" oninput="window.open('/results?q=' + this.value)"></label>
+    <label>Code <input id="code" oninput="document.getElementById('name').focus()"></label>
+    <button type="submit">Save</button>
+  </form>
+</main>
+</body>
+</html>

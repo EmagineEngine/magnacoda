@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hidden but reachable</title>
+<style>
+  .skip { position: absolute; left: -9999px; }
+  .skip:focus { position: static; }
+  .hp { position: absolute; left: -9999px; }
+  .clipped { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ghost { opacity: 0; }
+</style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <main id="main">
+    <h1>Contact</h1>
+    <form>
+      <label>Your name <input name="name"></label>
+      <div class="hp"><label>Leave this field empty <input name="website"></label></div>
+      <div class="hp" aria-hidden="true"><label>Also empty <input name="url" tabindex="-1"></label></div>
+      <div hidden><label>If something else, what? <input name="other"></label></div>
+      <span class="clipped"><button type="button">Secret button</button></span>
+      <a class="ghost" href="/nowhere">Invisible link</a>
+      <button type="submit">Send</button>
+    </form>
+  </main>
+</body>
+</html>
