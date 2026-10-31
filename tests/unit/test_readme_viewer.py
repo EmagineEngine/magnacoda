@@ -128,12 +128,13 @@ def test_readme_is_in_the_help_but_not_the_banner():
     assert "readme" not in banner.split("Commands:")[1].splitlines()[0]
 
 
-def test_a_logo_in_html_is_left_out_and_the_title_under_it_still_found():
-    logo = '<p align="center">\n<picture>\n<source srcset="d.svg">\n<img src="l.svg">\n</picture>\n</p>'
-    text = logo + '\n\n# Manual\n\n<p>Kept.</p>\n\n```\n<img src="x">\n```\n'
+def test_a_logo_and_tagline_in_html_are_left_out_and_the_title_under_them_still_found():
+    logo = '<h1 align="center">\n<picture>\n<source srcset="d.svg">\n<img src="l.svg">\n</picture>\n'
+    tagline = '<br><sub>Scan pages.<br>Fix them.</sub>\n</h1>\n<p align="center">Or here.</p>'
+    text = logo + tagline + '\n\n# Manual\n\n<p align="center">Kept.</p>\n\n```\n<img src="x">\n```\n'
     document = markdown.parse(text)
     assert document.title == "Manual"
-    assert document.sections[0][1] == '<p>Kept.</p>\n\n```\n<img src="x">\n```'
+    assert document.sections[0][1] == '<p align="center">Kept.</p>\n\n```\n<img src="x">\n```'
 
 
 def test_a_picture_is_shown_as_its_file_in_the_terminal():

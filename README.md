@@ -1,9 +1,10 @@
 <h1 align="center">
 <picture>
-<source media="(prefers-color-scheme: dark)" srcset="docs/images/magnacoda-DrkColor-LogoAndSlogan.svg">
-<img src="docs/images/magnacoda-LightColor-LogoAndSlogan.svg" alt="magnacoda: Scan for web accessibility issues. Learn to fix them." width="240">
+<source media="(prefers-color-scheme: dark)" srcset="docs/images/magnacoda-DrkColorGH-Logo.svg">
+<img src="docs/images/magnacoda-LightColorGH-Logo.svg" alt="magnacoda" width="240">
 </picture>
 </h1>
+<p align="center">Scan for web accessibility issues.<br>Learn to fix them.</p>
 
 **Contents**
 

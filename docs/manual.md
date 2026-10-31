@@ -1,9 +1,10 @@
 <p align="center">
 <picture>
-<source media="(prefers-color-scheme: dark)" srcset="images/magnacoda-DrkColor-LogoAndSlogan.svg">
-<img src="images/magnacoda-LightColor-LogoAndSlogan.svg" alt="magnacoda: Scan for web accessibility issues. Learn to fix them." width="240">
+<source media="(prefers-color-scheme: dark)" srcset="images/magnacoda-DrkColorGH-Logo.svg">
+<img src="images/magnacoda-LightColorGH-Logo.svg" alt="magnacoda" width="240">
 </picture>
 </p>
+<p align="center">Scan for web accessibility issues.<br>Learn to fix them.</p>
 
 # *magnacoda* manual
 

@@ -33,6 +33,8 @@ _TITLE = re.compile(r"^#\s+(.+?)\s*#*\s*$")
 _COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
 # A line of nothing but the tags around a picture, such as a logo in <picture>: a terminal can't show it.
 _PICTURE_TAGS = re.compile(r"^\s*(?:</?(?:h1|p|div|picture|source|img)\b[^>]*>\s*)+$", re.IGNORECASE)
+# A line of HTML above the first heading, such as a tagline under a logo, is part of the banner.
+_BANNER_LINE = re.compile(r"^\s*<[a-z][^>]*>.*</[a-z][a-z0-9]*>\s*$", re.IGNORECASE)
 _IMAGE = re.compile(r"!\[([^\]]*)\]\(<?([^)>]+)>?\)")  # ![alt](path) or ![alt](<path with spaces>)
 _ANCHOR_LINK = re.compile(r"\[([^\]]+)\]\(#([^)]*)\)")  # [Quick start](#quick-start)
 _SAME_TEXT_LINK = re.compile(r"\[(https?://[^\]]+)\]\(\1\)")  # [https://x](https://x)
@@ -201,6 +203,8 @@ def parse(text: str, options: PagerOptions | None = None) -> Document:
         for line, in_text in zip(lines, _outside_code(lines), strict=True)
         if not (in_text and _PICTURE_TAGS.match(line))
     ]
+    heading = next((index for index, line in enumerate(lines) if _HEADING.match(line)), len(lines))
+    lines = [line for line in lines[:heading] if not _BANNER_LINE.match(line)] + lines[heading:]
     first = next((index for index, line in enumerate(lines) if line.strip()), None)
     title = None
     if first is not None and (match := _TITLE.match(lines[first])):
