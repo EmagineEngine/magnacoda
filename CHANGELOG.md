@@ -2,11 +2,24 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased]
+## [0.1.1]
+
+### Changed
+
+- `update` now upgrades installs made with uv for you, along with their add-ons, as it already did for pipx.
+- Works with Playwright 1.64, so a new install scans with Chromium 156 and Firefox 157.
+- The README's install steps start with uv on Windows, macOS and Linux, since it brings its own Python. pipx follows as the alternative.
+- A new logo that reads well on GitHub's light and dark themes, with the slogan as text under it.
+
+### Fixed
+
+- `update` recognizes a uv install kept in a folder of its own (`UV_TOOL_DIR`). It used to try pip there, which failed.
+
+## [0.1.0] - 2026-10-30
 
 ### Added
 
-- Initial commit: a command-line accessibility scanner for a single page URL.
+- First public release: a command-line accessibility scanner for a single page URL.
   - Licensed under the Functional Source License, Version 1.1, MIT Future License (FSL-1.1-MIT): free to use, change and share for anything but a competing commercial product or service, and each version becomes MIT-licensed two years after release. An additional permission (`LICENSE-ADDITIONAL-PERMISSION.md`) allows consultants and agencies to use it in client work. Contributions come under the terms in CONTRIBUTING (sign-off on each commit).
   - Detects WCAG 2 issues with axe-core running in a real browser (Chromium or Firefox, via Playwright), including JavaScript-rendered pages and single-page apps.
   - Optional AI reasoning through your own Anthropic API key, or through your Claude Code login so a Claude subscription can be used (`--ai-engine`): plain-language explanations for the top 10 findings, and a second pass for issues axe-core can't detect.
