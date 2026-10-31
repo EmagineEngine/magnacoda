@@ -23,6 +23,11 @@ def test_how_it_was_installed(prefix, base, editable, kind):
     assert updater.install_kind(prefix=prefix, base_prefix=base, editable=editable) == kind
 
 
+def test_a_uv_tool_in_a_folder_of_its_own_is_known_by_its_receipt(tmp_path):
+    (tmp_path / "uv-receipt.toml").write_text("[tool]\n", encoding="utf-8")
+    assert updater.install_kind(str(tmp_path), "/usr", editable=False) == UV
+
+
 def test_this_checkout_is_a_development_install():
     assert updater.install_kind() == DEV
 
@@ -53,12 +58,22 @@ def test_a_virtual_environment_uses_its_own_pip():
     ]
 
 
-def test_uv_and_unknown_installs_are_only_shown_and_never_use_sudo():
-    assert updater.plan(["magnacoda"], UV).commands == [["uv", "tool", "upgrade", "magnacoda"]]
+def test_uv_upgrades_the_whole_tool_which_brings_its_add_ons_along():
+    plan = updater.plan(["magnacoda", "public-addon"], UV, uv="/home/a/.local/bin/uv")
+    assert plan.kind == UV
+    assert plan.commands == [["/home/a/.local/bin/uv", "tool", "upgrade", "magnacoda"]]
+
+
+def test_without_uv_on_the_path_the_command_is_only_shown():
+    plan = updater.plan(["public-addon"], UV, uv="")
+    assert plan.kind == SHOW and plan.commands == [["uv", "tool", "upgrade", "magnacoda"]]
+
+
+def test_unknown_installs_are_only_shown_and_nothing_uses_sudo():
     other = updater.plan(["magnacoda"], SHOW)
     assert other.kind == SHOW and other.note
     for kind in (DEV, PIPX, UV, VENV, SHOW):
-        for command in updater.plan(["magnacoda", "x"], kind, pipx="pipx").commands:
+        for command in updater.plan(["magnacoda", "x"], kind, pipx="pipx", uv="uv").commands:
             assert "sudo" not in command
 
 
@@ -101,11 +116,13 @@ def test_a_missing_program_counts_as_a_failure(monkeypatch, tmp_path):
     assert updater.tail(log)[-1] == "pipx"
 
 
-def test_the_repair_for_pipx_is_a_reinstall_which_also_restores_add_ons():
+def test_the_repair_for_pipx_and_uv_is_a_reinstall_which_also_restores_add_ons():
     plan = updater.plan(["magnacoda", "public-addon"], PIPX, pipx="C:/pipx.exe")
     repair = updater.repair_command(PIPX, plan.commands).splitlines()
     assert repair[0] == "C:/pipx.exe reinstall magnacoda"
     assert repair[1].startswith("If that fails: C:/pipx.exe uninstall magnacoda, then install magnacoda")
+    uv = updater.plan(["magnacoda"], UV, uv="uv")
+    assert updater.repair_command(UV, uv.commands).splitlines()[0] == "uv tool upgrade --reinstall magnacoda"
     venv = updater.plan(["magnacoda"], VENV)
     assert updater.repair_command(VENV, venv.commands) == updater.shown(venv.commands[0])
 

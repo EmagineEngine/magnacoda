@@ -373,7 +373,7 @@ Once a day, when you use *magnacoda* in a terminal, it quietly checks two places
 
 **Turning it off:** set `check = off` under `[news]` in `preferences.ini` (see [Settings](#settings)), or set the environment variable `MAGNACODA_NEWS=off`. `news` then shows only the notes that came with your version, and `update` still checks when you run it, since you asked.
 
-**How `update` works:** it shows the versions it found and the exact commands it will run, and asks first. If you installed *magnacoda* with pipx, or with pip in a virtual environment, it runs them, then closes *magnacoda* so you can start the new version. On Windows, a running program can't replace itself, so the update opens in a new window and starts once *magnacoda* has closed. For any other kind of install, it shows the command to run yourself.
+**How `update` works:** it shows the versions it found and the exact commands it will run, and asks first. If you installed *magnacoda* with uv, pipx, or pip in a virtual environment, it runs them, then closes *magnacoda* so you can start the new version. On Windows, a running program can't replace itself, so the update opens in a new window and starts once *magnacoda* has closed. For any other kind of install, it shows the command to run yourself.
 
 ## AI and automation
 

@@ -3,9 +3,11 @@
 - A development install (editable, from a checkout) is never updated: that's `git pull`.
 - pipx: `pipx upgrade magnacoda`, and `pipx runpip magnacoda install --upgrade <add-on>` for add-ons
   (pipx's own "include injected" option would also try private add-ons, which aren't on PyPI).
+- uv: `uv tool upgrade magnacoda`, which upgrades the whole tool environment, so add-ons installed
+  with `--with` come along.
 - pip in a virtual environment: that environment's `python -m pip install --upgrade ...`.
-- Anything else (a uv tool, a system or Homebrew Python, an install that needs admin rights, or one
-  that can't be recognized): the command is only shown. magnacoda never runs `sudo`.
+- Anything else (a system or Homebrew Python, an install that needs admin rights, or one that can't be
+  recognized), or pipx or uv not on the PATH: the command is only shown. magnacoda never runs `sudo`.
 
 On Windows the files are locked while magnacoda runs, so the commands go into a PowerShell script in a
 new window that waits for every copy to exit first.
@@ -28,7 +30,7 @@ DEV, PIPX, UV, VENV, SHOW = "development", "pipx", "uv tool", "virtual environme
 
 @dataclass(frozen=True)
 class Plan:
-    kind: str  # DEV, PIPX, VENV (run), or SHOW (only shown)
+    kind: str  # DEV, PIPX, UV, VENV (run), or SHOW (only shown)
     commands: list[list[str]]  # what to run (or, for SHOW, what to suggest)
     note: str = ""
 
@@ -53,14 +55,17 @@ def install_kind(
     parts = [part.lower() for part in path.parts]
     if path.parent.name.lower() == "venvs" and any("pipx" in part for part in parts):
         return PIPX
-    if path.parent.name.lower() == "tools" and "uv" in parts:
+    # uv writes a receipt into every tool's folder; the folder names cover a receipt that's gone.
+    if (path / "uv-receipt.toml").is_file() or (path.parent.name.lower() == "tools" and "uv" in parts):
         return UV  # its environment has no pip, so uv itself must do it
     if (sys.base_prefix if base_prefix is None else base_prefix).replace("\\", "/") != here:
         return VENV
     return SHOW
 
 
-def plan(packages: list[str], kind: str | None = None, pipx: str | None = None) -> Plan:
+def plan(
+    packages: list[str], kind: str | None = None, pipx: str | None = None, uv: str | None = None
+) -> Plan:
     """The commands that update `packages` (magnacoda and/or add-on names) for this install."""
     kind = install_kind() if kind is None else kind
     addons = [name for name in packages if name != "magnacoda"]
@@ -77,11 +82,11 @@ def plan(packages: list[str], kind: str | None = None, pipx: str | None = None) 
             return Plan(PIPX, commands)
         return Plan(SHOW, commands, "pipx isn't on your PATH here, so run this yourself:")
     if kind == UV:
-        return Plan(
-            SHOW,
-            [["uv", "tool", "upgrade", "magnacoda"]],
-            "magnacoda was installed with uv; run this yourself:",
-        )
+        uv = shutil.which("uv") if uv is None else uv
+        commands = [[uv or "uv", "tool", "upgrade", "magnacoda"]]  # add-ons included
+        if uv:
+            return Plan(UV, commands)
+        return Plan(SHOW, commands, "uv isn't on your PATH here, so run this yourself:")
     if kind == VENV:
         return Plan(VENV, [[sys.executable, "-m", "pip", "install", "--upgrade", *packages]])
     commands = [["python", "-m", "pip", "install", "--upgrade", *packages]]
@@ -148,6 +153,13 @@ def repair_command(kind: str, commands: list[list[str]]) -> str:
             f"{shown([pipx, 'reinstall', 'magnacoda'])}\n"
             f"If that fails: {shown([pipx, 'uninstall', 'magnacoda'])}, then install magnacoda (and any "
             "add-ons) again the way you did the first time."
+        )
+    if kind == UV and commands:
+        uv = commands[0][0]
+        return (
+            f"{shown([uv, 'tool', 'upgrade', '--reinstall', 'magnacoda'])}\n"
+            f"If that fails: {shown([uv, 'tool', 'uninstall', 'magnacoda'])}, then install magnacoda (and "
+            "any add-ons) again the way you did the first time."
         )
     return "\n".join(shown(command) for command in commands)
 
