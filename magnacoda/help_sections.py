@@ -40,9 +40,10 @@ def _author(package: str) -> str:
         md = metadata.metadata(package)
     except metadata.PackageNotFoundError:
         return ""
-    author = md.get("Author") or ""
+    author = (md.get_all("Author") or [""])[0]
     if not author:  # "Jane Doe <jane@example.org>, ..." gives Jane Doe
-        author = (md.get("Author-email") or "").split(",")[0].split("<")[0].strip().strip('"')
+        email = (md.get_all("Author-email") or [""])[0]
+        author = email.split(",")[0].split("<")[0].strip().strip('"')
     return author
 
 

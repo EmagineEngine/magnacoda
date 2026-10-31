@@ -67,7 +67,7 @@ Check the [requirements](#requirements), install with the [quick start](#quick-s
 
 ### Requirements
 
-- **Python 3.10 or newer.**
+- **Python 3.11 or newer.**
 - **One browser, not all of them: Chromium or Firefox.** *magnacoda* drives a browser build that Playwright downloads for you; it does not use the Chrome or Firefox already installed on your computer. `magnacoda setup` installs Chromium (about 100 MB), which is the default. To use Firefox instead, run `playwright install firefox` (about 110 MB) and add `--browser firefox` to your scans. You never need both.
 - **Browser versions:** you don't choose them; they come with the Playwright release installed alongside *magnacoda*. *magnacoda* requires **Playwright 1.63 or newer**, which downloads **Chromium 153 and Firefox 155** (or newer), so those are the minimum browser versions.
 

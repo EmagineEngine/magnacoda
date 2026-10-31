@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -342,7 +342,7 @@ class CriterionEntry(BaseModel):
 class ScanMeta(BaseModel):
     tool_version: str
     axe_core_version: str
-    scanned_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    scanned_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     wcag_version: str
     wcag_level: WcagLevel
     ai_tier: Literal["off", "explain", "semantic"]

@@ -1,5 +1,6 @@
 """The add-on hooks (plugins.py), exercised through fake add-ons instead of installed packages."""
 
+import email.message
 from types import SimpleNamespace
 
 import click
@@ -295,8 +296,11 @@ def test_an_addons_help_names_it_and_its_author_and_typing_the_section_name_stil
     text = "## tools\n\n### Example tools\n\nThey help.\n"
     addons(("example-tools", _hooks(help_text=lambda: text)))
     real = help_sections.metadata.metadata
-    authors = {"example-tools": {"Author-email": '"Jane *Doe*" <jane@example.org>'}}
-    monkeypatch.setattr(help_sections.metadata, "metadata", lambda name: authors.get(name) or real(name))
+    fake = email.message.Message()
+    fake["Author-email"] = '"Jane *Doe*" <jane@example.org>'
+    monkeypatch.setattr(
+        help_sections.metadata, "metadata", lambda name: fake if name == "example-tools" else real(name)
+    )
     output = CliRunner().invoke(main, ["help", "tools"]).output  # the name without the mark
     assert " ".join(output.split()) == (
         "Example tools From the add-on example-tools 1.2, by Jane Doe. It isn't part of magnacoda's own "

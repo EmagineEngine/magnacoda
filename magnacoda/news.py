@@ -19,7 +19,7 @@ import threading
 import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from importlib import metadata, resources
 from pathlib import Path
 from typing import Any
@@ -303,7 +303,7 @@ def latest_on_pypi(package: Package, fetch: Fetch | None = None) -> str | None:
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _local_date() -> str:

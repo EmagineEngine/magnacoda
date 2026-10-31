@@ -9,14 +9,13 @@ description = "Scan live pages for WCAG accessibility issues, with plain-languag
 license = "FSL-1.1-MIT"
 license-files = ["LICENSE.md", "LICENSE-ADDITIONAL-PERMISSION.md"]
 authors = [{ name = "Phillip E. Honstein / EmagineEngine.com" }]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 keywords = ["accessibility", "wcag", "a11y", "playwright", "axe-core", "cli", "learning"]
 classifiers = [
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -26,7 +25,9 @@ classifiers = [
 dependencies = [
     "click>=8.1",
     "rich>=13.0",
-    "playwright>=1.63",
+    # Newest 1.63.x: 1.64 waits for page loads after typing or choosing from a list, and the interaction
+    # tests answer those with an empty 204, so they hang. Raise the limit once that is handled.
+    "playwright>=1.63,<1.64",
     "pydantic>=2.0",
     "packaging>=23.0",  # version numbers for the update check, read as pip reads them
     # The Anthropic client, for the AI tiers with an API key. Newest 1.x, never an untested 2.0:
@@ -129,7 +130,7 @@ replacement = '\1="https://raw.githubusercontent.com/emagineengine/magnacoda/mai
 
 [tool.ruff]
 line-length = 110
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
@@ -143,7 +144,7 @@ testpaths = ["tests", "magnacoda_addons"]
 pythonpath = ["."]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 files = ["magnacoda", "magnacoda_addons"]
 exclude = ["magnacoda_addons/.*/tests/"]
 ignore_missing_imports = true

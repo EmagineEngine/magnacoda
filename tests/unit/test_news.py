@@ -1,6 +1,6 @@
 import json
 import threading
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
@@ -178,7 +178,7 @@ def test_a_check_saves_versions_and_news(checks_on):
 
 
 def test_it_checks_at_most_once_a_day_unless_forced(checks_on):
-    now = datetime(2026, 11, 2, 12, tzinfo=timezone.utc)
+    now = datetime(2026, 11, 2, 12, tzinfo=UTC)
     news.refresh(fake_fetch(_answers()), now=now)
     later = fake_fetch(_answers())
     news.refresh(later, now=now + timedelta(hours=23))
