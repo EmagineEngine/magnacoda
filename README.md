@@ -69,7 +69,7 @@ Check the [requirements](#requirements), install with the [quick start](#quick-s
 
 - **Python 3.11 or newer.** You don't need to install it yourself if you use uv, as the quick start does, since uv brings its own.
 - **One browser, not all of them: Chromium or Firefox.** *magnacoda* drives a browser build that Playwright downloads for you; it does not use the Chrome or Firefox already installed on your computer. `magnacoda setup` installs Chromium (about 100 MB), which is the default. To use Firefox instead, run `playwright install firefox` (about 110 MB) and add `--browser firefox` to your scans. You never need both.
-- **Browser versions:** you don't choose them; they come with the Playwright release installed alongside *magnacoda*. *magnacoda* uses **Playwright 1.63**, which downloads **Chromium 153 and Firefox 155**.
+- **Browser versions:** you don't choose them; they come with the Playwright release installed alongside *magnacoda*. *magnacoda* is tested with **Playwright 1.63 and 1.64**. A new install gets 1.64, which downloads **Chromium 156 and Firefox 157**.
 
 ### Quick start
 

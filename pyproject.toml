@@ -25,9 +25,9 @@ classifiers = [
 dependencies = [
     "click>=8.1",
     "rich>=13.0",
-    # Newest 1.63.x: 1.64 waits for page loads after typing or choosing from a list, and the interaction
-    # tests answer those with an empty 204, so they hang. Raise the limit once that is handled.
-    "playwright>=1.63,<1.64",
+    # Tested releases only: 1.64 changed how actions wait for page loads, which hung the interaction tests
+    # until blocking.py stopped loads in the page. Raise the limit after testing a new release.
+    "playwright>=1.63,<1.65",
     "pydantic>=2.0",
     "packaging>=23.0",  # version numbers for the update check, read as pip reads them
     # The Anthropic client, for the AI tiers with an API key. Newest 1.x, never an untested 2.0:
