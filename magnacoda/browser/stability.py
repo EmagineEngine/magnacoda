@@ -59,6 +59,9 @@ def wait_for_stable(page: Page, config: StabilityConfig) -> StabilityReport:
                 page.evaluate(_OBSERVER_SCRIPT)
                 watching = True
                 time.sleep(config.min_wait_ms / 1000)
+                # The quiet period starts after the minimum wait, so content a script adds a moment after
+                # loading is still waited for on a fast computer.
+                page.evaluate("() => { window.__magnacoda.lastMutationAt = performance.now(); }")
             last_mutation_ms = page.evaluate("() => window.__magnacoda && window.__magnacoda.lastMutationAt")
             now_ms = page.evaluate("() => performance.now()")
         except Exception as exc:
