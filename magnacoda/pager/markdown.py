@@ -203,8 +203,8 @@ def parse(text: str, options: PagerOptions | None = None) -> Document:
         for line, in_text in zip(lines, _outside_code(lines), strict=True)
         if not (in_text and _PICTURE_TAGS.match(line))
     ]
-    heading = next((index for index, line in enumerate(lines) if _HEADING.match(line)), len(lines))
-    lines = [line for line in lines[:heading] if not _BANNER_LINE.match(line)] + lines[heading:]
+    top = next((index for index, line in enumerate(lines) if _HEADING.match(line)), len(lines))
+    lines = [line for line in lines[:top] if not _BANNER_LINE.match(line)] + lines[top:]
     first = next((index for index, line in enumerate(lines) if line.strip()), None)
     title = None
     if first is not None and (match := _TITLE.match(lines[first])):
