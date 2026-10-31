@@ -115,7 +115,7 @@ The pager in `magnacoda/pager/` is written to be released on its own (MIT). It i
 - `reference.py`: the command-reference format, which `help` and `news` use: `## name` sections, term lists with the description under or beside each term, terms never wrapped. `help.md`'s opening comment describes it for writers.
 - `files.py`: reads a file safely: at most 2 MB, control codes stripped, binary files refused.
 - `options.py`: `PagerOptions`, from the defaults, then a settings file, then the program opening the pager. *magnacoda* uses the `[pager]` section of `preferences.ini` as that file. `save_setting` saves a color chosen with `c`, changing only that line.
-- `links.py`: web addresses as terminal hyperlinks (OSC 8); one too long for its line is shortened in the middle, so none is split. Not in code, nor for addresses containing "example".
+- `links.py`: web addresses as terminal hyperlinks (OSC 8); one too long for its line is shortened in the middle, so none is split. Not in code, nor for addresses containing "example."
 - `browser.py`: opens a link in a graphical browser, quietly, http and https only. `review` uses it too (the pager never imports *magnacoda*, but *magnacoda* may import the pager).
 - `emphasis.py`: *italic* and **bold** in help and news (Markdown gets Rich's own); printed text stays plain.
 - `tint.py`: code on a background of its own instead of backticks, where the colors allow.

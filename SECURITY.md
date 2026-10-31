@@ -21,7 +21,7 @@ Nothing about your scans leaves your machine with `--ai=off` (the default), beyo
 
 ## Reporting a vulnerability
 
-Please do not open a public issue for a suspected security vulnerability. Report it privately on GitHub instead: on the repository's Security tab, choose "Report a vulnerability". Or contact the maintainers directly (see `pyproject.toml` for current contact info).
+Please do not open a public issue for a suspected security vulnerability. Report it privately on GitHub instead: on the repository's Security tab, choose "Report a vulnerability." Or contact the maintainers directly (see `pyproject.toml` for current contact info).
 
 ## The review page
 

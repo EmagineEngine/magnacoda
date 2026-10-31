@@ -293,7 +293,7 @@ An add-on is a separate Python package that adds to *magnacoda*: new commands, h
 
 Anyone can write an add-on, so they vary in quality and in how they're written. *magnacoda* makes it clear when content comes from an add-on:
 
-- The shell's banner lists their commands on a line of their own, "Add-on commands".
+- The shell's banner lists their commands on a line of their own, "Add-on commands."
 - In this help, their sections come after *magnacoda*'s own. Each is marked "(add-on)" in the section list (press `g`), with a line under its title naming the add-on, its version and its author.
 - The about screen (`about`) lists every add-on in use, with its version and its commands.
 - When you update *magnacoda* (`update`), add-ons published on PyPI are updated with it.
