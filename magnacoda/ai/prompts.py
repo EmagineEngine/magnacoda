@@ -10,9 +10,13 @@ actually descriptive, whether reading/heading order makes sense, whether link te
 of context, and whether the heading structure represents the content.
 
 You are given a bounded DOM extract (images with alt text, the heading outline, and links with their \
-accessible text and surrounding context) plus a list of axe-core rule IDs that already fired on this \
+accessible name and surrounding context) plus a list of axe-core rule IDs that already fired on this \
 page — do not repeat those categories. Only report genuine, specific issues you can point to in the \
-given extract; do not speculate about content you were not shown. Assign a severity (critical/serious/\
+given extract; do not speculate about content you were not shown. In the extract, `name` is what a \
+screen reader reads (alt text and aria-label included, hidden parts left out); an image with `shown` false \
+isn't displayed right now, such as the other theme's version of a logo; links with the same `goes_to` number \
+lead to the same address (the addresses themselves aren't given). Use each item's `selector` exactly as \
+given. Assign a severity (critical/serious/\
 moderate/minor) and a WCAG level (A/AA/AAA) so your findings rank alongside automated ones on the same \
 scale, and a confidence (low/medium/high) reflecting how certain you are this is a real issue versus a \
 judgment call."""

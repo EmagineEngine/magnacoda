@@ -11,8 +11,8 @@ _TIER_DESCRIPTIONS = {
         "the rule id, WCAG criterion, selector, and a truncated HTML snippet for the top 10 findings only"
     ),
     "semantic": (
-        "the same top-10 data as 'explain', plus a bounded DOM extract (image alt text, "
-        "heading outline, link text and context) used to look for issues axe-core can't "
+        "the same top-10 data as 'explain', plus a bounded DOM extract (images' alt text and "
+        "file names, the heading outline, link text and context) used to look for issues axe-core can't "
         "detect mechanically"
     ),
 }

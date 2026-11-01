@@ -7,28 +7,66 @@ from typing import Any
 from playwright.sync_api import Page
 
 from magnacoda.ai.prompts import SEMANTIC_SYSTEM_PROMPT, SemanticReview
+from magnacoda.browser.features import PAGE_HELPERS
 from magnacoda.findings.models import Finding
 
-# Bounded, targeted extract only — never full-page HTML or a screenshot.
-_EXTRACT_SCRIPT = """
+# Bounded, targeted extract only — never full-page HTML or a screenshot. Link addresses stay here too:
+# only which links go to the same place.
+_EXTRACT_SCRIPT = (
+    """
 () => {
-    const images = Array.from(document.querySelectorAll('img')).slice(0, 200).map(img => ({
-        selector: img.id ? '#' + img.id : img.tagName.toLowerCase(),
+"""
+    + PAGE_HELPERS
+    + """
+    const shown = (el) => {
+        const box = el.getBoundingClientRect();
+        return box.width > 0 && box.height > 0 && getComputedStyle(el).visibility !== 'hidden';
+    };
+    // What a screen reader reads: aria-label, aria-labelledby, or the text with images' alt text in place,
+    // leaving out what is hidden.
+    const nameOf = (el) => {
+        const label = (el.getAttribute('aria-label') || '').trim();
+        if (label) return label;
+        const by = (el.getAttribute('aria-labelledby') || '').split(/\\s+/)
+            .map((id) => document.getElementById(id)).filter(Boolean);
+        if (by.length) return by.map((n) => n.textContent).join(' ');
+        const read = (node) => {
+            if (node.nodeType === 3) return node.data;
+            if (node.nodeType !== 1 || node.getAttribute('aria-hidden') === 'true') return '';
+            if (getComputedStyle(node).display === 'none') return '';
+            if (node.localName === 'img') return ' ' + (node.getAttribute('alt') || '') + ' ';
+            if (node.getAttribute('aria-label')) return ' ' + node.getAttribute('aria-label') + ' ';
+            return Array.from(node.childNodes).map(read).join('');
+        };
+        return read(el);
+    };
+    const clean = (text, length) => text.replace(/\\s+/g, ' ').trim().slice(0, length);
+    const images = Array.from(document.querySelectorAll('img')).slice(0, 200).map((img) => ({
+        selector: selectorFor(img),
         alt: img.getAttribute('alt'),
         src: (img.getAttribute('src') || '').slice(0, 120),
+        shown: shown(img),
     }));
-    const headings = Array.from(document.querySelectorAll('h1,h2,h3,h4,h5,h6')).slice(0, 200).map(h => ({
+    const headings = Array.from(document.querySelectorAll('h1,h2,h3,h4,h5,h6')).slice(0, 200).map((h) => ({
         level: h.tagName,
-        text: h.textContent.trim().slice(0, 200),
+        selector: selectorFor(h),
+        name: clean(nameOf(h), 200),
     }));
-    const links = Array.from(document.querySelectorAll('a[href]')).slice(0, 200).map(a => ({
-        selector: a.id ? '#' + a.id : 'a',
-        text: a.textContent.trim().slice(0, 200),
-        context: (a.parentElement ? a.parentElement.textContent.trim() : '').slice(0, 300),
-    }));
+    const places = new Map();
+    const links = Array.from(document.querySelectorAll('a[href]')).slice(0, 200).map((a) => {
+        const place = a.href.split('#')[0];
+        if (!places.has(place)) places.set(place, places.size + 1);
+        return {
+            selector: selectorFor(a),
+            name: clean(nameOf(a), 200),
+            goes_to: places.get(place),
+            context: clean(a.parentElement ? a.parentElement.textContent : '', 300),
+        };
+    });
     return { images, headings, links };
 }
 """
+)
 
 
 def extract_semantic_context(page: Page) -> dict:

@@ -385,7 +385,7 @@ AI is optional and off until you turn it on; [AI tiers](#ai-tiers) explains what
 |---|---|---|
 | `off` (default) | axe-core and *magnacoda*'s own tests, no AI | nothing beyond the page fetch itself |
 | `explain` | + plain-language "why it matters / how to fix" for the top 10 findings | rule id, WCAG criterion, selector and a shortened HTML snippet, for the top 10 only |
-| `semantic` | + a second Claude pass over axe-blind categories (alt-text quality, reading order, link text out of context, heading structure) | the above, plus a limited extract of the page: image alt text, the heading outline, link text and context. Never the full page HTML or a screenshot |
+| `semantic` | + a second Claude pass over axe-blind categories (alt-text quality, reading order, link text out of context, heading structure) | the above, plus a limited extract of the page: images' alt text and file names and whether each shows, the heading outline, and link text and context, with which links go to the same place (not their addresses). Never the full page HTML or a screenshot |
 
 Every AI-sourced finding is tagged `source: "claude-semantic"` (rather than `"axe-core"`), so you can filter the AI's judgment calls out entirely in CI, for example with `jq 'select(.source=="axe-core")'` on the results file.
 
