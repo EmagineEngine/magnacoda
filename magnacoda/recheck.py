@@ -66,6 +66,7 @@ class VariantResult:
     fixed: int = 0  # Fix items confirmed fixed
     failing: int = 0
     not_found: int = 0  # their element is gone: the page changed
+    suggested: int = 0  # Fix items from the AI, which only a person can judge
     error: str | None = None  # the recheck couldn't run (the page didn't load, ...)
 
     @property
@@ -82,8 +83,14 @@ class RecheckResult:
         """'4 of 6 problems fixed; 2 still fail', for all the variants together."""
         fixed = sum(v.fixed for v in self.variants)
         total = sum(v.total for v in self.variants)
+        suggested = sum(v.suggested for v in self.variants)
+        left = f"{suggested} AI suggestion{'s' if suggested != 1 else ''} left for a person to judge"
         if not total:
-            return "There were no problems to recheck"
+            return (
+                f"There were no problems to recheck; {left}"
+                if suggested
+                else "There were no problems to recheck"
+            )
         parts = [f"{fixed} of {total} problem{'s' if total != 1 else ''} fixed"]
         failing = sum(v.failing for v in self.variants)
         if failing:
@@ -91,6 +98,8 @@ class RecheckResult:
         missing = sum(v.not_found for v in self.variants)
         if missing:
             parts.append(f"{missing} could not be found (the page has changed: scan again)")
+        if suggested:
+            parts.append(left)
         return "; ".join(parts)
 
 
@@ -131,6 +140,15 @@ def recheck_variant(
     targets = fix_targets(report)
     present = set(ticks.read_ticks(checklist))
     targets = {box: findings for box, findings in targets.items() if box in present and findings}
+    # The AI's findings can't be tested again without asking it again: they stay as they are.
+    outcome.suggested = sum(
+        1 for findings in targets.values() if all(f.source == "claude-semantic" for f in findings)
+    )
+    targets = {
+        box: tested
+        for box, findings in targets.items()
+        if (tested := [f for f in findings if f.source != "claude-semantic"])
+    }
     if not targets:
         return outcome
     old = [f for findings in targets.values() for f in findings]

@@ -123,7 +123,7 @@ Like an old terminal printer, the shell never erases anything. Each command's ou
 - `review [FOLDER] [--no-browser]`
   List your saved scans, newest first, so you can pick one by number and review it in your browser. To look in another folder, add its name; to read it in the help viewer instead of your browser, add `--no-browser` (it also opens there when there's no browser). The help viewer only shows it; to tick items, use your browser or a Markdown editor. For more, type `docs reviewing`.
 - `recheck [FOLDER]`
-  Once you've fixed some problems, pick the scan, as with review, and *magnacoda* tests just those problems again, in a few seconds. Each fix it confirms is ticked in the checklist. For more, type `docs reviewing`.
+  Once you've fixed some problems, pick the scan, as with review, and *magnacoda* tests just those problems again, in a few seconds. Each fix it confirms is ticked in the checklist. To recheck one scan without choosing, give its folder. For more, type `docs reviewing`.
 - `news`
   Show available updates, what's new in your version, and news about *magnacoda*, one screen at a time. When there's something new, the shell's banner mentions it in your first shell of the day, on up to three days.
 - `update`

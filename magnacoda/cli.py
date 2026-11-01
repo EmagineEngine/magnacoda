@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import dataclasses
 import difflib
 import os
@@ -576,9 +577,11 @@ def recheck_cmd(
     extra_http_headers: dict[str, str],
     storage_state: Path | None,
 ) -> None:
-    """Pick a saved scan and test its Fix items again, in seconds: confirmed fixes are ticked, failures
-    still there unticked, in the saved checklist itself (recheck.py). Behind a login, it uses the saved
-    login file the scan used, or the cookies, headers or login file given here."""
+    """Pick a saved scan, or name its folder, and test its Fix items again, in seconds: confirmed fixes
+    are ticked, failures still there unticked, in the saved checklist itself (recheck.py). Behind a
+    login, it uses the saved login file the scan used, or the cookies, headers or login file given here.
+    With no person at the keyboard, the scan must be named, and each one may be rechecked only so
+    often ([recheck] limit), so an agent can't go round and round."""
     parsed_cookies = []
     for item in cookies:
         if "=" not in item:
@@ -586,12 +589,14 @@ def recheck_cmd(
         name, value = item.split("=", 1)
         parsed_cookies.append((name, value))
     login = recheck.Login(parsed_cookies, dict(extra_http_headers or {}), storage_state)
-    scan = _pick_saved_scan(folder or str(scans_folder()), "recheck", enter="cancel")
+    scan = _scan_to_recheck(folder)
     if scan is None:
         return
     if scan.folder is None or not all(ticks.has_ids(r.path) for r in scan.reports):
         _echo("That scan was saved by an older magnacoda and can't be rechecked: scan the page again.")
         return
+    if not _is_interactive():
+        _count_unattended_recheck(scan.folder)
     variants = _variants_of(scan)
     with _scan_progress(scan.site, verb="Rechecking") as next_pass:
         result = recheck.recheck_scan(
@@ -613,6 +618,44 @@ def recheck_cmd(
         command = "review" if isinstance(ctx.obj, dict) else "magnacoda review"
         bold = click.style(command, bold=True) if sys.stdout.isatty() else command
         _echo(f"Type {bold} to see it.")
+
+
+def _scan_to_recheck(folder: str | None) -> saved_reports.SavedScan | None:
+    """The scan whose folder was given, else one picked from the list (only with a person there)."""
+    given = saved_reports.scan_in(Path(folder).expanduser()) if folder else None
+    if given is not None:
+        return given
+    if not _is_interactive():
+        _echo(
+            "Name the scan to recheck: magnacoda recheck FOLDER, with the folder the scan was saved in "
+            "(the scan's last lines say where).",
+            err=True,
+        )
+        sys.exit(2)
+    return _pick_saved_scan(folder or str(scans_folder()), "recheck", enter="cancel")
+
+
+_UNATTENDED_RECHECKS = ".rechecks-without-a-person"
+
+
+def _count_unattended_recheck(folder: Path) -> None:
+    """Count a recheck no person started, or stop at the limit ([recheck] limit; 0: none)."""
+    limit = preferences.load().recheck_limit
+    counter = folder / _UNATTENDED_RECHECKS
+    try:
+        done = int(counter.read_text(encoding="utf-8").strip() or 0)
+    except (OSError, ValueError):
+        done = 0
+    if limit and done >= limit:
+        times = "once" if limit == 1 else f"{limit} times"
+        _echo(
+            f"This scan has been rechecked {times} with no person at the keyboard, the most allowed "
+            "([recheck] limit in preferences.ini). Stop here, and tell the person what's still failing.",
+            err=True,
+        )
+        sys.exit(2)
+    with contextlib.suppress(OSError):
+        counter.write_text(f"{done + 1}\n", encoding="utf-8")
 
 
 def _review_in_browser(scan: saved_reports.SavedScan) -> bool:

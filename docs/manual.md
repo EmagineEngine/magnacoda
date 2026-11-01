@@ -82,6 +82,7 @@ To open *magnacoda* without a terminal first, type `magnacoda shortcut` and choo
 - `[display]`: typing text out, tips, the spinner
 - `[pager]`: the help viewer, for `help`, `readme`, `docs` and `view`
 - `[review]`: a new tab or window for the review page
+- `[recheck]`: how often a script or an AI agent may recheck one scan
 - `[history]`, `[news]` and `[ai]`: how many scans to remember, the daily check, how the AI tiers run
 
 The other sections say which settings matter to them.
@@ -204,7 +205,9 @@ Press the page's **Done** button when you've finished (or `Ctrl+C` in the termin
 
 **How the review page stays private:** it is served by a small web server that *magnacoda* runs on your own computer only while you review (Python's built-in one, so nothing extra is installed). It listens only on `127.0.0.1`, every address includes a new random secret, and requests from other websites are refused, so nothing else can read your scan or tick boxes in your files. The page itself passes *magnacoda*'s own scan at Level AAA, in light and dark.
 
-**Rechecking your fixes.** Once you've fixed some problems, `recheck` (or the **Recheck fixes** button on the review page) tests just the scan's **Fix** items again, on the same page with the same settings, in a few seconds, so there's no need to wait for a whole new scan. The saved checklist is updated in place, with confirmed fixes ticked and problems still there unticked, each with a dated note, and it ends with a summary such as "4 of 6 problems fixed; 2 still fail." A recheck doesn't look for new problems, so scan the page again before release. Behind a login, it uses the scan's saved login file (`--storage-state`), or the `--cookie` or `--extra-http-header` you give it.
+**Rechecking your fixes.** Once you've fixed some problems, `recheck` (or the **Recheck fixes** button on the review page) tests just the scan's **Fix** items again, on the same page with the same settings, in a few seconds, so there's no need to wait for a whole new scan. The saved checklist is updated in place, with confirmed fixes ticked and problems still there unticked, each with a dated note, and it ends with a summary such as "4 of 6 problems fixed; 2 still fail." A recheck doesn't look for new problems, so scan the page again before release. It also leaves the AI's suggestions (from `--ai semantic`) as they are, for you to judge. Behind a login, it uses the scan's saved login file (`--storage-state`), or the `--cookie` or `--extra-http-header` you give it.
+
+**To recheck one scan without choosing,** give its folder: `recheck magnacoda-scans/example.com_20261101-0930`. A scan ends by saying where it was saved. A script or an AI agent must name the scan this way, since there's no one to pick from the list. It can also recheck each scan only three times, so an agent can't keep going round in circles; after that, it's told to stop and report to you. Your own rechecks aren't limited. To change the number, edit `limit` under `[recheck]` in `preferences.ini` (`0` turns the limit off). A new scan of the page starts the count again.
 
 **Ticking items off** works in the review page or in any Markdown editor (Typora, VS Code, Obsidian and so on), since `checklist.md` is the record. A checklist also pastes straight into a GitLab or GitHub issue, where the boxes stay tickable. **A repeat scan keeps your work.** When you save a new scan of the same page, what a person had checked in the previous scan comes already ticked, marked with that scan's date, while problems found again start unticked.
 

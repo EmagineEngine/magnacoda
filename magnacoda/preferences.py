@@ -10,7 +10,8 @@ from typing import Literal
 from magnacoda.userdir import config_dir, write_private
 
 DEFAULT_HISTORY_MAX = 100
-_LIMITS = {"history": (0, 1000)}
+DEFAULT_RECHECK_LIMIT = 3
+_LIMITS = {"history": (0, 1000), "recheck": (0, 100)}
 
 TEMPLATE = f"""# magnacoda preferences.
 # Edit freely. A missing or invalid value falls back to the default. Add-ons may add sections.
@@ -76,6 +77,12 @@ engine = ask
 # How `review` opens a saved scan in your browser: tab (the browser decides; usually a new tab) or
 # new (a new browser window, for Firefox, Chrome, Brave, Edge and Vivaldi).
 window = tab
+
+[recheck]
+# How many times an AI agent or a script may recheck one saved scan, with no person at the keyboard,
+# before recheck stops and asks for a person (0: no limit). Your own rechecks don't count. A new scan
+# starts again from 0.
+limit = {DEFAULT_RECHECK_LIMIT}
 """
 
 AIChoice = Literal["ask", "api", "claude-code"]
@@ -106,6 +113,7 @@ class Preferences:
     estimate: bool = True
     confirm: bool = True
     scans_folder: str = ""
+    recheck_limit: int = DEFAULT_RECHECK_LIMIT
 
 
 def preferences_path() -> Path:
@@ -123,10 +131,10 @@ def ensure_file() -> None:
         pass
 
 
-def _number(parser: configparser.ConfigParser, section: str, default: int) -> int:
+def _number(parser: configparser.ConfigParser, section: str, key: str, default: int) -> int:
     low, high = _LIMITS[section]
     try:
-        value = parser.getint(section, "max", fallback=default)
+        value = parser.getint(section, key, fallback=default)
     except ValueError:
         return default
     return min(max(value, low), high)
@@ -175,7 +183,7 @@ def load() -> Preferences:
     ai_engine = _AI_CHOICES.get(parser.get("ai", "engine", fallback="ask").strip().lower(), "ask")
     window = parser.get("review", "window", fallback="tab").strip().lower()
     return Preferences(
-        history_max=_number(parser, "history", DEFAULT_HISTORY_MAX),
+        history_max=_number(parser, "history", "max", DEFAULT_HISTORY_MAX),
         news_check=news_check,
         typing=typing,
         tips=tips,
@@ -187,6 +195,7 @@ def load() -> Preferences:
         estimate=estimate,
         confirm=confirm,
         scans_folder=parser.get("scan", "folder", fallback="").strip(),
+        recheck_limit=_number(parser, "recheck", "limit", DEFAULT_RECHECK_LIMIT),
     )
 
 

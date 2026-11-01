@@ -49,3 +49,25 @@ def test_a_scan_of_dark_mode_only_is_tested_in_dark_mode(monkeypatch):
     report.meta.variants = ["desktop.dark"]
     _, calls = _calls(monkeypatch, report, report.findings)
     assert calls == [("desktop", "dark", ["input"])]
+
+
+def test_the_ais_findings_are_left_for_a_person_not_counted_as_fixed(tmp_path, monkeypatch):
+    from magnacoda.report.markdown_export import to_markdown
+
+    suggestion = _finding("claude-semantic/vague-link-text", "a.more", severity="moderate")
+    suggestion.source = "claude-semantic"
+    report = _report([_finding("color-contrast", "p"), suggestion])
+    checklist, results = tmp_path / "checklist.md", tmp_path / "results.json"
+    checklist.write_text(to_markdown(report))
+    results.write_text(report.model_dump_json())
+    tested = []
+
+    def fake_test_again(report, old, login):
+        tested.extend(f.selector for f in old)
+        return set(), {f.finding_id: True for f in old}
+
+    monkeypatch.setattr(recheck, "_test_again", fake_test_again)
+    outcome = recheck.recheck_variant(checklist, results)
+    assert tested == ["p"] and (outcome.fixed, outcome.suggested) == (1, 1)
+    summary = recheck.RecheckResult(None, [outcome]).summary()  # type: ignore[arg-type]
+    assert summary == "1 of 1 problem fixed; 1 AI suggestion left for a person to judge"

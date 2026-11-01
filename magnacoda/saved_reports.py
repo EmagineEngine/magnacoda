@@ -123,6 +123,15 @@ def scans(folder: Path, limit: int = LIMIT) -> list[SavedScan]:
     return found[:limit]
 
 
+def scan_in(folder: Path) -> SavedScan | None:
+    """The saved scan whose own folder this is, if it is one."""
+    if not any(folder.glob("checklist*.md")):
+        return None
+    here = folder.resolve()
+    found = scans(folder.parent, limit=10_000)
+    return next((scan for scan in found if scan.folder and scan.folder.resolve() == here), None)
+
+
 def previous_ticks(
     folder: Path, current: Path, url: str, label: str, wcag_version: str, level: str
 ) -> tuple[dict[str, bool], datetime | None]:
