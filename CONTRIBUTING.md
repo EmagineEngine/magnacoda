@@ -50,6 +50,8 @@ GitHub is *magnacoda*'s home, for its issues, pull requests and releases. Every 
 
 Keep pull requests focused. Run `make lint test check-wheel` before opening one.
 
+Pull requests come from people. Using AI tools while you work is fine, but you send the pull request yourself, you've read and understood every line, and you can answer questions about it. Pull requests opened by bots or AI agents on their own are closed without review.
+
 ## Contribution terms
 
 By sending a contribution to *magnacoda* (code, documentation, tests or anything else, in a pull request, a patch or another way), you agree that:
