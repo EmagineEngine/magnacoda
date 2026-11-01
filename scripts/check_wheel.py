@@ -28,6 +28,7 @@ REQUIRED = [
     "magnacoda/data/manual.md",
     "magnacoda/data/documents.md",
     "magnacoda/data/CHANGELOG.md",
+    "magnacoda/data/CONTRIBUTING.md",
     "magnacoda/data/LICENSE.md",
     "magnacoda/data/LICENSE-ADDITIONAL-PERMISSION.md",
     "magnacoda/data/NOTICE.md",

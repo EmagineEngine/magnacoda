@@ -15,6 +15,7 @@ SOURCES = {
     "README.md": "README.md",
     "manual.md": "docs/manual.md",
     "CHANGELOG.md": "CHANGELOG.md",
+    "CONTRIBUTING.md": "CONTRIBUTING.md",
     "LICENSE.md": "LICENSE.md",
     "LICENSE-ADDITIONAL-PERMISSION.md": "LICENSE-ADDITIONAL-PERMISSION.md",
     "NOTICE.md": "NOTICE.md",

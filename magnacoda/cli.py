@@ -445,9 +445,19 @@ def view_cmd(ctx: click.Context, file: str, section: tuple[str, ...] = ()) -> No
     # A file's sections are new to the reader (a license may start on a one-line page): start on the
     # g list.
     try:
-        show_file(ctx, file, Path(file).name, " ".join(section) or None, start="section_list")
+        show_file(ctx, _own_copy(file), Path(file).name, " ".join(section) or None, start="section_list")
     except viewer.CannotView as exc:
         raise click.ClickException(str(exc)) from None
+
+
+def _own_copy(typed: str) -> str:
+    """magnacoda's own copy of a document it comes with (CONTRIBUTING.md, LICENSE.md), when the
+    current folder has no file by that name."""
+    if Path(typed).expanduser().exists() or Path(typed).name != typed:
+        return typed
+    name = next((name for name in documents.SOURCES if name.lower() == typed.lower()), None)
+    found = documents.locate(name) if name else None
+    return str(found) if found else typed
 
 
 @main.command(name="review")

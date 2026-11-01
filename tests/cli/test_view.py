@@ -132,3 +132,10 @@ def test_view_and_readme_can_start_at_a_named_section(tmp_path, monkeypatch):
     unknown = _run("view", "notes.md", "part", "three")
     assert unknown.exit_code == 1 and "notes.md has no section named 'part three'" in unknown.output
     assert "fits more than one section: Part one, Part two" in _run("view", "notes.md", "part").output
+
+
+def test_a_document_magnacoda_comes_with_opens_from_any_folder(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    assert "Writing an add-on" in _run("view", "contributing.md").output
+    (tmp_path / "CONTRIBUTING.md").write_text("# Mine\n\nMy own notes.\n")
+    assert "My own notes." in _run("view", "CONTRIBUTING.md").output  # a file here comes first

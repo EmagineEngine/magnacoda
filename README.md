@@ -173,7 +173,7 @@ To pick your own colors, see the manual's [Help viewer](docs/manual.md#help-view
 
 **Reading this README in the terminal.** `readme` shows this README in the help viewer. It's the copy that came with your version, so it works offline.
 
-**Reading any Markdown or text file the same way.** `view FILE` shows another file in the help viewer, for example a scan's checklist: `view ~/Documents/magnacoda-scans/FOLDER/checklist.md`.
+**Reading any Markdown or text file the same way.** `view FILE` shows another file in the help viewer, for example a scan's checklist: `view ~/Documents/magnacoda-scans/FOLDER/checklist.md`. The documents that come with *magnacoda*, such as `CONTRIBUTING.md`, open from any folder.
 
 ### The manual
 

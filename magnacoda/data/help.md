@@ -137,7 +137,7 @@ Like an old terminal printer, the shell never erases anything. Each command's ou
 - `docs`, `docs NAME`
   Read the manual, which covers everything, in this same viewer. You can type `docs scan`, and it will open at the scan options; `manual` works too. Both are the copies that came with your version, so they work offline.
 - `view FILE`, `view FILE NAME`
-  Read any Markdown or text file in the help viewer, such as a scan's `checklist.md`. Add a section's name to open it there.
+  Read any Markdown or text file in the help viewer, such as a scan's `checklist.md`. Add a section's name to open it there. The documents that come with *magnacoda*, such as `CONTRIBUTING.md`, open from any folder.
 
 ### Only inside the shell:
 

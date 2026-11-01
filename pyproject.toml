@@ -93,6 +93,7 @@ exclude = ["magnacoda_addons/*/tests"]
 "README.md" = "magnacoda/data/README.md"
 "docs/manual.md" = "magnacoda/data/manual.md"
 "CHANGELOG.md" = "magnacoda/data/CHANGELOG.md"
+"CONTRIBUTING.md" = "magnacoda/data/CONTRIBUTING.md"
 "LICENSE.md" = "magnacoda/data/LICENSE.md"
 "LICENSE-ADDITIONAL-PERMISSION.md" = "magnacoda/data/LICENSE-ADDITIONAL-PERMISSION.md"
 "NOTICE.md" = "magnacoda/data/NOTICE.md"
