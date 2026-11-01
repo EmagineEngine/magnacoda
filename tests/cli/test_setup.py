@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 
+import click
+import pytest
 from click.testing import CliRunner
 
 from magnacoda import cli, preferences
@@ -38,7 +40,7 @@ def test_setup_prompts_before_installing_and_installs_on_yes(monkeypatch):
         cli.subprocess, "run", lambda *a, **kw: calls.append(a) or SimpleNamespace(returncode=0)
     )
 
-    result = CliRunner().invoke(main, ["setup"], input="y\n\n")  # install, no shortcut
+    result = CliRunner().invoke(main, ["setup"], input="y\n\nn\n")  # install, no shortcut, no wizard
 
     assert result.exit_code == 0
     assert "100 MB" in result.output
@@ -286,3 +288,40 @@ def test_setup_says_q_cancels_when_a_person_is_there_and_q_does(monkeypatch):
     assert "Cancelled." in result.output and calls == []  # nothing downloaded
     monkeypatch.setattr(cli, "_is_interactive", lambda: False)
     assert "q cancels" not in CliRunner().invoke(main, ["setup", "-y"]).output  # scripts and CI
+
+
+def _wizard_stand_in(started):
+    @click.command()
+    @click.option("--force-setup-notice", is_flag=True)
+    def wizard(force_setup_notice):
+        started.append(force_setup_notice)
+
+    return wizard
+
+
+@pytest.mark.parametrize(("answer", "starts"), [("\n", True), ("n\n", False)])
+def test_the_first_setup_offers_the_wizard_for_the_first_scan(monkeypatch, answer, starts):
+    monkeypatch.setattr(cli, "_chromium_already_installed", lambda: False)
+    monkeypatch.setattr(cli, "_is_interactive", lambda: True)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-fake")
+    monkeypatch.setattr(cli.subprocess, "run", _fake_run([]))
+    started = []
+    monkeypatch.setattr(cli, "wizard", _wizard_stand_in(started))
+
+    result = CliRunner().invoke(main, ["setup"], input="y\n\n" + answer)
+
+    assert result.exit_code == 0
+    assert "Scan your first page with the wizard now? [Y/n]" in result.output
+    assert started == ([False] if starts else [])
+
+
+@pytest.mark.parametrize(("installed", "args"), [(True, ["setup"]), (False, ["setup", "--yes"])])
+def test_setup_offers_the_wizard_only_after_the_first_download_at_a_terminal(monkeypatch, installed, args):
+    monkeypatch.setattr(cli, "_chromium_already_installed", lambda: installed)
+    monkeypatch.setattr(cli, "_is_interactive", lambda: True)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-fake")
+    monkeypatch.setattr(cli.subprocess, "run", _fake_run([]))
+
+    result = CliRunner().invoke(main, args, input="\n")
+
+    assert result.exit_code == 0 and "wizard now?" not in result.output

@@ -861,7 +861,8 @@ def setup(yes: bool, forget_key: bool) -> None:
     sections.new_page(click.get_current_context(), "setup")
     if _is_interactive() and not yes:
         _echo(questions.CANCEL_HINT)  # setup may ask: install Chromium, an API key, the Claude plan
-    if _chromium_already_installed():
+    first_time = not _chromium_already_installed()
+    if not first_time:
         _echo("Chromium is already installed.")
     else:
         missing = "Chromium is not installed yet - this is a one-time download of about 100 MB."
@@ -875,17 +876,40 @@ def setup(yes: bool, forget_key: bool) -> None:
                 _echo("Cancelled - Chromium was not installed.")
                 sys.exit(1)
 
-        _echo("Installing Chromium for Playwright...")
-        result = subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"])
-        if result.returncode != 0:
-            _echo("Installation failed - see the output above.", err=True)
-            sys.exit(result.returncode)
-        _echo("Chromium is installed.")
+        status = _install_chromium()
+        if status:
+            sys.exit(status)
 
     if _is_interactive() and not yes:
         _ask_about_shortcuts()
     _echo()
     _report_anthropic_key_status()
+    # The wizard then finds Chromium installed, so it doesn't offer setup back.
+    if first_time and _is_interactive() and not yes:
+        _echo()
+        if _ask_yes_no("Scan your first page with the wizard now?", default=True):
+            click.get_current_context().invoke(wizard, force_setup_notice=False)
+
+
+def _offer_chromium() -> bool:
+    """Only Chromium: all of setup would offer the wizard again."""
+    if not _is_interactive():
+        return False
+    intro = (
+        "Chromium, the browser magnacoda scans with, isn't installed yet. "
+        "It's a one-time download of about 100 MB."
+    )
+    return _ask_yes_no("Download it now?", intro=intro, default=True) and _install_chromium() == 0
+
+
+def _install_chromium() -> int:
+    _echo("Installing Chromium for Playwright...")
+    result = subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"])
+    if result.returncode != 0:
+        _echo("Installation failed - see the output above.", err=True)
+        return result.returncode
+    _echo("Chromium is installed.")
+    return 0
 
 
 _SHORTCUT_PLACES = {"menu": (True, False), "desktop": (False, True), "both": (True, True)}
@@ -1231,7 +1255,6 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
             + _addon_commands_line(current)
         )
 
-    show_chromium_notice = force_setup_notice or not _chromium_probably_installed()
     news.note_first_run()
     news.refresh_in_background()  # once a day; the banner shows what the previous check found
     # Updates and news: only in the day's first shell, on up to three days (news.today_notice).
@@ -1242,6 +1265,8 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
         notice was shown."""
         # The news line is worked out each time, so it goes once the news has been read.
         teletype.say(console, banner(current))
+        # Worked out each time, so the notice goes once setup has run.
+        show_chromium_notice = force_setup_notice or not _chromium_probably_installed()
         if show_chromium_notice:
             _print_notice(console, _CHROMIUM_NOTICE)
         notice = news.notice_line(only=today) if today else ""
@@ -1257,6 +1282,13 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
     screenreader.offer()  # once, before anything is typed out
     if not show_banner():  # a tip only when there's no other notice
         _show_tip(console)
+    pending: str | None = None
+    if not force_setup_notice and not _chromium_probably_installed() and _is_interactive():
+        try:
+            if _ask_yes_no("Set it up now?", default=True):
+                pending = "setup"
+        except click.Abort:
+            pass
 
     def banner_on_top(current: str | None = None) -> None:
         # The help pager restores the screen it found (a resize while paging can shift it); feed a
@@ -1272,7 +1304,8 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
     goodbye = False  # leaving by choice (exit, Ctrl+D, Ctrl+C at the prompt), not because of `update`
     while True:
         try:
-            line = console.input(prompt).strip()
+            line = pending or console.input(prompt).strip()
+            pending = None
         except EOFError:  # Ctrl+D: leave
             console.print()
             goodbye = True
@@ -2141,7 +2174,9 @@ def wizard(ctx: click.Context, force_setup_notice: bool) -> None:
     """Answer a few questions, see the equivalent command, then run the scan."""
     sections.new_page(ctx, "wizard")
     screenreader.offer()
-    if force_setup_notice or not _chromium_probably_installed():
+    if force_setup_notice:
+        _print_notice(Console(), _CHROMIUM_NOTICE)
+    elif not _chromium_probably_installed() and not _offer_chromium():
         _print_notice(Console(), _CHROMIUM_NOTICE)
 
     history.ensure_file()

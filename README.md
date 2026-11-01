@@ -92,7 +92,7 @@ The recommended way to install is [uv](https://docs.astral.sh/uv/), a fast insta
 ```bash
 uv tool install magnacoda
 magnacoda setup             # one-time: downloads the Chromium browser (~100 MB), and shows how the AI tiers will run
-magnacoda wizard            # a few questions, then it runs the scan for you
+magnacoda wizard            # a few questions, then it runs the scan for you (the first setup offers to start it)
 magnacoda scan example.com  # or scan a page straight away; https:// is filled in for you (see URL rules)
 ```
 

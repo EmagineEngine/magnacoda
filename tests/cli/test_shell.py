@@ -100,6 +100,30 @@ def test_the_chromium_notice_shows_when_it_is_missing_or_asked_for(monkeypatch, 
     assert ("Chromium isn't installed yet" in result.output) is shown
 
 
+@pytest.mark.parametrize(("answer", "runs_setup"), [("\n", True), ("n\n", False)])
+def test_at_a_terminal_the_first_shell_offers_to_run_setup(monkeypatch, answer, runs_setup):
+    import click
+
+    monkeypatch.setattr(cli, "_chromium_probably_installed", lambda: False)
+    monkeypatch.setattr(cli, "_is_interactive", lambda: True)
+    ran = []
+    monkeypatch.setitem(main.commands, "setup", click.Command("setup", callback=lambda: ran.append(True)))
+
+    result = CliRunner().invoke(main, ["shell"], input=answer + "exit\n")
+
+    assert "Set it up now? [Y/n]" in result.output and result.exit_code == 0
+    assert ran == ([True] if runs_setup else [])
+
+
+@pytest.mark.parametrize(
+    ("installed", "args"), [(True, ["shell"]), (False, ["shell", "--force-setup-notice"])]
+)
+def test_the_shell_offers_setup_only_when_chromium_is_missing(monkeypatch, installed, args):
+    monkeypatch.setattr(cli, "_chromium_probably_installed", lambda: installed)
+    monkeypatch.setattr(cli, "_is_interactive", lambda: True)
+    assert "Set it up now?" not in CliRunner().invoke(main, args, input="exit\n").output
+
+
 def test_the_chromium_notice_comes_under_the_commands_and_again_after_clear(monkeypatch):
     monkeypatch.setattr(cli, "_chromium_probably_installed", lambda: False)
     output = CliRunner().invoke(main, ["shell"], input="clear\nexit\n").output

@@ -97,3 +97,23 @@ def test_the_wizard_shows_the_chromium_notice_like_the_shell(monkeypatch, args, 
     monkeypatch.setattr(cli, "_chromium_probably_installed", lambda: installed)
     result = CliRunner().invoke(main, args, input=_answers())
     assert ("Chromium isn't installed yet" in result.output) is shown
+
+
+@pytest.mark.parametrize(("answer", "downloads"), [("\n", True), ("n\n", False)])
+def test_at_a_terminal_the_wizard_offers_to_download_chromium_first(monkeypatch, answer, downloads):
+    from types import SimpleNamespace
+
+    from magnacoda import cli
+
+    monkeypatch.setattr(cli, "_chromium_probably_installed", lambda: False)
+    monkeypatch.setattr(cli, "_is_interactive", lambda: True)
+    calls = []
+    monkeypatch.setattr(
+        cli.subprocess, "run", lambda *a, **kw: calls.append(a) or SimpleNamespace(returncode=0)
+    )
+
+    result = CliRunner().invoke(main, ["wizard"], input=answer + _answers())
+
+    assert "Download it now? [Y/n]" in result.output and len(calls) == int(downloads)
+    assert ("Chromium isn't installed yet" in result.output) is not downloads
+    assert "Equivalent command:" in result.output  # the wizard carries on either way
