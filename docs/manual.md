@@ -451,13 +451,13 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: pip install magnacoda
       - run: python -m playwright install --with-deps chromium
       - run: magnacoda scan https://staging.example.com --fail-on serious --scans-dir magnacoda-scans -o accessibility.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: accessibility
