@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.1.2] - 2026-11-01
+
+### Added
+
+- `recheck FOLDER` rechecks one scan straight away. Scripts and AI agents get three rechecks before handing over to a person (`[recheck] limit` in preferences).
+- A full example of working with an AI coding agent and *magnacoda*'s AI (`docs full example`).
+- The contributing guide comes with *magnacoda* (`view CONTRIBUTING.md`).
+
+### Changed
+
+- The first run offers setup, and setup offers the wizard.
+- `--ai semantic` reads pages more like a screen reader does, so it raises fewer false alarms.
+- `recheck` leaves the AI's suggestions for a person to judge instead of counting them as fixed.
+
+### Fixed
+
+- Images hidden from screen readers no longer show up as missing their text alternative.
+- Code examples in numbered steps stay in their step in the help viewer.
+
 ## [0.1.1] - 2026-10-31
 
 ### Changed

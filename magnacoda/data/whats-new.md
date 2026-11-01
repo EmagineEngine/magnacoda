@@ -7,7 +7,25 @@ HOW IT IS READ
   * Anything inside an HTML comment, like this one, is a note to editors. It is never shown.
   * "## X.Y.Z" starts the notes for that release (text after the number, such as a date, is ignored). Add a section, newest first, before tagging each release; a version without a section shows no notes and isn't announced.
   * Write for people who use *magnacoda*, not for developers: what they can do now, in plain words, one long line per paragraph. Terms and lists work as in help.md.
+  * Keep each entry to one short sentence, two at most. Leave the details to the manual and help.
 -->
+
+## 0.1.2
+
+Getting started is smoother, and *magnacoda*'s AI works better alongside your AI coding agent.
+
+- `setup`
+  Offered the first time you open *magnacoda*, and it then offers to start the wizard.
+- `--ai semantic`
+  The AI reads your page more like a screen reader does, so it raises fewer false alarms.
+- `recheck FOLDER`
+  Rechecks one scan straight away. Scripts and AI agents get three rechecks before handing over to you.
+- `docs full example`
+  One round of work with your AI coding agent and *magnacoda*'s AI, from scan to review.
+- `view CONTRIBUTING.md`
+  The guide to contributing and add-ons now comes with *magnacoda*.
+- Images hidden from screen readers no longer show up as missing their text alternative.
+- Code examples in numbered steps stay in their step, closer to the left edge.
 
 ## 0.1.1
 
