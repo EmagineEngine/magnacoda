@@ -46,7 +46,7 @@ def test_rendering_keeps_backticks_and_turns_links_into_text():
     usage = markdown.render(markdown.parse(SAMPLE).sections[1][1], 60)
     assert usage[0] == "Usage" and "Nested" in usage
     assert "See https://example.org." in usage
-    assert "    ## not a heading" in usage and "    run --this" in usage
+    assert "  ## not a heading" in usage and "  run --this" in usage
 
 
 def test_a_link_to_another_section_gets_its_number():
@@ -77,7 +77,7 @@ def test_section_and_its_number_stay_on_one_line():
 
 def test_a_long_code_line_continues_indented_further():
     lines = markdown.render("```\ncommand " + "word " * 20 + "\n```", 40)
-    assert lines[0].startswith("    command") and all(line.startswith("        ") for line in lines[1:])
+    assert lines[0].startswith("  command") and all(line.startswith("    ") for line in lines[1:])
     assert all(len(line) <= 40 for line in lines)
 
 

@@ -40,8 +40,8 @@ _ANCHOR_LINK = re.compile(r"\[([^\]]+)\]\(#([^)]*)\)")  # [Quick start](#quick-s
 _SAME_TEXT_LINK = re.compile(r"\[(https?://[^\]]+)\]\(\1\)")  # [https://x](https://x)
 _INLINE_CODE = re.compile(r"`([^`\n]+)`")
 _MARKERS = re.compile(r"[*_`]")
-_CODE_INDENT = "    "
-_CONTINUATION_INDENT = _CODE_INDENT + "    "
+_CODE_INDENT = "  "
+_CONTINUATION_INDENT = _CODE_INDENT + "  "
 # A space Rich won't wrap at (it wraps at a no-break space): one cell wide, put back after wrapping.
 _KEEP_SPACE = ""
 # Around a heading while it's laid out (a character Rich gives no width), then HEADING_MARK on each of
@@ -523,22 +523,50 @@ def render(markdown: str, width: int, hyperlinks: bool = False, mark_code: bool 
     lines: list[str] = []
     prose: list[str] = []
     code: list[str] | None = None
+    # A fence indented inside a list item: its code, and the rest of the item after it, line up with the
+    # item's text. Laid out on their own, the rest would otherwise end the list.
+    indent = 0
+    rest: list[str] | None = None
+
+    def end_rest() -> None:
+        nonlocal rest
+        if rest is not None:
+            pad = " " * indent
+            inner = _markdown_lines("\n".join(rest), width - indent, hyperlinks, mark_code)
+            lines.extend(pad + line if line else line for line in inner)
+            rest = None
+
     for line in markdown.splitlines():
-        if _FENCE.match(line):
-            if code is None:
-                lines += _markdown_lines("\n".join(prose), width, hyperlinks, mark_code)
-                prose = []
-                code = []
-            else:
+        if code is not None:
+            if _FENCE.match(line):
                 pad = [mark] if mark else []  # a row of code's background above and below
-                lines += ["", *pad, *(mark + line for line in _code_lines(code, width)), *pad, ""]
+                shown = (
+                    mark + (" " * indent + line if line else "") for line in _code_lines(code, width - indent)
+                )
+                lines += ["", *pad, *shown, *pad, ""]
                 code = None
-        elif code is None:
-            prose.append(line)
+                rest = [] if indent else None
+            else:
+                code.append(line[indent:] if not line[:indent].strip() else line.lstrip())
+            continue
+        if rest is not None:
+            if not _FENCE.match(line) and (not line.strip() or not line[:indent].strip()):
+                rest.append(line[indent:])
+                continue
+            end_rest()
+        if _FENCE.match(line):
+            lines += _markdown_lines("\n".join(prose), width, hyperlinks, mark_code)
+            prose = []
+            code = []
+            indent = len(line) - len(line.lstrip())
         else:
-            code.append(line)
+            prose.append(line)
     if code is not None:  # an unclosed block: show it as code anyway
-        lines += ["", *(mark + line for line in _code_lines(code, width))]
+        lines += [
+            "",
+            *(mark + (" " * indent + line if line else "") for line in _code_lines(code, width - indent)),
+        ]
+    end_rest()
     lines += _markdown_lines("\n".join(prose), width, hyperlinks, mark_code)
     tidy: list[str] = []
     for line in lines:

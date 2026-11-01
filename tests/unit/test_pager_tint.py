@@ -38,8 +38,8 @@ def test_painting_drops_marked_backticks_and_puts_code_on_its_background():
 def test_a_code_blocks_rows_are_filled_to_the_width_with_a_row_above_and_below():
     rows = links.wrapper(formats.MARKDOWN.render, hyperlinks=False, code=True)("```\nls\n```\n", 12)
     painted = [pager._paint_code(row, "[", "]", 12).replace(links.CODE_MARK, "") for row in rows]
-    assert painted == ["[            ]", "[    ls      ]", "[            ]"]
-    assert markdown.render("```\nls\n```\n", 12) == ["    ls"]  # printed: as before
+    assert painted == ["[            ]", "[  ls        ]", "[            ]"]
+    assert markdown.render("```\nls\n```\n", 12) == ["  ls"]  # printed: the same indent
 
 
 def test_with_an_accent_code_keeps_its_background_after_each_style():
@@ -95,3 +95,21 @@ def test_a_theme_may_set_codes_background_if_the_text_reads_on_it(tmp_path):
     assert slate.code == "#34466a" and slate.code256 not in (0, slate.bg256)
     path.write_text(base + "code = #ffe8a6\n", encoding="utf-8")
     assert "text on code is" in themes.load(path).problems[0]
+
+
+def test_a_code_block_inside_a_list_item_keeps_the_item_and_the_list_together():
+    text = "1. One.\n\n2. Two:\n\n   ```\n   ls\n\n   pwd\n   ```\n\n   After the code.\n\n3. Three.\n"
+    lines = markdown.render(text, 40)
+    assert lines == [
+        " 1 One.",
+        "",
+        " 2 Two:",
+        "",
+        "     ls",
+        "",
+        "     pwd",
+        "",
+        "   After the code.",
+        "",
+        " 3 Three.",
+    ]
