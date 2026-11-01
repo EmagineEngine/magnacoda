@@ -108,7 +108,7 @@ These apply to every document: README, the manual, CONTRIBUTING, the other top-l
 
 ## The pager
 
-The pager in `magnacoda/pager/` is written to be released on its own (MIT). It imports nothing from the rest of *magnacoda*, only the standard library and Rich; `tests/unit/test_pager_package.py` checks this.
+The pager in `magnacoda/pager/` is written to be released on its own. It imports nothing from the rest of *magnacoda*, only the standard library and Rich; `tests/unit/test_pager_package.py` checks this.
 
 - `screen.py`: the pager itself (keys, scrolling, the `g` list, the Open list under `o`, Tab through links), standard library only.
 - `documents.py`: reads the Open list's documents from a list file in Markdown (its docstring shows the format).
