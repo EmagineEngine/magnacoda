@@ -113,7 +113,14 @@ def test_an_explicit_device_overrides_the_screen_preset(fixture_server):
 def test_images_are_photographed_with_their_text_alternatives_when_asked(fixture_server):
     report = run_scan(ScanConfig(url=f"{fixture_server}/images.html", capture_images=True))
     by_selector = {image.selector: image for image in report.images}
-    assert report.images_total == 4  # the hidden image isn't counted
+    assert report.images_total == 7  # the image that isn't shown isn't counted
+    hidden = {image.selector: image.hidden for image in report.images if image.hidden}
+    assert sorted(hidden.values()) == [
+        'aria-hidden="true"',
+        'aria-hidden="true" around it',
+        'role="presentation"',
+    ]
+    assert by_selector["#team"].hidden is None and by_selector["#chart"].hidden is None
     assert by_selector["#team"].alt == "Our team at the office" and by_selector["#team"].kind == "img"
     logo = next(image for image in report.images if "logo" in image.selector)
     assert logo.alt is None

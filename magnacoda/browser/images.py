@@ -39,12 +39,18 @@ _FIND_SCRIPT = (
             .map((node) => node.innerText).join(' ').trim();
         const named = el.getAttribute('aria-label') || labelledby || el.getAttribute('title')
             || (tag === 'svg' && el.querySelector('title') ? el.querySelector('title').textContent : '');
+        const role = (el.getAttribute('role') || '').trim().toLowerCase();
+        const hidden = el.getAttribute('aria-hidden') === 'true' ? 'aria-hidden="true"'
+            : el.parentElement && el.parentElement.closest('[aria-hidden="true"]')
+                ? 'aria-hidden="true" around it'
+            : (role === 'presentation' || role === 'none') ? `role="${role}"` : null;
         el.setAttribute(mark, String(found.length));
         found.push({
             selector: selectorFor(el),
             kind,
             alt: el.hasAttribute('alt') ? el.getAttribute('alt') : null,
             label: named ? named.replace(/\\s+/g, ' ').trim() : null,
+            hidden,
             src: el.currentSrc || el.getAttribute('src') || null,
             width: Math.round(box.width),
             height: Math.round(box.height),

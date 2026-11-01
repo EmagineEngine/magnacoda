@@ -61,6 +61,22 @@ def test_an_svg_with_no_text_alternative_asks_whether_it_is_decorative():
     assert 'add `aria-hidden="true"`' in md and 'add `role="img"`' in md  # both answers
 
 
+def test_an_image_hidden_from_screen_readers_counts_as_marked_decorative_not_as_missing():
+    report = _report()
+    report.images = [
+        PageImage(selector="svg.icon-moon", kind="svg", hidden='aria-hidden="true"'),
+        PageImage(selector="img.flourish", kind="img", alt="Swirl", hidden='role="presentation"'),
+        PageImage(selector="span.badge svg", kind="svg", hidden='aria-hidden="true" around it'),
+    ]
+    md = to_markdown(report)
+    moon, flourish, badge = (_element(md, s) for s in ("svg.icon-moon", "img.flourish", "span.badge svg"))
+    assert "**none**" not in md  # none of them is missing a text alternative
+    assert 'text alternative: marked decorative (`aria-hidden="true"`)' in moon
+    assert 'remove `aria-hidden="true"`, then add `role="img"`' in moon
+    assert 'alt text: marked decorative (`role="presentation"`)' in flourish and "in `alt`" in flourish
+    assert 'by `aria-hidden="true"` on an element around it' in badge and "take `aria-hidden` off" in badge
+
+
 def test_screenshots_are_saved_and_their_file_names_kept_for_the_json_report(tmp_path):
     report = _with_images()
     write_markdown(report, tmp_path / "checklist.dark.md", tmp_path / "images", prefix="dark-")

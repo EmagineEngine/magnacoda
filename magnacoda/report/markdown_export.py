@@ -212,7 +212,19 @@ def _image_lines(number: int, image: PageImage, variants: list[str] | None = Non
         lines.append(f"- shown {where}")
     uses_alt = image.kind in ("img", "input-image")  # svg, canvas and role="img" are named other ways
     # Where it has no text alternative, ask whether it's decorative, and give the change for each answer.
-    if image.alt is None and not image.label:
+    # Hidden from screen readers, any alt or label it has goes unread, so that comes first.
+    if image.hidden and image.hidden.endswith("around it"):
+        alt = (
+            'hidden from screen readers by `aria-hidden="true"` on an element around it. Is it purely '
+            "decorative? **No:** take `aria-hidden` off that element, so the image can be named."
+        )
+    elif image.hidden:
+        name_it = "describe it in `alt`" if uses_alt else 'add `role="img"` and `aria-label="..."`'
+        alt = (
+            f"marked decorative (`{image.hidden}`). Is it purely decorative? "
+            f"**No:** remove `{image.hidden}`, then {name_it}."
+        )
+    elif image.alt is None and not image.label:
         alt = (
             '**none**. Is it purely decorative? **Yes:** add `alt=""`. **No:** add `alt="..."` saying what '
             "it shows (or, in a link or button, where it goes or what it does)."

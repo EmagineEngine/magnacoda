@@ -170,6 +170,9 @@ class PageImage(BaseModel):
     kind: str  # img, svg, canvas, role-img or input-image
     alt: str | None = None  # None: no alt attribute at all; "": marked decorative
     label: str | None = None  # an aria-label, aria-labelledby text or title that names it instead
+    # How it's hidden from screen readers, if it is: 'aria-hidden="true"', 'aria-hidden="true" around it'
+    # (on an element it's in), 'role="presentation"' or 'role="none"'. Any alt or label then goes unread.
+    hidden: str | None = None
     src: str | None = None
     width: int = 0
     height: int = 0
