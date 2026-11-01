@@ -30,6 +30,7 @@ This is the only help: commands have no --help of their own. If you add or renam
 - Open a terminal and run *magnacoda* with no arguments to start an interactive shell. Let the **wizard** ask a few plain-language questions and build the scan for you. To learn how to open a terminal on your computer, type `docs starting`.
 - Or scan a page directly from the command line with `magnacoda scan URL [OPTIONS]`. The URL can be short, such as example.com or localhost:3000: *magnacoda* fills in the rest.
 - To use the AI tiers you can provide your own Anthropic API key (`setup` can save one for you), or use Claude Code if it is installed and logged into your Claude subscription.
+- AI works with *magnacoda* both ways: your AI coding agent can run it, and it can use AI itself. To see both in one round of work on a page, type `docs full example`.
 
 In the help viewer, press `g` to **go** to a section, or `Space` to go to the next page and learn about the **wizard**.
 
@@ -194,7 +195,7 @@ The address can be short; the url-rules section explains how.
 ### AI reasoning (needs your own Anthropic API key, or Claude Code logged in to your Claude subscription)
 
 - `--ai [off|explain|semantic]`
-  No AI, explanations and fixes for the top 10, or also a second AI pass. Default: off.
+  How much AI to use. `off`: none. `explain`: the AI explains the 10 most important problems and how to fix them. `semantic`: the same, and the AI also reads the page's alt text, headings and link text to judge whether they make sense, which rule checks can't. Default: off.
 - `-y, --yes`
   Accept the AI data-sharing question in advance (for scripts).
 

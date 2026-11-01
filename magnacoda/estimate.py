@@ -1,7 +1,7 @@
 """Scan time estimates for the wizard, and the settings that would speed things up.
 
 probe_page loads the page once and counts what the tests will touch. The per-item costs in _COST were
-measured on a slow laptop and are scaled by how fast this machine walked the page.
+measured on a low-end device and are scaled by how fast this machine walked the page.
 """
 
 from __future__ import annotations
@@ -49,7 +49,7 @@ _COUNT_SCRIPT = """
 }
 """
 
-# Seconds, measured on the slow laptop magnacoda was developed on, per scan or per item.
+# Seconds, measured on the low-end device magnacoda is developed and tested on, per scan or per item.
 _COST = {
     "axe_base": 1.1,  # axe-core: fixed, per element, and more on big pages (it grows faster than the page)
     "axe_per_element": 0.0035,

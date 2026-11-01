@@ -98,7 +98,7 @@ def after_leave(data: bytes) -> str:
 
 
 def test_help_opens_a_pager_that_walks_sections_and_esc_restores_the_screen():
-    chunks = run(["help"], [b" ", b" ", b" ", b" ", b"\x1b"])
+    chunks = run(["help"], [*[b" "] * 8, b"\x1b"])  # past the end of the overview, however it grows
     first = b"".join(chunks[:1])
     assert ENTER in first
     rows = screen(first)
@@ -106,7 +106,7 @@ def test_help_opens_a_pager_that_walks_sections_and_esc_restores_the_screen():
     assert rows[max(rows) - 1].startswith("1/12 overview | g go")
     assert rows[max(rows)].startswith("Scroll: ↑ ↓ | lines 1-")
     assert any("accessibility scanner" in row for row in rows.values())
-    assert "2/12 wizard" in plain(b"".join(chunks[1:5]))
+    assert "2/12 wizard" in plain(b"".join(chunks[1:9]))
     everything = b"".join(chunks)
     assert LEAVE in everything
     assert after_leave(everything).strip() == ""  # the help is gone; nothing is left behind

@@ -40,7 +40,7 @@ WATCH: dict[str, tuple[tuple[str, ...], ...]] = {
 FOCUSED = {"magnacoda/focus-not-visible"}
 # Properties an element takes from its parent when it doesn't set them itself.
 _INHERITED = {"color", "line-height"}
-LIMIT = 60  # elements looked up per scan: enough for a report, quick on a slow computer
+LIMIT = 60  # elements looked up per scan: enough for a report, quick even on a low-end device
 _MAP_BYTES = 5_000_000  # a source map bigger than this is left alone
 
 

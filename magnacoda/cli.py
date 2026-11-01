@@ -2265,7 +2265,7 @@ def _ask_settings(start: savedcommand.SavedScan, url: str, fresh: bool) -> saved
         "(the manual says what: docs ai tiers):\n"
         "  off       no AI: axe-core and magnacoda's own tests, fully offline\n"
         "  explain   + plain-language explanations for the top 10 findings\n"
-        "  semantic  + a second AI pass for issues axe-core can't detect mechanically",
+        "  semantic  + the AI judges whether alt text, headings and link text make sense",
         type=click.Choice(["off", "explain", "semantic"]),
         default=start.ai,
     )

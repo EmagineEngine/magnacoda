@@ -50,6 +50,7 @@ This manual covers all of it. To install *magnacoda* and run your first scan, st
     - [GitHub Actions](#github-actions)
     - [Scripts](#scripts)
     - [From an AI coding agent](#from-an-ai-coding-agent)
+  - [A full example with an AI agent](#a-full-example-with-an-ai-agent)
 - [Related tools](#related-tools)
 
 ## Using *magnacoda*
@@ -125,7 +126,7 @@ The address can be short, such as `example.com` or `localhost:3000`; see [URL ru
 
 The AI tiers need your own Anthropic API key, or Claude Code logged in to your Claude subscription; see [AI tiers](#ai-tiers).
 
-- **`--ai [off|explain|semantic]`**: `off`, no AI (axe-core and *magnacoda*'s own tests, with offline fix suggestions). `explain`, plain-language explanations and AI-written fixes for the top 10 findings. `semantic`, also a second AI pass for issues axe-core can't detect. Default: off.
+- **`--ai [off|explain|semantic]`**: `off`, no AI (axe-core and *magnacoda*'s own tests, with offline fix suggestions). `explain`, plain-language explanations and AI-written fixes for the top 10 findings. `semantic`, the same, and the AI also reads the page's alt text, headings and link text to judge whether they make sense, which rule checks can't. Default: off.
 - **`-y`, `--yes`**: accept the AI data-sharing question in advance, for scripts.
 
 ### Output and CI
@@ -503,6 +504,36 @@ This prints the results as JSON. The parts an agent needs most:
 - `needs_review`: what axe-core couldn't decide.
 
 The saved `checklist.md` is just as useful. It's written for people, so an agent can read it too, and it says what still needs a person. To have an agent check its work as a habit, add a line such as this to its instructions file (`CLAUDE.md`, `AGENTS.md` or similar): *After changing a page, run `magnacoda scan localhost:3000 --quick --fail-on none -o -` and fix what it finds.*
+
+For a whole round of work, with AI on both sides, see the next section.
+
+### A full example with an AI agent
+
+AI can work with *magnacoda* in both directions. Your AI coding agent can run *magnacoda*, and *magnacoda* can use AI itself for what the rule checks can't judge. Here is one round of work on a page, using both, with you deciding at the end.
+
+1. **Your agent changes a page,** such as a sign-up form, while your site runs on your own computer at `localhost:3000`.
+
+2. **The agent scans the page with AI on.**
+
+   ```bash
+   magnacoda scan localhost:3000 --ai semantic --yes --fail-on none -o -
+   ```
+
+   *magnacoda* tests the page, then asks the AI whether the alt text describes each image, whether each link's text makes sense on its own, and whether the headings outline the page. `--yes` gives your consent in advance, since the agent can't answer the question. `-o -` prints the results as JSON for the agent to read (a lone `-` means the screen rather than a file), and the scan's last lines say which folder it was saved in.
+
+3. **The agent fixes what it can.** Findings marked `"source": "claude-semantic"` came from the AI. They're suggestions, so a careful agent weighs them rather than taking each one as fact.
+
+4. **The agent rechecks.** `magnacoda recheck` with the scan's folder tests those problems again, in seconds, and ticks the confirmed fixes in the checklist. It leaves the AI's suggestions for you. With no person at the keyboard, each scan can be rechecked three times, so an agent can't go round in circles.
+
+5. **You review.** `magnacoda review` opens the checklist in your browser. There you see what the agent fixed, the AI's suggestions to accept or dismiss, and the checks only a person can make, such as whether the focus order makes sense.
+
+6. **CI keeps it that way.** CI scans run without AI unless you ask for it, so a build fails only on what the rule checks find (see [GitLab CI](#gitlab-ci) and [GitHub Actions](#github-actions)).
+
+To make this a habit, add these lines to your agent's instructions file (`CLAUDE.md`, `AGENTS.md` or similar):
+
+> After changing a page, run `magnacoda scan localhost:3000 --ai semantic --yes --fail-on none -o -` and fix what it finds. Then run `magnacoda recheck` with the scan's folder. Make at most two rounds of fixes. Then stop and tell me what's still failing, and what the scan says a person needs to check.
+
+Each scan with `--ai semantic` makes two requests to the AI, which count toward your API key or your subscription (see [Two ways to run the AI tiers](#two-ways-to-run-the-ai-tiers-an-api-key-or-your-claude-subscription)). On a low-end device, such a scan of a one-page site takes about two minutes. Rechecks don't call the AI.
 
 ## Related tools
 
