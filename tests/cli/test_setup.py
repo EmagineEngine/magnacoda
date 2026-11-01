@@ -27,7 +27,7 @@ def test_setup_reports_already_installed_and_never_calls_the_installer(monkeypat
 
     assert result.exit_code == 0
     assert "Chromium is already installed." in result.output
-    assert result.output.count("installed") == 1  # no redundant second line saying the same thing
+    assert result.output.count("installed") == 1
     assert calls == []
 
 

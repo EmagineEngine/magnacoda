@@ -72,7 +72,7 @@ def about_text() -> str:
         ("Add-ons", _addons_row()),
     ]
     width = max(len(label) for label, _ in rows) + 2
-    lines = ["", f"{plugins.edition().display_name} {__version__}", ""]  # the title, with space around it
+    lines = ["", f"{plugins.edition().display_name} {__version__}", ""]
     if summary:
         lines += [summary, ""]
     lines += [f"{(label + ':').ljust(width)}{value}" for label, value in rows if value]

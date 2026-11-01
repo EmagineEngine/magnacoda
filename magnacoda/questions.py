@@ -16,7 +16,7 @@ from click.types import convert_type
 from magnacoda import teletype
 from magnacoda.wrapping import wrap_for_stream
 
-_last_blank = True  # whether the last line printed was blank
+_last_blank = True
 CANCEL_WORDS = ("q",)  # typed alone at any question, like Ctrl+C
 CLEAR_WORDS = ("clear", "cls")  # cancel too, and the shell starts a fresh page, as clear does there
 CANCEL_HINT = "Ctrl+C or q cancels at any time."

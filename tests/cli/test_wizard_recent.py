@@ -24,7 +24,7 @@ def _prefs(text: str) -> None:
 
 
 def _defaults_then(*rest: str) -> list[str]:
-    return [*BLANKS, *rest]  # every default
+    return [*BLANKS, *rest]
 
 
 def test_the_files_are_created_when_the_wizard_starts(monkeypatch):

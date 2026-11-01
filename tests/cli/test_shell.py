@@ -201,7 +201,7 @@ def test_each_section_starts_on_a_fresh_page_under_the_banner_and_its_heading(
     heading = typed.split()[0].capitalize()
     assert second < output.rindex("accessibility scanner") < output.index(first_words)  # banner, then it
     above = re.sub(r"\x1b\[[0-9;]*m", "", output[second : output.index(first_words)])  # without styles
-    assert f"\n\n{heading}\n\n" in above  # a blank line each side
+    assert f"\n\n{heading}\n\n" in above
     assert not any(code in output for code in ERASE)
 
 

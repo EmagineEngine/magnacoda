@@ -31,9 +31,9 @@ CODE_MARK = "\x1b[10m"
 # An address in running text, without the brackets or the punctuation that end a sentence around it.
 URL = re.compile(r"(?<![\w/])https?://[A-Za-z0-9][^\s<>()\[\]`\"']*")
 _TRAILING = ".,;:!?*_"
-# Escape sequences, which take no room on screen: CSI (colors, underline) and OSC (hyperlinks).
 # Words that make an address a placeholder, never a link (https://example.com, http://mysite).
 PLACEHOLDERS = ("example", "mysite")
+# Escape sequences, which take no room on screen: CSI (colors, underline) and OSC (hyperlinks).
 _CODE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)")
 _LEAD = re.compile(r"[ \t]*(?:(?:[-*+>]|\d+[.)])[ \t]+)*")
 _FENCE = re.compile(r"^\s*(```|~~~)")

@@ -64,7 +64,7 @@ class Login:
 class VariantResult:
     label: str  # "" for a scan with one variant
     fixed: int = 0  # Fix items confirmed fixed
-    failing: int = 0  # still failing
+    failing: int = 0
     not_found: int = 0  # their element is gone: the page changed
     error: str | None = None  # the recheck couldn't run (the page didn't load, ...)
 

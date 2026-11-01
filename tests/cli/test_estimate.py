@@ -83,7 +83,7 @@ def test_a_page_that_cannot_be_checked_does_not_stop_the_scan(monkeypatch, tmp_p
     answers = _answers(url="example.com", confirm="y")
     out = " ".join(CliRunner().invoke(main, ["wizard"], input=answers).output.split())
     assert "Couldn't check the page first" in out and "connection refused" in out
-    assert scanned  # the scan went ahead
+    assert scanned
 
 
 def test_several_numbers_may_be_separated_by_spaces_or_commas():

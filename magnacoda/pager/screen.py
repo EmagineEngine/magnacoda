@@ -91,7 +91,7 @@ class PagerState:
     # Color choices as (name, description), the first being the terminal's own; empty: no c key.
     colors: Sequence[tuple[str, str]] = ()
     color: int = 0  # the color in use (an index into colors)
-    color_list: bool = False  # the color list is open
+    color_list: bool = False
     color_notes: list[str] = field(default_factory=list)  # themes left out of the colors file, and why
     color_before: int = 0  # the color when the list opened, put back by Esc
     focus: int | None = None  # the link Tab has highlighted (an index into links)

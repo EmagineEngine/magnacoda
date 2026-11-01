@@ -1526,7 +1526,6 @@ def scan_cmd(
             assume_yes=yes,
             engine=_ENGINE_ALIASES.get(ai_engine, ai_engine),
         ),
-        # With AI, the fixes are written by it too; without, the offline templates.
         fixes_tier="ai" if ai != "off" else "template",
         wcag_version=wcag_version,
         level=level,
@@ -1589,7 +1588,7 @@ def scan_cmd(
             faster = estimate.offer_faster(planned, echo=_echo)
             if faster is not planned:
                 _echo("Equivalent command:\n  " + savedcommand.display_command(faster))
-                _run_saved_scan(ctx.find_root(), faster)  # again, with the faster settings
+                _run_saved_scan(ctx.find_root(), faster)
                 return
 
     # Ask before following a redirect to another site. Skipped with login options, which the quick

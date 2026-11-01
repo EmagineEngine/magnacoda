@@ -155,7 +155,7 @@ def press_tab_through(page: Page, limit: int = TAB_LIMIT) -> KeyboardResult:
                 break
             if not info["isNew"]:
                 if info["frame"] and stops and info["index"] == stops[-1]["index"]:
-                    frame_presses += 1  # still moving around inside an embedded frame
+                    frame_presses += 1
                     if frame_presses < _IFRAME_PRESSES:
                         continue
                     _add(result, flagged, info, "keyboard-trap", "Tab never leaves this embedded content")
