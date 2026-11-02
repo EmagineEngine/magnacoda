@@ -39,6 +39,7 @@ REQUIRED = [
     "magnacoda/data/wcag_criteria.json",
     "magnacoda/data/criteria_guidance.json",
     "magnacoda/data/review.html",
+    "magnacoda/data/logo.svg",
     "magnacoda/data/icons/magnacoda.svg",
     "magnacoda/data/icons/magnacoda.ico",
     "magnacoda/data/icons/magnacoda.icns",

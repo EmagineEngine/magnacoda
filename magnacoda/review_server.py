@@ -162,7 +162,8 @@ class ReviewServer:
 
 
 _DONE_PAGE = (
-    b'<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Done</title></head>'
-    b"<body><main><h1>Done</h1><p>magnacoda has stopped showing this scan. You can close this tab."
-    b"</p></main></body></html>"
-)
+    '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Done</title>'
+    "<style>.logo { height: 2rem; width: auto; }</style></head>"
+    f"<body><main>{review_page.logo()}<h1>Done</h1><p>magnacoda has stopped showing this scan. "
+    "You can close this tab.</p></main></body></html>"
+).encode()

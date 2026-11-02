@@ -36,6 +36,10 @@ visible focus, enough contrast in light and dark, and everything readable withou
   header { border-bottom: 1px solid var(--line); padding: .75rem 0; }
   header .bar { display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; align-items: center; justify-content: space-between; }
   .product { margin: 0; font-weight: 600; }
+  /* The logo is the icon from the app shortcut; its white rim shows on a dark page, and it's decorative
+     (aria-hidden), since the name is written next to it. */
+  .product { display: flex; align-items: center; gap: .5rem; }
+  .logo { height: 2rem; width: auto; flex: none; }
   nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .5rem; }
   .variants a { display: inline-block; padding: .35rem .75rem; border: 1px solid var(--line); border-radius: .4rem;
     text-decoration: none; }
@@ -80,7 +84,7 @@ visible focus, enough contrast in light and dark, and everything readable withou
 <a class="skip" href="#main">Skip to content</a>
 <header>
   <div class="wrap bar">
-    <p class="product"><em>{{product}}</em> review</p>
+    <p class="product">{{logo}}<span><em>{{product}}</em> review</span></p>
     {{switcher}}
     <div class="actions">
       <button id="recheck" type="button" title="Test the Fix items again, in a few seconds">Recheck fixes</button>

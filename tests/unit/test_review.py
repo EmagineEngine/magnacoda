@@ -148,7 +148,8 @@ def test_ticking_in_the_page_saves_to_the_checklist_and_the_json(session):
 
 def test_done_stops_the_review(session):
     running, _ = session
-    assert running.request("POST", f"/{running.server.token}/done")[0] == 200
+    status, body = running.request("POST", f"/{running.server.token}/done")
+    assert status == 200 and b'<svg class="logo"' in body
     assert running.server.wait() is False  # returns at once: Done already stopped it
 
 
@@ -300,3 +301,12 @@ def test_review_right_after_a_scan_stays_on_the_same_page(tmp_path, monkeypatch)
     monkeypatch.setattr(Console, "is_terminal", property(lambda self: True))
     out, reviewed = _shell_after_a_scan(tmp_path, monkeypatch)
     assert reviewed and out.count("\x1b[H") == 1  # only the shell's own start feeds a page
+
+
+def test_the_logo_is_in_the_header_and_hidden_from_screen_readers(tmp_path):
+    (tmp_path / "checklist.md").write_text(to_markdown(_report()), encoding="utf-8")
+    variant = review_page.Variant("", tmp_path / "checklist.md", None)
+    header = review_page.page([variant], variant).split("</header>", 1)[0]
+    logo = header.split('<p class="product">', 1)[1]
+    assert logo.startswith('<svg class="logo"') and 'aria-hidden="true"' in logo.split(">", 1)[0]
+    assert "<em>magnacoda</em> review" in logo

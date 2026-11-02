@@ -202,6 +202,11 @@ def findings_count(report: ScanReport) -> str:
     return f"{problems} problem{problem_s} on {elements} element{element_s} ({counts})"
 
 
+def logo() -> str:
+    """The logo as inline SVG, so the page needs no other file."""
+    return (resources.files("magnacoda") / "data" / "logo.svg").read_text(encoding="utf-8").strip()
+
+
 def page(variants: list[Variant], current: Variant) -> str:
     """The whole page for one variant of a saved scan."""
     e = html.escape
@@ -236,6 +241,7 @@ def page(variants: list[Variant], current: Variant) -> str:
     values = {
         "title": f"Review: {title_bits} - {e(name)}",
         "product": e(name),
+        "logo": logo(),
         "heading": f"Accessibility review: {heading_bits}",
         "switcher": switcher,
         "variant": e(current.label),
