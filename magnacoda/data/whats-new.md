@@ -10,6 +10,13 @@ HOW IT IS READ
   * Keep each entry to one short sentence, two at most. Leave the details to the manual and help.
 -->
 
+## 0.1.3
+
+- `--title`
+  Shows the title screen. Set how often with `title` in preferences.
+- The review page shows the *magnacoda* logo.
+- An option typed alone in the shell no longer opens a second shell.
+
 ## 0.1.2
 
 Getting started is smoother, and *magnacoda*'s AI works better alongside your AI coding agent.

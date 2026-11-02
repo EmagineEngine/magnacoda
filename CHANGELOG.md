@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.1.3] - 2026-11-01
+
+### Added
+
+- A title screen when the shell starts (`--title`; `title` in preferences).
+- The logo on the review page.
+
+### Fixed
+
+- An option typed alone in the shell no longer starts a second shell.
+
 ## [0.1.2] - 2026-11-01
 
 ### Added
