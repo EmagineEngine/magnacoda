@@ -357,3 +357,62 @@ def test_exit_and_quit_leave_at_once(monkeypatch):
     for word in ("exit", "quit"):
         result = CliRunner().invoke(main, ["shell"], input=f"{word}\n")
         assert "Leave magnacoda?" not in result.output and result.exit_code == 0
+
+
+@pytest.mark.parametrize(
+    ("typed", "said"),
+    [("\nexit\n", "accessibility scanner"), ("shell\nexit\n", "Already in the magnacoda shell")],
+)
+def test_the_title_waits_for_enter_or_runs_what_was_typed(monkeypatch, typed, said):
+    from magnacoda import title
+
+    monkeypatch.setattr(title, "due", lambda console, forced=False: True)
+    result = CliRunner().invoke(main, ["shell"], input=typed)
+    assert result.exit_code == 0 and "Press Enter to continue" in result.output and said in result.output
+
+
+def test_ctrl_d_at_the_title_leaves_without_the_banner(monkeypatch):
+    from magnacoda import title
+
+    monkeypatch.setattr(title, "due", lambda console, forced=False: True)
+    result = CliRunner().invoke(main, ["shell"], input="")
+    assert result.exit_code == 0 and "accessibility scanner" not in result.output
+
+
+def test_title_forces_the_title_screen(monkeypatch):
+    from magnacoda import title
+
+    seen = []
+    monkeypatch.setattr(title, "due", lambda console, forced=False: seen.append(forced) or False)
+    CliRunner().invoke(main, ["--title"], input="exit\n")
+    CliRunner().invoke(main, ["shell", "--title"], input="exit\n")
+    assert seen == [True, True]
+
+
+def test_title_typed_in_the_shell_shows_the_title_without_a_second_shell(monkeypatch):
+    from magnacoda import title
+
+    monkeypatch.setattr(title, "due", lambda console, forced=False: False)
+    result = CliRunner().invoke(main, ["shell"], input="--title\nshell\nexit\n")
+    out = result.output
+    assert result.exit_code == 0 and "Press Enter to continue" in out
+    assert out.count("accessibility scanner") == 2 and "Already in the magnacoda shell" in out
+
+
+def test_other_launch_options_typed_in_the_shell_start_no_second_shell():
+    result = CliRunner().invoke(main, ["shell"], input="--force-setup-notice\nexit\n")
+    assert (
+        "works when you start magnacoda" in result.output
+        and result.output.count("accessibility scanner") == 1
+    )
+
+
+@pytest.mark.parametrize("due", [True, False])
+def test_the_glow_runs_on_the_title_or_the_banner_never_both(monkeypatch, due):
+    from magnacoda import title
+
+    glows = []
+    monkeypatch.setattr(title, "due", lambda console, forced=False: due)
+    monkeypatch.setattr(title, "glow", lambda *args, **kwargs: glows.append(args))
+    CliRunner().invoke(main, ["shell"], input="\nexit\n")
+    assert len(glows) == 1

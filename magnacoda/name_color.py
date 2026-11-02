@@ -54,8 +54,13 @@ def _background() -> str | None:
     return "#{:02x}{:02x}{:02x}".format(*pair[1]) if pair else None
 
 
-def style(console: Console) -> str:
+def background(console: Console) -> str | None:
+    """The terminal's background ("#rrggbb"), or None when it doesn't say or colors are off."""
     if console.no_color or not console.is_terminal:
-        return PLAIN
-    background = _background()
-    return for_background(background, console.color_system) if background else PLAIN
+        return None
+    return _background()
+
+
+def style(console: Console, known_background: str | None) -> str:
+    """The name's style for the background `background()` found."""
+    return for_background(known_background, console.color_system) if known_background else PLAIN

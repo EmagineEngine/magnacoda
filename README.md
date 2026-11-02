@@ -154,7 +154,7 @@ Run `magnacoda` with no arguments to open its REPL (read-eval-print loop), the s
 
 The shell never erases anything, so earlier results stay in the scrollback; `clear` starts a fresh page.
 
-**Screen readers.** A screen reader announces text as it arrives, so you may prefer to type `screenreader on`. Then text appears at once, one plain line replaces the spinner, and help is printed plainly instead of paged. `screenreader off` turns them back on. It sets `typing` and `spinner` under `[display]` in `preferences.ini`, and `paging` under `[pager]`. `MAGNACODA_TYPING=off` and `MAGNACODA_PAGER=off` do the same from your shell settings. When the shell or wizard starts and finds a screen reader running, it offers once to turn all three off.
+**Screen readers.** A screen reader announces text as it arrives, so you may prefer to type `screenreader on`. Then text appears at once, the title screen is left out, one plain line replaces the spinner, and help is printed plainly instead of paged. `screenreader off` turns them back on. It sets `typing` and `spinner` under `[display]` in `preferences.ini`, and `paging` under `[pager]`. `MAGNACODA_TYPING=off` and `MAGNACODA_PAGER=off` do the same from your shell settings. When the shell or wizard starts and finds a screen reader running, it offers once to turn all three off.
 
 ### Help
 

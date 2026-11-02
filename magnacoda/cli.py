@@ -50,6 +50,7 @@ from magnacoda import (
     teletype,
     ticks,
     tips,
+    title,
     updater,
     viewer,
     winconsole,
@@ -392,8 +393,11 @@ class _CleanUsageError(_CleanError):
     default=False,
     help="When this launches the shell (no subcommand given), always show the Chromium setup notice.",
 )
+@click.option(
+    "--title", "show_title", is_flag=True, default=False, help="Start the shell with the title screen."
+)
 @click.pass_context
-def main(ctx: click.Context, force_setup_notice: bool) -> None:
+def main(ctx: click.Context, force_setup_notice: bool, show_title: bool) -> None:
     """WCAG 2 accessibility scanner: axe-core + Playwright, with optional tiered Claude reasoning.
 
     Run with no arguments to start an interactive shell, or `magnacoda scan URL [OPTIONS]` directly.
@@ -402,7 +406,13 @@ def main(ctx: click.Context, force_setup_notice: bool) -> None:
     Code installed and logged in to your Claude subscription.
     """
     if ctx.invoked_subcommand is None:
-        ctx.invoke(shell, force_setup_notice=force_setup_notice)
+        in_shell = ctx.obj if isinstance(ctx.obj, dict) and ctx.obj.get("in_shell") else None
+        if in_shell is None:
+            ctx.invoke(shell, force_setup_notice=force_setup_notice, show_title=show_title)
+        elif show_title:
+            in_shell["show_title"]()
+        else:
+            click.echo("That option works when you start magnacoda, not inside the shell.")
 
 
 # The about screen is longer than other typed text; it types in bigger chunks in the same time.
@@ -1287,18 +1297,22 @@ def _show_details(console: Console, state: dict[str, Any]) -> None:
 )
 # A shortcut's window closes when the shell ends, so the shortcut says so and the shell pauses first.
 @click.option("--from-shortcut", is_flag=True, default=False, hidden=True)
-def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
+@click.option("--title", "show_title", is_flag=True, default=False, help="Start with the title screen.")
+def shell(force_setup_notice: bool, from_shortcut: bool, show_title: bool) -> None:
     """Start an interactive session: run scan/wizard/setup repeatedly without retyping magnacoda."""
     console = Console()
     names = plugins.edition()
     # The prompt always says just magnacoda: an edition word run into it ("magnacodaexample") is hard to
     # read, and the banner names the edition anyway.
-    name = name_color.style(console)
+    background = name_color.background(console)
+    name = name_color.style(console, background)
     prompt = f"[{name}]{plugins.PRODUCT}[/{name}] [dim]»[/dim] "
+
+    name_markup = f"[{name} italic]{escape(names.display_name)}[/{name} italic]"
 
     def banner(current: str | None) -> str:
         return (
-            f"[{name} italic]{escape(names.display_name)}[/{name} italic] accessibility scanner - "
+            f"{name_markup} accessibility scanner - "
             "type a command, or exit to leave.\n"
             "[bold]Commands:[/bold] "
             + _command_words(
@@ -1313,11 +1327,15 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
     # Updates and news: only in the day's first shell, on up to three days (news.today_notice).
     today = news.today_notice()
 
-    def show_banner(current: str | None = None) -> bool:
+    def show_banner(current: str | None = None, glow: bool = False) -> bool:
         """The banner and its notices, with the current section's command highlighted; whether any
-        notice was shown."""
+        notice was shown. With `glow`, the glow passes along the name first."""
         # The news line is worked out each time, so it goes once the news has been read.
-        teletype.say(console, banner(current))
+        if glow:
+            title.glow(console, names.display_name, name, background)
+            teletype.say(console, banner(current).removeprefix(name_markup))
+        else:
+            teletype.say(console, banner(current))
         # Worked out each time, so the notice goes once setup has run.
         show_chromium_notice = force_setup_notice or not _chromium_probably_installed()
         if show_chromium_notice:
@@ -1333,10 +1351,20 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
     # review, setup, update, about, an add-on's own) and leaving help or news feed a page.
     teletype.page_feed(console)
     screenreader.offer()  # once, before anything is typed out
-    if not show_banner():  # a tip only when there's no other notice
-        _show_tip(console)
     pending: str | None = None
-    if not force_setup_notice and not _chromium_probably_installed() and _is_interactive():
+    titled = title.due(console, forced=show_title)
+    if titled:
+        try:
+            pending = title.show(console, names.display_name, name, background) or None
+        except EOFError:  # Ctrl+D: leave, as at the prompt
+            console.print()
+            pending = "exit"
+        if pending != "exit":
+            teletype.page_feed(console)
+    if pending != "exit" and not show_banner(glow=not titled):  # a tip only when there's no other notice
+        _show_tip(console)
+    offer_setup = not force_setup_notice and not _chromium_probably_installed()
+    if pending is None and offer_setup and _is_interactive():
         try:
             if _ask_yes_no("Set it up now?", default=True):
                 pending = "setup"
@@ -1352,8 +1380,22 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
             teletype.say(console, f"[bold]{escape(current.capitalize())}[/bold]\n")
             questions.printed("\n")
 
+    def title_now() -> None:
+        """`--title` typed in the shell: the title, then the banner; what's typed at it runs next."""
+        try:
+            shell_state["typed"] = title.show(console, names.display_name, name, background)
+        except EOFError:
+            console.print()
+        teletype.page_feed(console)
+        show_banner()
+
     # "new_page": a section (sections.new_page) gets a page of its own, with the banner on top.
-    shell_state: dict[str, Any] = {"in_shell": True, "after_pager": banner_on_top, "new_page": banner_on_top}
+    shell_state: dict[str, Any] = {
+        "in_shell": True,
+        "after_pager": banner_on_top,
+        "new_page": banner_on_top,
+        "show_title": title_now,
+    }
     goodbye = False  # leaving by choice (exit, Ctrl+D, Ctrl+C at the prompt), not because of `update`
     while True:
         try:
@@ -1423,6 +1465,7 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
         except Exception as exc:  # noqa: BLE001 - one bad command must not kill the session
             _keep_details(shell_state)
             console.print(f"[red]Error:[/red] {escape(str(exc))}\n{_DETAILS_HINT}")
+        pending = shell_state.pop("typed", None) or None
         if shell_state.pop("leave", False):  # `update` ended the session (see _leave_the_session)
             break
     if goodbye and _interactive(console):

@@ -80,7 +80,7 @@ To open *magnacoda* without a terminal first, type `magnacoda shortcut` and choo
 *magnacoda*'s settings are in `preferences.ini`, in its settings folder: `~/.config/magnacoda/` on Linux and macOS (or under `$XDG_CONFIG_HOME` if that is set), `%APPDATA%\magnacoda\` on Windows. Each setting has a line saying what it does; edit them in any text editor.
 
 - `[scan]`: asking before a scan, the time estimate, quick scans
-- `[display]`: typing text out, tips, the spinner
+- `[display]`: typing text out, tips, the spinner, the title screen
 - `[pager]`: the help viewer, for `help`, `readme`, `docs` and `view`
 - `[review]`: a new tab or window for the review page
 - `[recheck]`: how often a script or an AI agent may recheck one scan

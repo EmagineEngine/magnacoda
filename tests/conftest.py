@@ -77,6 +77,15 @@ def _screen_reader_offer_already_made(_isolated_config_dir: None) -> None:
 
 
 @pytest.fixture(autouse=True)
+def _title_already_shown_today(_isolated_config_dir: None) -> None:
+    """The day's title screen counts as shown, so no shell in a test (pty ones included) waits at it.
+    Tests of the title remove the file."""
+    from magnacoda import title
+
+    title.mark_shown()
+
+
+@pytest.fixture(autouse=True)
 def _no_news_checks(monkeypatch: pytest.MonkeyPatch) -> None:
     """No test reaches the network: the daily checks are switched off, and any request (even one the
     `update` command forces) fails as if offline. Tests that need answers pass their own fetch or
