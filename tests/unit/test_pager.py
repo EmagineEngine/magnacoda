@@ -302,6 +302,7 @@ def test_the_cursor_is_a_blinking_block_in_the_field_and_its_own_shape_comes_bac
 
 
 def test_each_section_is_told_once_the_first_time_it_shows(monkeypatch):
+    monkeypatch.setattr(pager, "alternate_screen_codes", lambda env=None: ("<ENTER>", "<LEAVE>"))
     monkeypatch.setattr(pager, "_terminal_size", lambda: (60, 12))
     told = []
     keys = iter(["right", "left", "right", "esc"])
