@@ -10,6 +10,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import traceback
@@ -52,7 +53,9 @@ from magnacoda import (
     ticks,
     tips,
     title,
+    uninstaller,
     updater,
+    userdir,
     viewer,
     winconsole,
     window,
@@ -753,25 +756,10 @@ def _chromium_already_installed() -> bool:
         return False
 
 
-def _playwright_browsers_dir() -> Path:
-    """Playwright's browser cache folder, as computed in the driver's coreBundle.js
-    (PLAYWRIGHT_BROWSERS_PATH, XDG_CACHE_HOME on Linux)."""
-    override = os.environ.get("PLAYWRIGHT_BROWSERS_PATH")
-    if override:
-        return Path(override)
-    if sys.platform == "darwin":
-        return Path.home() / "Library" / "Caches" / "ms-playwright"
-    if sys.platform == "win32":
-        base = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
-        return Path(base) / "ms-playwright"
-    base = os.environ.get("XDG_CACHE_HOME") or str(Path.home() / ".cache")
-    return Path(base) / "ms-playwright"
-
-
 def _chromium_probably_installed() -> bool:
     """Quick filesystem guess for the banner (~1 ms); `setup` and the launch error are authoritative."""
     try:
-        return any(_playwright_browsers_dir().glob("chromium-*"))
+        return any(userdir.browsers_dir().glob("chromium-*"))
     except OSError:
         return False
 
@@ -1249,6 +1237,139 @@ def update_cmd(ctx: click.Context, yes: bool, use_saved: bool) -> None:
             + "\n".join(f"  {line}" for line in repair.splitlines()),
             err=True,
         )
+        sys.exit(1)
+
+
+def _addon_packages() -> list[str]:
+    """Installed add-on packages (not the ones bundled with magnacoda), each once."""
+    found: list[str] = []
+    for addon in plugins.loaded():
+        if not addon.bundled and addon.package not in found:
+            found.append(addon.package)
+    return found
+
+
+def _deleted(done: bool, what: str, where: Path) -> None:
+    if done:
+        _echo(f"Deleted {what}.")
+    else:
+        _echo(f"Couldn't delete all of {what}. Delete what's left yourself: {short(where)}", err=True)
+
+
+@main.command(name="uninstall")
+@click.option("-y", "--yes", is_flag=True, default=False, help="Uninstall without asking.")
+@click.option("--settings", "with_settings", is_flag=True, default=False, help="Delete settings and history.")
+@click.option("--chromium", "with_chromium", is_flag=True, default=False, help="Delete Chromium.")
+@click.option("--scans", "with_scans", is_flag=True, default=False, help="Delete the saved scans.")
+@click.pass_context
+def uninstall_cmd(
+    ctx: click.Context, yes: bool, with_settings: bool, with_chromium: bool, with_scans: bool
+) -> None:
+    """Remove magnacoda and its shortcuts, and if you choose, your settings, Chromium and scans."""
+    sections.new_page(ctx, "uninstall")
+    if not yes:
+        _echo(questions.CANCEL_HINT)
+        if not _ask_yes_no(
+            "Uninstall magnacoda?",
+            intro="This removes magnacoda and its shortcuts from this computer. Before anything "
+            "changes, it asks whether to delete your settings, Chromium and saved scans too, and then "
+            f"asks you to confirm. To read about it first, type `{_program(ctx)}help uninstall`.",
+        ):
+            _echo("Nothing was changed.")
+            return
+    steps = uninstaller.plan(_addon_packages())
+    settings = userdir.config_dir()
+    browsers = userdir.browsers_dir()
+    chromium = uninstaller.chromium_parts(browsers)
+    scans = uninstaller.saved_scans()
+    if not yes:
+        if settings.exists():
+            with_settings = _ask_yes_no(
+                "Delete your settings and history too?",
+                intro=f"Your settings, scan history, favorites and any saved API key are in "
+                f"{short(settings)}.",
+            )
+        if chromium:
+            megabytes = uninstaller.megabytes(sum(uninstaller.size(part) for part in chromium))
+            with_chromium = _ask_yes_no(
+                "Delete Chromium too?",
+                intro=f"Chromium, which setup downloaded ({megabytes}), is in {short(browsers)}. "
+                "Other programs that use Playwright may use it too.",
+            )
+        if scans.count:
+            many = "1 saved scan" if scans.count == 1 else f"{scans.count} saved scans"
+            with_scans = _ask_yes_no(
+                "Delete your saved scans too?",
+                intro=f"You have {many} in {short(scans.folder)}. Once deleted, they're gone.",
+            )
+    links = shortcuts.existing()
+    todo = [
+        *(["Remove the shortcuts." if len(links) > 1 else "Remove the shortcut."] if links else []),
+        *(["Delete your settings and history."] if with_settings and settings.exists() else []),
+        *(["Delete Chromium."] if with_chromium and chromium else []),
+        *(
+            [f"Delete {scans.count} saved scan{'s' if scans.count != 1 else ''}."]
+            if with_scans and scans.count
+            else []
+        ),
+        *(
+            [f"Remove magnacoda: {updater.shown(command)}" for command in steps.commands]
+            if steps.kind not in (updater.DEV, updater.SHOW)
+            else []
+        ),
+    ]
+    if todo and steps.kind == updater.SHOW:
+        todo.append("Show you the command that removes magnacoda, which it can't run here.")
+    elif todo and steps.kind == updater.DEV:
+        todo.append("Keep magnacoda itself, since this is a development install.")
+    if not todo:
+        _echo(steps.note if steps.kind == updater.DEV else "There's nothing to remove.")
+        return
+    if not yes:
+        _echo("This will:\n" + "\n".join(f"  {line}" for line in todo))
+        if not _ask_yes_no("Uninstall now?"):
+            _echo("Nothing was changed.")
+            return
+    if links:
+        _remove_shortcuts()
+    if with_settings and settings.exists():
+        _deleted(uninstaller.delete(settings), "your settings and history", settings)
+    if with_chromium and chromium:
+        _deleted(uninstaller.delete_chromium(browsers), "Chromium", browsers)
+    if with_scans and scans.count:
+        _deleted(uninstaller.delete_scans(scans), "your saved scans", scans.folder)
+        if scans.folder.exists():
+            _echo(f"{short(scans.folder)} stays, since it holds other files too.")
+    if steps.kind in (updater.DEV, updater.SHOW):
+        _echo(steps.note)
+        for command in steps.commands:
+            _echo("  " + updater.shown(command))
+        return
+    by_hand = "\n".join(updater.shown(command) for command in steps.commands)
+    if os.name == "nt":  # pragma: no cover - checked by hand on Windows
+        others = updater.others_running()
+        if others:
+            where = "another window or tab" if others == 1 else f"{others} other windows or tabs"
+            _echo(
+                f"magnacoda is also running in {where}. Type exit at each magnacoda prompt: the uninstall "
+                "waits until magnacoda has stopped everywhere."
+            )
+        if not updater.start_in_new_window(steps.commands, by_hand, uninstaller.UNINSTALL_WORDS):
+            _echo(f"Couldn't open a new window. Quit magnacoda, then run:\n  {by_hand}", err=True)
+            return
+        _echo("The rest happens in a new window, once magnacoda has stopped. Closing magnacoda here now.")
+        _leave_the_session(ctx)
+        return
+    log = Path(tempfile.gettempdir()) / "magnacoda-uninstall.log"
+    if updater.run(steps.commands, log):
+        _echo("magnacoda is uninstalled. Closing it now.")
+        if steps.note:
+            _echo(steps.note)
+        _leave_the_session(ctx)
+    else:
+        last = "\n".join(f"  {line}" for line in updater.tail(log))
+        _echo(f"Removing the program didn't finish. The last lines of its log:\n{last}", err=True)
+        _echo(f"\nTo finish it yourself, run:\n  {by_hand}", err=True)
         sys.exit(1)
 
 

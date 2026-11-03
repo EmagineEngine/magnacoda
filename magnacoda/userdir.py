@@ -19,6 +19,21 @@ def config_dir() -> Path:
     return Path(base) / APP_NAME
 
 
+def browsers_dir() -> Path:
+    """Playwright's browser folder, as its driver works it out (PLAYWRIGHT_BROWSERS_PATH, XDG_CACHE_HOME
+    on Linux). Other programs that use Playwright share it."""
+    override = os.environ.get("PLAYWRIGHT_BROWSERS_PATH")
+    if override:
+        return Path(override)
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Caches" / "ms-playwright"
+    if sys.platform == "win32":
+        base = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
+        return Path(base) / "ms-playwright"
+    base = os.environ.get("XDG_CACHE_HOME") or str(Path.home() / ".cache")
+    return Path(base) / "ms-playwright"
+
+
 def write_private(path: Path, text: str) -> None:
     """Atomic write (temp file + rename), creating the folder, owner-only on POSIX."""
     path.parent.mkdir(parents=True, exist_ok=True)

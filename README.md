@@ -98,6 +98,8 @@ magnacoda scan example.com  # or scan a page straight away; https:// is filled i
 
 **Next time,** open a terminal and type `magnacoda` to start the [shell](#interactive-shell), or `magnacoda wizard` to go straight to the [guided wizard](#guided-wizard). For more, including what to do if your terminal doesn't find `magnacoda`, see [Starting *magnacoda*](docs/manual.md#starting-magnacoda) (from the *magnacoda* shell, type `docs starting`).
 
+**To uninstall,** type `magnacoda uninstall`. That one command removes *magnacoda* and its shortcuts, whichever way you installed it. It asks first, and you choose whether your settings, Chromium and saved scans go too. For more, see [Uninstalling](docs/manual.md#uninstalling).
+
 #### With pipx instead
 
 If you already use [pipx](https://pipx.pypa.io/), it works just as well. It uses a Python already on your computer, which must be 3.11 or newer (Ubuntu 22.04's is 3.10, too old; uv avoids this). Get pipx from your system's own installer rather than with pip, which recent Linux versions block:

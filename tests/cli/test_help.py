@@ -16,6 +16,7 @@ SECTIONS = [
     "advanced",
     "examples",
     "add-ons",
+    "uninstall",
     "more info",
     "about the name",
 ]
@@ -30,6 +31,7 @@ MARKERS = {
     "advanced": "Advanced scan options",
     "examples": "Example scans",
     "add-ons": "Make it do more: write an add-on",
+    "uninstall": "Uninstalling",
     "more info": "Where to find more",
     "about the name": "About the name",
 }

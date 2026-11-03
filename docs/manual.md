@@ -51,7 +51,9 @@ This manual covers all of it. To install *magnacoda* and run your first scan, st
     - [Scripts](#scripts)
     - [From an AI coding agent](#from-an-ai-coding-agent)
   - [A full example with an AI agent](#a-full-example-with-an-ai-agent)
-- [Related tools](#related-tools)
+- [Appendix](#appendix)
+  - [Related tools](#related-tools)
+  - [Uninstalling](#uninstalling)
 
 ## Using *magnacoda*
 
@@ -73,7 +75,7 @@ Then type one of these:
 
 If the terminal says it doesn't know the command, open a new terminal window, because a newly installed command is only found in windows opened after it was installed.
 
-To open *magnacoda* without a terminal first, type `magnacoda shortcut` and choose your app menu, your desktop or both. On Windows the menu is the Start menu, where `Ctrl+Alt+M` opens it too; on macOS it's Applications, and the first time, macOS asks whether *magnacoda* may control Terminal. Uninstalling *magnacoda* leaves the shortcuts behind, so type `magnacoda shortcut remove` first. When you leave *magnacoda*, a shortcut's window stays open until you press `Enter`, so you can read the last lines at your own pace.
+To open *magnacoda* without a terminal first, type `magnacoda shortcut` and choose your app menu, your desktop or both. On Windows the menu is the Start menu, where `Ctrl+Alt+M` opens it too; on macOS it's Applications, and the first time, macOS asks whether *magnacoda* may control Terminal. `magnacoda shortcut remove` takes them away, and so does `uninstall`. When you leave *magnacoda*, a shortcut's window stays open until you press `Enter`, so you can read the last lines at your own pace.
 
 ### Settings
 
@@ -535,7 +537,9 @@ To make this a habit, add these lines to your agent's instructions file (`CLAUDE
 
 Each scan with `--ai semantic` makes two requests to the AI, which count toward your API key or your subscription (see [Two ways to run the AI tiers](#two-ways-to-run-the-ai-tiers-an-api-key-or-your-claude-subscription)). On a low-end device, such a scan of a one-page site takes about two minutes. Rechecks don't call the AI.
 
-## Related tools
+## Appendix
+
+### Related tools
 
 *As of October 2026; these tools change quickly, and corrections are welcome. Product names are trademarks of their owners, and magnacoda isn't affiliated with any of them.*
 
@@ -561,3 +565,15 @@ These are paid or freemium platforms for organizations: monitoring whole sites, 
 - **[Level Access](https://www.levelaccess.com/)**: an enterprise platform combining automated scanning, evaluation by experts, AI-powered remediation, monitoring, training and VPAT/ACR documentation.
 - **[Siteimprove](https://www.siteimprove.com/accessibility/)**: continuous monitoring across whole websites and documents, with a browser extension and AI to prioritize issues.
 - **[BrowserStack Accessibility Testing](https://www.browserstack.com/accessibility-testing)**: workflow and site scans, CI integration, and screen readers on real devices, with free and paid plans.
+
+### Uninstalling
+
+Type `uninstall` (outside the shell, `magnacoda uninstall`). It asks first, and then whether to delete your settings and history, Chromium, and your saved scans too. Enter answers no, so you keep your files unless you say otherwise. It lists what it will do and asks once more, then removes the shortcuts, what you chose, and *magnacoda* itself. Other programs that use Playwright may use the same Chromium. On Windows, *magnacoda* itself is removed in a new window once it has stopped. In a script, `magnacoda uninstall --yes` removes *magnacoda* and its shortcuts without asking; add `--settings`, `--chromium` or `--scans` to delete those too.
+
+If *magnacoda* won't start, uninstall it by hand:
+
+1. Remove *magnacoda*: `uv tool uninstall magnacoda`, or `pipx uninstall magnacoda`. If you installed it with pip in a virtual environment, delete that environment's folder.
+2. Delete the shortcuts, if you made any: the *magnacoda* entry in your app menu (Start menu on Windows, Applications on macOS) and on your desktop.
+3. If you like, delete your settings and history: `~/.config/magnacoda` (on Windows, `%APPDATA%\magnacoda`).
+4. If you like, delete Chromium: the folders that start with `chromium` in `~/.cache/ms-playwright` (on macOS, `~/Library/Caches/ms-playwright`; on Windows, `%LOCALAPPDATA%\ms-playwright`).
+5. If you like, delete your saved scans: `magnacoda-scans` in your Documents folder, or the folder you chose under `[scan]` in `preferences.ini`.

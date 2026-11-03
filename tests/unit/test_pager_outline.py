@@ -321,7 +321,8 @@ def test_a_column_keeps_its_place_beside_a_blank_cell_and_the_pick_is_marked():
     for key in "g", "tab":
         state.handle(key)
     rows = [links.visible(row) for row in state.render(96)]
-    starts = {re.search(r"\b1[0-9] ", row).start() for row in rows if re.search(r"\S {3,}1[0-9] ", row)}
-    starts |= {row.index("13") for row in rows if row.lstrip().startswith("13")}  # beside a blank cell
-    assert len(starts) == 1
+    assert any(re.match(r" {20,}\d", row) for row in rows)  # a number beside a blank cell
+    ends = {found.end() for row in rows for found in re.finditer(r"\d+(?= {2,}\S)", row)}
+    columns = max(len(re.findall(r"\d+(?= {2,}\S)", row)) for row in rows)
+    assert len(ends) == columns > 1  # numbers line up in each column, beside a blank cell too
     assert any(row.startswith(" › 1  Introduction") for row in rows)

@@ -175,19 +175,49 @@ def _with_separator(folder: str) -> str:
     return folder.rstrip("/\\") + separator
 
 
+@dataclass(frozen=True)
+class Words:
+    """What the Windows script says, for an update or an uninstall."""
+
+    action: str  # the window title's last word, and the log's name
+    waiting: str
+    go: str
+    again: str
+    starting: tuple[str, ...]
+    done: str
+    failed: str
+    fix: str
+
+
+UPDATE_WORDS = Words(
+    action="update",
+    waiting="magnacoda will be updated as soon as it has stopped.",
+    go="Press Enter to update now (or close this window to cancel)",
+    again="magnacoda was started again, so nothing was changed. Quit it and run update again.",
+    starting=(
+        "The update is starting. Please wait: it can take a minute or two, and nothing more",
+        "appears here until it has finished.",
+    ),
+    done="Done. Start magnacoda again to use the new version.",
+    failed="The update did not finish. The last lines of its log:",
+    fix="If magnacoda no longer starts, repair it with:",
+)
+
+
 def windows_script(
     commands: list[list[str]],
     install_folder: str,
     repair: str,
     log: str | None = None,
     program: str = "magnacod",
+    words: Words = UPDATE_WORDS,
 ) -> str:
-    """PowerShell update script: wait for every magnacoda process to exit, confirm, run the commands
-    into `log`, show the tail only on failure, then delete itself. Tests pass their own `program`
-    prefix so a real magnacoda on the machine doesn't block them.
+    """PowerShell script: wait for every magnacoda process to exit, confirm, run the commands into
+    `log`, show the tail only on failure, then delete itself. Tests pass their own `program` prefix so
+    a real magnacoda on the machine doesn't block them.
     """
     lines = [
-        "$Host.UI.RawUI.WindowTitle = 'magnacoda update'",
+        f"$Host.UI.RawUI.WindowTitle = 'magnacoda {words.action}'",
         # Windows freezes a console window while text is selected in it ("Quick Edit": a click inside
         # starts a selection), which looks like the update hanging. Switch that off for this window.
         "try {",
@@ -219,7 +249,7 @@ def windows_script(
         "        ($_.Path -and $_.Path.StartsWith($folder, [StringComparison]::OrdinalIgnoreCase)))",
         "    })",
         "}",
-        "Write-Host 'magnacoda will be updated as soon as it has stopped.'",
+        f"Write-Host {_ps(words.waiting)}",
         "Write-Host 'Nothing has been changed yet: to cancel, just close this window.'",
         "$told = $false",
         "while ((Running).Count -gt 0) {",
@@ -234,20 +264,19 @@ def windows_script(
         "}",
         "Write-Host ''",
         "Write-Host 'magnacoda has stopped.'",
-        "Ask 'Press Enter to update now (or close this window to cancel)'",
+        f"Ask {_ps(words.go)}",
         "if ((Running).Count -gt 0) {",  # started again while waiting for Enter: don't break it
-        "    Write-Host 'magnacoda was started again, so nothing was changed. Quit it and run update again.'",
+        f"    Write-Host {_ps(words.again)}",
         "    Ask 'Press Enter to close this window'",
         "    Remove-Item -LiteralPath $PSCommandPath -ErrorAction SilentlyContinue",
         "    exit 1",
         "}",
         "Write-Host ''",
-        "Write-Host 'The update is starting. Please wait: it can take a minute or two, and nothing more'",
-        "Write-Host 'appears here until it has finished.'",
+        *[f"Write-Host {_ps(line)}" for line in words.starting],
         (
             f"$log = {_ps(log)}"
             if log
-            else "$log = Join-Path ([IO.Path]::GetTempPath()) 'magnacoda-update.log'"
+            else f"$log = Join-Path ([IO.Path]::GetTempPath()) 'magnacoda-{words.action}.log'"
         ),
         "Remove-Item -LiteralPath $log -ErrorAction SilentlyContinue",
         "$ok = $true",
@@ -264,14 +293,14 @@ def windows_script(
     lines += [
         "Write-Host ''",
         "if ($ok) {",
-        "    Write-Host 'Done. Start magnacoda again to use the new version.'",
+        f"    Write-Host {_ps(words.done)}",
         "} else {",
-        "    Write-Host 'The update did not finish. The last lines of its log:'",
+        f"    Write-Host {_ps(words.failed)}",
         f"    Get-Content -LiteralPath $log -Tail {TAIL_LINES} -ErrorAction SilentlyContinue |",
         '        ForEach-Object { Write-Host "  $_" }',
         '    Write-Host "The whole log is in $log"',
         "    Write-Host ''",
-        "    Write-Host 'If magnacoda no longer starts, repair it with:'",
+        f"    Write-Host {_ps(words.fix)}",
         *[f"    Write-Host {_ps('  ' + line)}" for line in repair.splitlines()],
         "}",
         "Ask 'Press Enter to close this window'",
@@ -345,13 +374,15 @@ def others_running() -> int:  # pragma: no cover - Windows only
         return 0
 
 
-def start_in_new_window(commands: list[list[str]], repair: str) -> bool:  # pragma: no cover - Windows only
+def start_in_new_window(
+    commands: list[list[str]], repair: str, words: Words = UPDATE_WORDS
+) -> bool:  # pragma: no cover - Windows only
     """Write the script and open it in a new PowerShell window. False if that couldn't be started."""
     try:
-        handle, path = tempfile.mkstemp(prefix="magnacoda-update-", suffix=".ps1")
+        handle, path = tempfile.mkstemp(prefix=f"magnacoda-{words.action}-", suffix=".ps1")
         # utf-8-sig: Windows PowerShell 5.1 reads a script as UTF-8 only with the byte-order mark.
         with os.fdopen(handle, "w", encoding="utf-8-sig", newline="") as file:
-            file.write(windows_script(commands, sys.prefix, repair))
+            file.write(windows_script(commands, sys.prefix, repair, words=words))
         new_console = getattr(subprocess, "CREATE_NEW_CONSOLE", 0x10)
         subprocess.Popen(
             ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", path],

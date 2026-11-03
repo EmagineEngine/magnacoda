@@ -103,10 +103,10 @@ def test_help_opens_a_pager_that_walks_sections_and_esc_restores_the_screen():
     assert ENTER in first
     rows = screen(first)
     assert rows[2] == "magnacoda - Help"  # the title stays on top, under a blank row
-    assert rows[max(rows) - 1].startswith("1/12 overview | g go")
+    assert rows[max(rows) - 1].startswith("1/13 overview | g go")
     assert rows[max(rows)].startswith("Scroll: ↑ ↓ | lines 1-")
     assert any("accessibility scanner" in row for row in rows.values())
-    assert "2/12 wizard" in plain(b"".join(chunks[1:9]))
+    assert "2/13 wizard" in plain(b"".join(chunks[1:9]))
     everything = b"".join(chunks)
     assert LEAVE in everything
     assert after_leave(everything).strip() == ""  # the help is gone; nothing is left behind
@@ -140,16 +140,16 @@ def test_plain_help_and_a_bare_dashdash_help_open_every_section_in_the_pager():
         chunks = run(args, [b"\x1b"])
         rows = screen(chunks[0])
         assert ENTER in chunks[0] and rows[2] == "magnacoda - Help"
-        assert any(row.startswith("1/12 overview") for row in rows.values())
+        assert any(row.startswith("1/13 overview") for row in rows.values())
         assert LEAVE in b"".join(chunks)
 
 
 def test_a_digit_jumps_to_a_section_and_g_lists_them():
     chunks = run(["help"], [b"7", b"\r", b"g", b"u", b"s", b"\r", b"q"], rows=16)
     assert "Go to: 7" in plain(chunks[1])
-    assert "Options for scan" in plain(chunks[2]) and "7/12 scan" in plain(chunks[2])
+    assert "Options for scan" in plain(chunks[2]) and "7/13 scan" in plain(chunks[2])
     assert "Go to:" in plain(chunks[3]) and "9  examples" in plain(chunks[3])
-    assert "4/12 usage" in plain(chunks[6])  # "us", the start of its name
+    assert "4/13 usage" in plain(chunks[6])  # "us", the start of its name
     assert LEAVE in chunks[7]
 
 
@@ -204,7 +204,7 @@ def test_resizing_the_terminal_redraws_the_page():
     os.waitpid(pid, 0)
     before_rows, after_rows = screen(first), screen(after)
     assert max(before_rows) == 12 and max(after_rows) == 20
-    assert before_rows[11].startswith("1/12 overview | ")
+    assert before_rows[11].startswith("1/13 overview | ")
     assert before_rows[12].startswith("Scroll: ↑ ↓ | lines 1-6 of")  # less the top, title gap and gap rows
     assert after_rows[2] == "magnacoda - Help" and after_rows[20].startswith("Scroll: ↑ ↓ | lines")
 

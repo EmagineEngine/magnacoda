@@ -84,7 +84,7 @@ To learn how to open a terminal on your computer, type `docs starting`.
 - `magnacoda scan URL [OPTIONS]`
   Scan a page.
 - `magnacoda COMMAND [ARGS]`
-  Run one command: scan, wizard, setup, shortcut, screenreader, review, recheck, shell, news, update, about, help, readme, docs or view.
+  Run one command: scan, wizard, setup, shortcut, screenreader, review, recheck, shell, news, update, uninstall, about, help, readme, docs or view.
 
 The commands and options sections list what's available.
 
@@ -120,7 +120,7 @@ Like an old terminal printer, the shell never erases anything. Each command's ou
 - `setup`
   Install the Playwright Chromium browser and choose how the AI tiers run: with your Claude plan through Claude Code, or with an Anthropic API key, which it can save for you. To delete a saved key later, type `setup --forget-key`.
 - `shortcut`, `shortcut remove`
-  Add a shortcut to your app menu (on Windows, the Start menu, where `Ctrl+Alt+M` opens it too; on macOS, Applications), your desktop, or both. Uninstalling *magnacoda* leaves the shortcuts behind, so remove them first.
+  Add a shortcut to your app menu (on Windows, the Start menu, where `Ctrl+Alt+M` opens it too; on macOS, Applications), your desktop, or both. `uninstall` removes them too.
 - `screenreader on`, `screenreader off`
   With a screen reader, `on` turns off what reads poorly with one: text typed out a little at a time, the title screen, the spinner and paging. `off` turns them back on, and `screenreader` alone says which are on.
 - `review [FOLDER] [--no-browser]`
@@ -131,6 +131,8 @@ Like an old terminal printer, the shell never erases anything. Each command's ou
   Show available updates and the news about *magnacoda*, numbered, starting with what's new in a newer version or the one you just updated to. To read an item, type its number and press Enter, or add it to the command. When there's something new, your first shell of the day mentions it: a newer version every day until you install it, news on up to three days.
 - `update`
   Update *magnacoda*, and any add-ons published on PyPI, to the latest version. It shows you what's new and what it will run, and asks first (`update --yes` doesn't ask). When one is waiting, leaving the shell offers it, once a day. For more, type `docs updates`.
+- `uninstall`
+  Remove *magnacoda* and its shortcuts. It asks first, and asks whether to delete your settings, Chromium and saved scans too. The uninstall section tells you more.
 - `about`
   Show the author, copyright, website, repository, version and license, and where to report problems.
 - `help`, `help NAME`
@@ -308,6 +310,23 @@ To install an add-on, add it to the same install as *magnacoda*: with uv, `uv to
 If you'd like *magnacoda* to do something it doesn't, write an add-on. Changes to *magnacoda*'s own code would have to be redone for every new version, but an add-on is a package of its own. It stays installed when you update *magnacoda*, and you can share it with others or publish it on PyPI.
 
 Anyone can build one. An add-on is a small Python package with one file of hooks, and the simplest example rings the terminal's bell when a scan finishes. The guide, with that example and the rest, is "Writing an add-on" in the contributing guide, at https://magnacoda.dev/add-ons
+
+## uninstall
+
+### Uninstalling
+
+Type `uninstall`. Nothing changes until you've answered its questions:
+
+- Uninstall *magnacoda*? Answer `y` to go on.
+- Delete your settings and history too? These are your preferences, scan history, favorites and any saved API key.
+- Delete Chromium too? Other programs that use Playwright may use it too.
+- Delete your saved scans too? Once deleted, they're gone.
+
+Each question is only asked when there's something to delete, and Enter answers no, so you keep your files unless you say otherwise. Then it lists what it will do and asks once more. It removes the shortcuts and what you chose, then *magnacoda* itself, and closes. On Windows, *magnacoda* itself is removed in a new window once it has stopped.
+
+In a script, `uninstall --yes` removes *magnacoda* and its shortcuts without asking. To delete the rest too, add `--settings`, `--chromium` or `--scans`.
+
+If *magnacoda* won't start, you can uninstall it by hand. The steps are at https://magnacoda.dev/uninstall
 
 ## more info
 

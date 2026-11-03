@@ -11,7 +11,7 @@ import platformdirs
 from magnacoda import preferences
 
 DEFAULT_SCANS_DIR = "magnacoda-scans"
-_SELF_IGNORE = "# Created by magnacoda: keeps saved scans out of git.\n*\n"
+SELF_IGNORE = "# Created by magnacoda: keeps saved scans out of git.\n*\n"
 
 
 def scans_folder() -> Path:
@@ -41,7 +41,7 @@ def make_self_ignoring(folder: Path) -> bool:
     if marker.exists():
         return False
     try:
-        marker.write_text(_SELF_IGNORE, encoding="utf-8")
+        marker.write_text(SELF_IGNORE, encoding="utf-8")
     except OSError:
         return False
     return True
