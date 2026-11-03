@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.1.4] - 2026-11-03
+
+### Added
+
+- `uninstall` removes *magnacoda* and its shortcuts, and asks before deleting settings, Chromium or saved scans.
+- News and updates show on the title screen, and leaving the shell offers an available update.
+- `update` shows what's new before installing.
+
+### Changed
+
+- `news` lists its items by number, starting with what's new in a newer version; `news 2` opens the second.
+- In section lists, Tab starts picking, `›` marks the pick, and the arrows go on from what typing highlights.
+- The wizard says how to cancel.
+
 ## [0.1.3] - 2026-11-01
 
 ### Added

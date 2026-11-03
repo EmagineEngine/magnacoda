@@ -10,6 +10,15 @@ HOW IT IS READ
   * Keep each entry to one short sentence, two at most. Leave the details to the manual and help.
 -->
 
+## 0.1.4
+
+- `news`
+  Numbered, starting with what's new in a newer version. Type a number to read an item.
+- `uninstall`
+  Removes *magnacoda* and its shortcuts, and asks before deleting your settings, Chromium or scans.
+- News and updates show on the title screen, and `update` shows what's new before installing.
+- In a section list (`g`), the arrows go on from what your typing highlights.
+
 ## 0.1.3
 
 - `--title`
