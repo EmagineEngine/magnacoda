@@ -64,6 +64,25 @@ def test_drawing_with_an_accent_colors_the_hints_and_drops_the_heading_mark_with
     assert "\x1b[11m" not in out.getvalue() and "\x1b[7mhints" in out.getvalue()
 
 
+@pytest.mark.parametrize("pair", [((224, 224, 224), (0, 0, 0)), ((16, 16, 16), (232, 228, 216))])
+def test_the_dimmer_shade_moves_toward_the_background_and_keeps_7_to_1(pair):
+    text, back = pair
+    shade = pager.dimmer(text, back)
+    assert shade is not None and shade != text
+    assert pager._contrast(shade, back) >= 7 > pager._contrast(pager.dimmer(shade, back) or back, back)
+    assert pager.dimmer((118, 118, 118), (0, 0, 0)) is None
+
+
+def test_subheadings_take_the_dimmer_shade_and_section_headings_keep_theirs():
+    dim = "\x1b[38;2;150;150;150m"
+    out = io.StringIO()
+    pager._draw(out, ["\x1b[11m\x1b[11mSub", "\x1b[11mSection", "hints"], 40, None, 1, dimmer=dim)
+    drawn = out.getvalue()
+    assert f"{dim}Sub" in drawn and f"{dim}Section" not in drawn and "\x1b[11m" not in drawn
+    accented = pager._accented("\x1b[11m\x1b[11mSub", TEXT, ACCENT, REVERSE, dimmer=dim)
+    assert accented.startswith(dim) and ACCENT not in accented
+
+
 def test_the_schemes_start_with_the_terminals_own_and_have_unique_names():
     assert colors.NAMES[0] == "default" and len(set(colors.NAMES)) == len(colors.NAMES) == 6
 
@@ -89,7 +108,8 @@ def test_c_opens_the_list_with_the_color_in_use_marked():
     assert state.handle("c") is Action.REDRAW and state.color_list
     rows = state.render(70)
     assert rows[0] == "Colors:"
-    assert rows[2].startswith("  1  default") and rows[4].startswith("› 3  green")
+    assert rows[2].startswith("  1  default")
+    assert rows[4].startswith("\x1b[7m› 3  green") and rows[4].endswith("\x1b[27m")
     assert rows[-1] == "Choose: ↑ ↓ or 1-6 | Keep: Enter | Esc to go back"
 
 

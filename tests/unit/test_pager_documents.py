@@ -48,7 +48,7 @@ def test_o_shows_the_groups_with_the_open_document_marked_and_its_field_at_the_t
     assert state.handle("o") is Action.REDRAW and state.doc_list
     rows = state.render(80)
     assert rows[0].startswith("Open: ") and state.cursor() == (0, 6)
-    picked = "    \x1b[7mHelp\x1b[27m (open)"
+    picked = "  \x1b[7m› Help\x1b[27m (open)"
     assert rows[2:9] == ["  Using it", picked, "    Manual", "", "  Legal", "    License", ""]
     assert rows[-1].startswith("Help is open | Back to it: Enter or Esc")
     assert state.handle("enter") is Action.REDRAW and not state.doc_list  # back to the page
@@ -107,7 +107,7 @@ def test_what_is_typed_marks_the_documents_it_would_open(tmp_path):
     state = _state(tmp_path)
     state.handle("o")
     _type(state, "ma")
-    assert "\x1b[7mManual\x1b[27m" in "".join(state.render(80)) and state.doc_pick is None
+    assert "\x1b[7m› Manual\x1b[27m" in "".join(state.render(80)) and state.doc_pick is None
 
 
 def test_without_typed_files_a_file_name_is_just_a_name(tmp_path):

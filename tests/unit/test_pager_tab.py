@@ -100,7 +100,7 @@ def test_tab_in_the_section_list_highlights_a_section_and_enter_goes_there():
     state.handle("tab")
     assert state.menu_pick == 1
     rows = state.render(60)
-    assert any("\x1b[7m2  Usage\x1b[27m" in row for row in rows)
+    assert any("\x1b[7m› 2  Usage\x1b[27m" in row for row in rows)
     assert state.status_rows(100)[0].startswith("Links: 2, Usage | Go: Enter")
     state.handle("shift-tab")
     state.handle("shift-tab")
@@ -215,7 +215,8 @@ def _grid(count=7, height=6):
 
 def test_arrows_in_the_section_list_move_through_rows_and_columns_and_stop_at_the_edges():
     state = _grid()  # columns: 1 2 3 | 4 5 6 | 7
-    assert state.handle("down") is Action.REDRAW and state.menu_pick == 0  # the first arrow picks 1
+    assert state.handle("down") is Action.NOTHING and state.menu_pick is None  # Tab starts picking
+    assert state.handle("tab") is Action.REDRAW and state.menu_pick == 0
     assert state.handle("up") is Action.NOTHING  # top of the column
     state.handle("down"), state.handle("down")
     assert state.menu_pick == 2 and state.handle("down") is Action.NOTHING  # bottom of the column
@@ -227,23 +228,23 @@ def test_arrows_in_the_section_list_move_through_rows_and_columns_and_stop_at_th
     assert state.handle("enter") is Action.REDRAW and state.index == 3 and not state.menu
 
 
-def test_left_or_up_first_picks_the_last_entry_and_tab_still_wraps():
+def test_shift_tab_first_picks_the_last_entry_and_tab_still_wraps():
     state = _grid()
-    state.handle("left")
+    state.handle("shift-tab")
     assert state.menu_pick == 6
     assert state.handle("tab") is Action.REDRAW and state.menu_pick == 0
 
 
 def test_esc_closes_the_list_even_with_a_pick():
     state = _grid()
-    state.handle("right")
+    state.handle("tab")
     assert state.status_rows(100)[0].endswith("Back: Esc")
     assert state.handle("esc") is Action.REDRAW and not state.menu and state.menu_pick is None
 
 
 def test_a_typed_number_wins_over_the_pick():
     state = _grid()
-    state.handle("down")
+    state.handle("tab")
     for key in "5", "enter":
         state.handle(key)
     assert not state.menu and state.index == 4
@@ -256,7 +257,8 @@ def test_arrows_keep_a_tall_list_s_pick_in_view():
     columns, rows, _ = state._menu_layout()
     room = state._menu_room()
     assert rows > room  # it scrolls
-    for _ in range(rows):  # the first picks entry 1
+    state.handle("tab")  # entry 1
+    for _ in range(rows - 1):
         state.handle("down")
     assert state.menu_pick == rows - 1 and state.menu_top == rows - room
 

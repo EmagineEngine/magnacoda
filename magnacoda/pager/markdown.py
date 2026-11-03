@@ -48,6 +48,9 @@ _KEEP_SPACE = ""
 # its lines: a code that shows nothing, which the pager's screen turns into the accent color.
 _HEADING_EDGE = "\u2063"
 HEADING_MARK = "\x1b[11m"
+# The same for #### and below, with HEADING_MARK twice: the screen draws
+# them a shade dimmer.
+_SUBHEADING_EDGE = "\u2064"
 
 # Contents detection: a list nearly all of whose items link to headings in the same document is a table
 # of contents, whatever it is called, if it has at least 3 items; 2 under a short label ending in a
@@ -431,9 +434,16 @@ def _markdown_lines(markdown: str, width: int, hyperlinks: bool = False, styled:
     if hyperlinks:
         markdown = _EXAMPLE_LINK.sub(r"\1 (\2)", markdown)
     markdown = _INLINE_CODE.sub(_code_as_text, markdown)  # shown with its backticks
+
     # The marks go inside the asterisks: outside, they'd keep a heading that ends in punctuation
-    # ("What is it?") from closing its bold.
-    heading = rf"**{_HEADING_EDGE}\1{_HEADING_EDGE}**" if styled else r"**\1**"
+    # ("What is it?") from closing its bold or italic.
+    # Bold for # and ##, italic for ###, and italic a shade dimmer for #### and below.
+    def heading(match: re.Match[str]) -> str:
+        level = len(match.group(0)) - len(match.group(0).lstrip("#"))
+        edge = (_SUBHEADING_EDGE if level > 3 else _HEADING_EDGE) if styled else ""
+        marker = "**" if level <= 2 else "*"
+        return f"{marker}{edge}{match.group(1)}{edge}{marker}"
+
     markdown = "\n".join(_HEADING.sub(heading, line) for line in markdown.splitlines())
     out = io.StringIO()
     if hyperlinks or styled:  # bold, italic and hyperlinks need a terminal's codes
@@ -446,12 +456,16 @@ def _markdown_lines(markdown: str, width: int, hyperlinks: bool = False, styled:
         )
     console.print(_Markdown(markdown, hyperlinks=hyperlinks))
     text = _SGR.sub(_styles_only, out.getvalue()) if hyperlinks or styled else out.getvalue()
-    lines, in_heading = [], False
+    lines, in_heading, in_sub = [], False, False
     for line in text.splitlines():
-        marked = in_heading or _HEADING_EDGE in line
+        sub = in_sub or _SUBHEADING_EDGE in line
+        marked = sub or in_heading or _HEADING_EDGE in line
         in_heading = line.count(_HEADING_EDGE) % 2 != in_heading
+        in_sub = line.count(_SUBHEADING_EDGE) % 2 != in_sub
         line = line.rstrip().replace(_KEEP_SPACE, " ").replace(_HEADING_EDGE, "")
-        lines.append(HEADING_MARK + line if marked and line else line)
+        line = line.replace(_SUBHEADING_EDGE, "")
+        mark = HEADING_MARK * 2 if sub else HEADING_MARK
+        lines.append(mark + line if marked and line else line)
     return lines
 
 

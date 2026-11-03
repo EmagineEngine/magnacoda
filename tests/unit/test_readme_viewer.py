@@ -159,7 +159,15 @@ def test_heading_lines_are_marked_for_the_pager_only():
     assert markdown.render("## Usage\n\ntext", 40) == ["Usage", "", "text"]
 
 
-def test_a_heading_that_ends_in_punctuation_is_bold_without_its_asterisks():
-    for heading in ("## What is *it*?", "### Ready?", "## Done."):
-        line = markdown.render(f"{heading}\n\ntext", 40, mark_code=True)[0]
-        assert "**" not in line and "\x1b[1m" in line, line
+@pytest.mark.parametrize(
+    ("heading", "start"),
+    [
+        ("## What is *it*?", markdown.HEADING_MARK + "\x1b[1m"),
+        ("## Done.", markdown.HEADING_MARK + "\x1b[1m"),
+        ("### Ready?", markdown.HEADING_MARK + "\x1b[3m"),
+        ("#### Steps", markdown.HEADING_MARK * 2 + "\x1b[3m"),
+    ],
+)
+def test_headings_bold_then_italic_then_marked_dimmer_without_their_asterisks(heading, start):
+    line = markdown.render(f"{heading}\n\ntext", 40, mark_code=True)[0]
+    assert "*" not in line and line.startswith(start), line

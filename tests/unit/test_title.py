@@ -94,3 +94,10 @@ def test_the_glow_runs_where_typing_is_on_and_ends_on_the_plain_name():
     plain = Console(file=io.StringIO(), force_terminal=True, color_system="truecolor", width=80)
     title.glow(plain, "magnacoda", "bold", "#000000")
     assert "\r" not in plain.file.getvalue() and "?25l" not in plain.file.getvalue()
+
+
+def test_news_comes_under_the_version_with_its_command_in_bold():
+    top, lines = title.lines("magnacoda", 80, 24, ["magnacoda 0.5.0 is available - type update"])
+    assert lines[5] == "" and lines[6].strip() == "magnacoda 0.5.0 is available - type update"
+    assert title._styled(lines[6]).endswith("type [bold]update[/bold]")
+    assert title._styled(lines[4]).startswith("[dim]")  # the version line

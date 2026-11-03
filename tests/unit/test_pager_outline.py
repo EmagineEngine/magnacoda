@@ -4,7 +4,7 @@ its ## and ### headings (markdown.Document.outline, screen.PagerState.outline)."
 import re
 from pathlib import Path
 
-from magnacoda.pager import markdown
+from magnacoda.pager import links, markdown
 from magnacoda.pager.screen import Action, OutlineRow, PagerState
 
 DOC = """# Guide
@@ -129,7 +129,7 @@ def test_a_typed_subsection_name_is_marked_and_enter_opens_its_section_at_it():
         state = _state()
         for key in typed:
             state.handle("space" if key == " " else key)
-        assert any("\x1b[7m- On Windows" in row for row in state.render(100))
+        assert any("   \x1b[7m› - On Windows" in row for row in state.render(100))
         state.handle("enter")
         shown = _plain(state.lines[state.top : state.top + state.body_height])
         assert state.index == 2 and state.top > 0 and "On Windows" in [line.strip() for line in shown]
@@ -137,7 +137,7 @@ def test_a_typed_subsection_name_is_marked_and_enter_opens_its_section_at_it():
 
 def test_arrows_skip_group_labels_and_enter_on_a_subsection_opens_its_section_at_it():
     state = _state()
-    state.handle("down")  # Introduction
+    state.handle("tab")  # Introduction
     state.handle("down")  # Start here
     state.handle("down")  # Install (the group label is passed over)
     assert state.outline[state.menu_pick].label == "Install"
@@ -154,7 +154,7 @@ def test_left_and_right_go_to_the_nearest_row_in_the_next_column_and_stop_at_the
     state = _state(width=100, height=8)  # 5 rows for the list: two columns
     columns = state._outline_layout()[0]
     assert len(columns) >= 2 and all(c[0] is not None and c[-1] is not None for c in columns)  # no blank ends
-    state.handle("down")
+    state.handle("tab")
     assert state.handle("right") is Action.REDRAW
     assert state.menu_pick in columns[1]
     state.handle("left")
@@ -311,3 +311,17 @@ def test_a_short_document_is_one_page_and_its_g_list_a_table_of_contents_that_sc
         state.handle("space" if key == " " else key)
     state.handle("enter")
     assert not state.menu and state.top == min(6, state.max_top)
+
+
+def test_a_column_keeps_its_place_beside_a_blank_cell_and_the_pick_is_marked():
+    manual = markdown.parse((Path(__file__).parents[2] / "docs" / "manual.md").read_text(encoding="utf-8"))
+    state = PagerState([(name, [text]) for name, text in manual.sections], 26)
+    numbers = {name: n for n, (name, _) in enumerate(state.sections)}
+    state.outline = [OutlineRow(d, label, numbers.get(name), h) for d, label, name, h in manual.outline]
+    for key in "g", "tab":
+        state.handle(key)
+    rows = [links.visible(row) for row in state.render(96)]
+    starts = {re.search(r"\b1[0-9] ", row).start() for row in rows if re.search(r"\S {3,}1[0-9] ", row)}
+    starts |= {row.index("13") for row in rows if row.lstrip().startswith("13")}  # beside a blank cell
+    assert len(starts) == 1
+    assert any(row.startswith(" › 1  Introduction") for row in rows)

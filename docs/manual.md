@@ -367,7 +367,7 @@ Save the scans you run often, and start them again from the wizard. At the end o
 
 ### Updates and news
 
-Once a day, when you use *magnacoda* in a terminal, it quietly checks two places in the background: **pypi.org**, for a newer version of *magnacoda* (and of any add-ons published there), and **news.magnacoda.dev**, for news about *magnacoda*, such as a new feature or a known problem. If there's something new, the shell's banner says so in one line, in place of the tip, in your first shell of the day for up to three days. `news` shows it in full, together with what's new in the version you have. `update` installs a newer version for you.
+Once a day, when you use *magnacoda* in a terminal, it quietly checks two places in the background: **pypi.org**, for a newer version of *magnacoda* (and of any add-ons published there), and **news.magnacoda.dev**, for news about *magnacoda*, such as a new feature or a known problem. If there's something new, your first shell of the day says so, on the title screen or under the banner. A newer version is mentioned every day until you install it, and news for up to three days. `news` shows it, numbered: first what's new in a newer version, or in the one you just updated to, then the news. `news 2` opens the second item. `update` installs a newer version for you, showing first what's new in it. When one is waiting, leaving the shell offers it too, once a day.
 
 **What is sent:** only an ordinary web request for a public file, the same as visiting the page in a browser (which shows your IP address to the site, as any connection does), naming your version of *magnacoda* (for example `magnacoda/1.2.0`). Nothing about you, your scans or the pages you scan is sent, and there's no tracking, with no ID and no cookies. Private add-ons are never looked up.
 
@@ -375,9 +375,9 @@ Once a day, when you use *magnacoda* in a terminal, it quietly checks two places
 
 **What you'll notice:** nothing, unless there's news. The check never delays the shell; if there's no connection, or a site doesn't answer, it silently tries again the next day. The daily check never runs in CI, in scripts, or when output is redirected (`news` and `update` check when you run them yourself, except in CI), and news never appears in saved scans.
 
-**Turning it off:** set `check = off` under `[news]` in `preferences.ini` (see [Settings](#settings)), or set the environment variable `MAGNACODA_NEWS=off`. `news` then shows only the notes that came with your version, and `update` still checks when you run it, since you asked.
+**Turning it off:** set `check = off` under `[news]` in `preferences.ini` (see [Settings](#settings)), or set the environment variable `MAGNACODA_NEWS=off`. `news` then shows only what's new in a version you just updated to, and `update` still checks when you run it, since you asked.
 
-**How `update` works:** it shows the versions it found and the exact commands it will run, and asks first. If you installed *magnacoda* with uv, pipx, or pip in a virtual environment, it runs them, then closes *magnacoda* so you can start the new version. On Windows, a running program can't replace itself, so the update opens in a new window and starts once *magnacoda* has closed. For any other kind of install, it shows the command to run yourself.
+**How `update` works:** it shows the versions it found, what's new in them (read from *magnacoda*'s repository on GitHub, the same ordinary request as above), and the exact commands it will run, and asks first. If you installed *magnacoda* with uv, pipx, or pip in a virtual environment, it runs them, then closes *magnacoda* so you can start the new version. On Windows, a running program can't replace itself, so the update opens in a new window and starts once *magnacoda* has closed. For any other kind of install, it shows the command to run yourself.
 
 ## AI and automation
 

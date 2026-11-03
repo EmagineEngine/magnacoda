@@ -161,6 +161,37 @@ def test_a_digit_on_a_page_opens_the_section_list_with_it_typed_and_enter_goes_t
     assert state.handle("enter") is Action.REDRAW and (state.index, state.top) == (2, 0) and not state.menu
 
 
+def test_a_front_page_lists_the_others_from_1_and_b_goes_back_to_it():
+    state = PagerState([("News", ["1. First", "2. Second"]), ("First", ["a"]), ("Second", ["b"] * 12)], 9)
+    state.use_front_page()
+    assert "number then Enter, or Tab" in state.status(80)
+    for key in "2", "enter":
+        state.handle(key)
+    assert state.index == 2 and state.status(80).startswith("2/2 Second | Back to the list: b")
+    state.handle("down")
+    assert state.handle("b") is Action.REDRAW and (state.index, state.top) == (0, 0)
+    state.handle("g")
+    assert state.render(80)[2:5] == ["  1  First", "  2  Second", ""]
+    for key in "0", "enter":
+        state.handle(key)
+    assert state.notice == "No section 0: they go from 1 to 2."
+    state.handle("esc")
+    assert state.handle("b") is Action.NOTHING  # on the front page, b is the usual previous screen
+
+
+def test_on_a_front_page_tab_and_the_arrows_pick_from_its_list_and_enter_reads():
+    numbered = [" 1 Not this one", "\x1b[11mNews", "", " 1 First (new)", " 2 Second", "", "Type a number."]
+    state = PagerState([("News", ["\x1b[11mNotes", *numbered]), ("First", ["a"]), ("Second", ["b"])], 20)
+    state.use_front_page()
+    assert [link.section for link in state.links] == [2, 3]  # only the list under the last heading
+    state.handle("tab")
+    assert state.status(80).startswith("1, First | Read: Enter")
+    assert state.handle("up") is Action.NOTHING  # the arrows stop at the ends, as in the g list
+    state.handle("down")
+    assert state.handle("down") is Action.NOTHING and state.focus == 1
+    assert state.handle("enter") is Action.REDRAW and state.index == 2
+
+
 def test_g_lists_the_sections_under_a_field_to_type_in():
     state = _state()
     assert state.handle("g") is Action.REDRAW and state.menu
@@ -168,7 +199,7 @@ def test_g_lists_the_sections_under_a_field_to_type_in():
     assert rows[0] == "Go to: " + pager._FIELD_ON + " " * 30 + pager._FIELD_OFF
     assert rows[1:5] == ["", "  1  one", "  2  two", "  3  three"] and len(rows) == 7
     assert state.cursor() == (0, 7)  # at the start of the field
-    assert rows[-1] == "Type a number or name, then Enter | Pick: ↑ ↓ ← → | Back: Esc"
+    assert rows[-1] == "Type a number or name, then Enter | Pick: Tab, then ↑ ↓ ← → | Back: Esc"
     for key in "2", "enter":
         state.handle(key)
     assert not state.menu and state.index == 1
@@ -270,11 +301,22 @@ def test_the_cursor_is_a_blinking_block_in_the_field_and_its_own_shape_comes_bac
         assert drawn.endswith(("\x1b[0 q" if shaped else "") + "\x1b[?25h<LEAVE>")
 
 
-def test_picking_with_the_arrows_replaces_what_was_typed():
+def test_each_section_is_told_once_the_first_time_it_shows(monkeypatch):
+    monkeypatch.setattr(pager, "_terminal_size", lambda: (60, 12))
+    told = []
+    keys = iter(["right", "left", "right", "esc"])
+    sections = [("a", "one"), ("b", "two"), ("c", "three")]
+    pager.page_sections(sections, out=io.StringIO(), key_source=lambda: next(keys), shown=told.append)
+    assert told == [0, 1]
+
+
+def test_arrows_wait_for_tab_and_picking_replaces_what_was_typed():
     state = _state()
     state.handle("g")
     state.handle("3")
     state.handle("down")
+    assert state.typed == "3" and state.menu_pick is None  # Tab starts picking, as on a page
+    state.handle("tab")
     assert state.typed == "" and state.menu_pick == 0
     state.handle("t")
     assert state.typed == "t" and state.menu_pick is None
@@ -294,9 +336,10 @@ def test_a_single_long_section_shows_paging_and_scrolling_but_not_go_to():
 
 
 def test_a_title_stays_on_the_top_row_of_the_page_and_the_section_list():
-    state = PagerState([("one", [f"a{i}" for i in range(12)]), ("two", ["b0"])], 8, title="magnacoda - Help")
+    state = PagerState([("one", [f"a{i}" for i in range(12)]), ("two", ["b0"])], 9, title="magnacoda - Help")
     rows = state.render(100)
-    assert rows[0] == "magnacoda - Help" and rows[1:6] == ["a0", "a1", "a2", "a3", "a4"] and len(rows) == 8
+    assert rows[:2] == ["magnacoda - Help", ""] and len(rows) == 9
+    assert rows[2:7] == ["a0", "a1", "a2", "a3", "a4"]
     state.handle("g")
     assert state.render(100)[0] == "magnacoda - Help"
 
@@ -349,7 +392,7 @@ def test_the_section_list_shows_every_section_with_aligned_numbers_and_says_to_p
     state.handle("g")
     rows = state.render(80)
     assert rows[2] == "   1  s1" and rows[13] == "  12  s12"
-    assert rows[-1] == "Type a number or name, then Enter | Pick: ↑ ↓ ← → | Back: Esc"
+    assert rows[-1] == "Type a number or name, then Enter | Pick: Tab, then ↑ ↓ ← → | Back: Esc"
 
 
 # --- reading keys ---------------------------------------------------------------------------------
@@ -588,7 +631,8 @@ def test_the_page_has_a_blank_row_on_top_and_above_the_hints_but_none_below(monk
     pager.page_sections([("a", text)], out=out, key_source=lambda: next(keys), title="Help")
     drawn = out.getvalue()
     assert "\x1b[1;1H\x1b[K" in drawn and "\x1b[2;1H  \x1b[1;3mHelp" in drawn
-    assert "\x1b[3;1H  line 0" in drawn and "\x1b[9;1H  line 6" in drawn
+    assert "\x1b[3;1H  \x1b[K" in drawn  # a blank row under the title
+    assert "\x1b[4;1H  line 0" in drawn and "\x1b[9;1H  line 5" in drawn
     assert "\x1b[10;1H\x1b[K" in drawn  # the gap above the hints
     assert "\x1b[11;1H  \x1b[7m" in drawn and "\x1b[12;1H  \x1b[7m" in drawn  # down to the last row
 
@@ -596,7 +640,7 @@ def test_the_page_has_a_blank_row_on_top_and_above_the_hints_but_none_below(monk
 # The section list when it is taller than the screen: columns first, then scrolling
 
 
-def _names(*names, height=10):
+def _names(*names, height=11):
     state = PagerState([(name, ["text"]) for name in names], height=height, title="Title")
     state.handle("g")
     return state
@@ -604,12 +648,12 @@ def _names(*names, height=10):
 
 def test_a_list_that_fits_stays_one_column():
     state = _names("one", "two", "three")
-    assert state.render(80)[3:6] == ["  1  one", "  2  two", "  3  three"]
+    assert state.render(80)[4:7] == ["  1  one", "  2  two", "  3  three"]
 
 
 def test_a_tall_list_spreads_over_columns_filled_top_to_bottom():
-    state = _names(*[f"Section {n}" for n in range(1, 13)], height=10)  # 6 rows for the list
-    rows = state.render(80)[3:9]
+    state = _names(*[f"Section {n}" for n in range(1, 13)], height=11)  # 6 rows for the list
+    rows = state.render(80)[4:10]
     assert rows[0] == "   1  Section 1    7  Section 7"
     assert rows[5] == "   6  Section 6   12  Section 12"
     assert "More" not in state.render(80)[-1]
@@ -617,23 +661,23 @@ def test_a_tall_list_spreads_over_columns_filled_top_to_bottom():
 
 def test_each_column_is_as_wide_as_its_longest_name_and_only_the_widest_are_shortened():
     names = ["a"] * 6 + ["What the report shows besides violations"] + ["b"] * 5
-    state = _names(*names, height=10)
-    rows = state.render(40)[3:9]
+    state = _names(*names, height=11)
+    rows = state.render(40)[4:10]
     assert rows[0].startswith("   1  a    7  What the report")
     assert rows[0].endswith("…") and all(len(row) <= 40 for row in rows)
-    assert state.render(80)[3].endswith("What the report shows besides violations")
+    assert state.render(80)[4].endswith("What the report shows besides violations")
 
 
 def test_when_columns_are_not_enough_the_list_scrolls():
-    state = _names(*[f"A rather long section name {n}" for n in range(1, 13)], height=7)  # 3 rows
+    state = _names(*[f"A rather long section name {n}" for n in range(1, 13)], height=8)  # 3 rows
     screen = state.render(60)
-    assert screen[3].startswith("   1  A rather") and "More: PgDn" in screen[-1]
+    assert screen[4].startswith("   1  A rather") and "More: PgDn" in screen[-1]
     assert state.handle("pgdn") is Action.REDRAW
-    assert not state.render(60)[3].startswith("   1  A rather")
+    assert not state.render(60)[4].startswith("   1  A rather")
     state.handle("end")
     assert state.handle("pgdn") is Action.NOTHING  # at the bottom of the list
     assert "Less: PgUp" in state.render(60)[-1]
-    assert any(" 12  A rather" in row for row in state.render(60)[3:6])
+    assert any(" 12  A rather" in row for row in state.render(60)[4:7])
     assert state.handle("home") is Action.REDRAW and state.handle("pgup") is Action.NOTHING
     for key in "1", "2", "enter":
         state.handle(key)
@@ -641,12 +685,12 @@ def test_when_columns_are_not_enough_the_list_scrolls():
 
 
 def test_closing_the_list_forgets_how_far_it_was_scrolled():
-    state = _names(*[f"A rather long section name {n}" for n in range(1, 13)], height=7)
+    state = _names(*[f"A rather long section name {n}" for n in range(1, 13)], height=8)
     state.render(60)
     state.handle("pgdn")
     state.handle("esc")
     state.handle("g")
-    assert state.render(60)[3].startswith("   1  ")
+    assert state.render(60)[4].startswith("   1  ")
 
 
 def test_a_resize_the_key_reader_missed_is_caught_at_the_next_key(monkeypatch):

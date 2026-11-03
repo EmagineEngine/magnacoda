@@ -127,10 +127,10 @@ Like an old terminal printer, the shell never erases anything. Each command's ou
   List your saved scans, newest first, so you can pick one by number and review it in your browser. To look in another folder, add its name; to read it in the help viewer instead of your browser, add `--no-browser` (it also opens there when there's no browser). The help viewer only shows it; to tick items, use your browser or a Markdown editor. For more, type `docs reviewing`.
 - `recheck [FOLDER]`
   Once you've fixed some problems, pick the scan, as with review, and *magnacoda* tests just those problems again, in a few seconds. Each fix it confirms is ticked in the checklist. To recheck one scan without choosing, give its folder. For more, type `docs reviewing`.
-- `news`
-  Show available updates, what's new in your version, and news about *magnacoda*, one screen at a time. When there's something new, the shell's banner mentions it in your first shell of the day, on up to three days.
+- `news`, `news 2`
+  Show available updates and the news about *magnacoda*, numbered, starting with what's new in a newer version or the one you just updated to. To read an item, type its number and press Enter, or add it to the command. When there's something new, your first shell of the day mentions it: a newer version every day until you install it, news on up to three days.
 - `update`
-  Update *magnacoda*, and any add-ons published on PyPI, to the latest version. It shows you what it will run and asks first (`update --yes` doesn't ask). For more, type `docs updates`.
+  Update *magnacoda*, and any add-ons published on PyPI, to the latest version. It shows you what's new and what it will run, and asks first (`update --yes` doesn't ask). When one is waiting, leaving the shell offers it, once a day. For more, type `docs updates`.
 - `about`
   Show the author, copyright, website, repository, version and license, and where to report problems.
 - `help`, `help NAME`
@@ -318,7 +318,7 @@ Anyone can build one. An add-on is a small Python package with one file of hooks
 - `docs`, `docs NAME`
   The manual, in this same viewer: every option and feature, settings, CI setup, and how *magnacoda* compares with other tools. Start at a section by naming it (docs ci), or press `g` for its contents.
 - `news`
-  What's new in your version, and news about *magnacoda*.
+  Updates, what's new in them, and news about *magnacoda*.
 - `about`
   The website and repository addresses, the author, the license and your add-ons.
 

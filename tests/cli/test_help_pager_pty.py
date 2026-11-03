@@ -126,7 +126,7 @@ def test_q_quits_like_esc():
 
 
 def test_paging_past_the_very_end_quits_like_q():
-    everything = b"".join(run(["help"], [b" "] * 80))  # well past the end, however long the help grows
+    everything = b"".join(run(["help"], [b" "] * 120))  # well past the end, however long the help grows
     assert LEAVE in everything and after_leave(everything).strip() == ""
 
 
@@ -205,7 +205,7 @@ def test_resizing_the_terminal_redraws_the_page():
     before_rows, after_rows = screen(first), screen(after)
     assert max(before_rows) == 12 and max(after_rows) == 20
     assert before_rows[11].startswith("1/12 overview | ")
-    assert before_rows[12].startswith("Scroll: ↑ ↓ | lines 1-7 of")  # less the top and gap rows
+    assert before_rows[12].startswith("Scroll: ↑ ↓ | lines 1-6 of")  # less the top, title gap and gap rows
     assert after_rows[2] == "magnacoda - Help" and after_rows[20].startswith("Scroll: ↑ ↓ | lines")
 
 
@@ -256,7 +256,7 @@ def test_arrows_in_the_section_list_cross_its_columns(tmp_path):
         "# Parts\n\n" + "".join(f"## Part {n}\n\nThis is part {n}.{' More.' * 100}\n\n" for n in range(1, 9))
     )
     right = b"\x1b[C"
-    chunks = run(["view", str(page)], [right, right, b"\r", b"q"])  # opens on the g list, 2 columns
+    chunks = run(["view", str(page)], [b"\t", right, b"\r", b"q"])  # opens on the g list, 2 columns
     assert "Links: 1, Part 1" in plain(chunks[1])
     assert "Links: 5, Part 5" in plain(chunks[2])  # same row, next column
     assert "This is part 5." in plain(chunks[3])

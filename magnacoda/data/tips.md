@@ -23,7 +23,7 @@ HOW IT IS READ
 - Every scan is kept in `magnacoda-scans` in your Documents folder; `review` lists them.
 - At the start of the wizard, type `recent` to pick one of your recent scans and change just the URL.
 - At the end of the wizard you can save a scan as a favorite; `fav` lists your favorites.
-- `news` shows updates, what's new in your version, and news about *magnacoda*. The banner also tells you when there's something new.
+- `news` shows updates, what's new in them, and news about *magnacoda*. Your first shell of the day also tells you when there's something new.
 - `help` has an advanced section, with options for unusual pages: waiting longer, one theme only, an exact screen size.
 - Don't want to be asked before a scan with the default settings? Set `confirm = off` under [scan] in preferences.ini.
 - In help, press c to read it in other colors, like an old monitor's, or dark on light like print.

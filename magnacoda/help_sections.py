@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from importlib import metadata, resources
 from pathlib import Path
 from typing import Any
@@ -115,17 +115,21 @@ def show_pages(
     section: str | None = None,
     outline: Sequence[tuple[int, str, str, str]] = (),
     document: Path | None = None,
+    start_at: int | None = None,
+    shown: Callable[[int], None] | None = None,
 ) -> None:
     """Page the sections in a terminal, or print them all where there's no pager (like man into a pipe).
 
     `title` is a document's own title (see PagerOptions.document_title). `section` names the section
     to open on (`help scan`); one that matches none, or several, is an error with what it could be.
     `document` is the file shown, for the Open list (o), which opens another document from here.
+    `start_at` opens on a section by index instead, and `shown` is told each section the first time
+    it shows (or is printed).
     The pager leaves the screen as it found it. Only when the window changed size while paging (the
     screen underneath then reflows, and may look broken) does an "after_pager" callable in the
     shell's ctx.obj run, to feed a fresh page with the banner.
     """
-    start_at, start_heading = None, ""
+    start_heading = ""
     if section is not None:
         start_at, start_heading = _place([name for name, _ in sections], outline, section, options)
     preferences.ensure_file()
@@ -163,6 +167,7 @@ def show_pages(
         remember=remember,
         start_line=start_line,
         start_heading=start_heading,
+        shown=shown,
     )
     if outcome is Outcome.GO:
         opening = asked[-1]

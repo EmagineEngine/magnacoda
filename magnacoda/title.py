@@ -12,6 +12,7 @@ import math
 import sys
 import textwrap
 import time
+from collections.abc import Sequence
 from datetime import date
 from pathlib import Path
 
@@ -65,11 +66,13 @@ def mark_shown(today: str | None = None) -> None:
         pass
 
 
-def lines(name: str, width: int, height: int) -> tuple[int, list[str]]:
-    """(blank lines above, the title's lines centered on `width`); the last line is PRESS."""
+def lines(name: str, width: int, height: int, notices: Sequence[str] = ()) -> tuple[int, list[str]]:
+    """(blank lines above, the title's lines centered on `width`); the last line is PRESS. `notices`
+    (updates, news) come under the version line."""
     version = f"version {news.release_label(__version__)} · {SITE}"
     spaced = height >= MIN_SPACED_ROWS
-    block = [name, *SLOGAN, "", version, *([""] * (3 if spaced else 1)), PRESS]
+    under = ["", *notices] if notices else []
+    block = [name, *SLOGAN, "", version, *under, *([""] * (3 if spaced else 1)), PRESS]
     top = (height - len(block)) // 3 if spaced else 0
     centered = []
     for line in block:
@@ -98,6 +101,16 @@ def glow_colors(base: RGB, background: RGB, letters: int, frames: int = GLOW_FRA
         out.append(row)
     out.append([base] * letters)
     return out
+
+
+def _styled(line: str) -> str:
+    """The version line dim; a notice's command ("- type update") bold; the rest as it is."""
+    if f"· {SITE}" in line:
+        return f"[dim]{escape(line)}[/dim]"
+    head, typed, command = line.rpartition(" type ")
+    if typed and command.strip().isalpha():
+        return f"{escape(head)} type [bold]{escape(command)}[/bold]"
+    return escape(line)
 
 
 def _rgb(color: str) -> RGB:
@@ -139,19 +152,20 @@ def glow(console: Console, name: str, plain_style: str, background: str | None, 
     console.print(Text(pad) + _name_text(name, None, plain_style), end="")
 
 
-def show(console: Console, name: str, plain_style: str, background: str | None) -> str:
+def show(
+    console: Console, name: str, plain_style: str, background: str | None, notices: Sequence[str] = ()
+) -> str:
     """Draw the title and wait for Enter; -> what was typed ("" for Enter alone). Ctrl+D raises
     EOFError, as at the prompt; Ctrl+C just goes on."""
     mark_shown()
-    top, centered = lines(name, console.width, console.height)
+    top, centered = lines(name, console.width, console.height, notices)
     teletype.page_feed(console)
     console.file.write("\n" * top)
     glow(console, name, plain_style, background, pad=" " * (len(centered[0]) - len(centered[0].lstrip())))
     console.print()
     rest = centered[1:]
-    for n, line in enumerate(rest[:-1]):
-        dim = n >= len(SLOGAN)  # the version line
-        console.print(f"[dim]{escape(line)}[/dim]" if dim and line else escape(line), highlight=False)
+    for line in rest[:-1]:
+        console.print(_styled(line), highlight=False)
     press = rest[-1]
     try:
         return console.input(f"[dim]{escape(press)}[/dim] ").strip()

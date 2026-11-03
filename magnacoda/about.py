@@ -68,7 +68,7 @@ def about_text() -> str:
         ("Issues", urls.get("Issues", "")),
         ("License", f"{license_name} (see LICENSE.md)" if license_name else ""),
         ("axe-core", f"{axe_core_version()} (the rule engine that does the detection)"),
-        ("News", "type news for updates, what's new in this version, and news about magnacoda"),
+        ("News", "type news for updates and news about a11y and magnacoda"),
         ("Add-ons", _addons_row()),
     ]
     width = max(len(label) for label, _ in rows) + 2

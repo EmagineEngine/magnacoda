@@ -59,6 +59,7 @@ dev = [
     "twine>=5.0",
     "hatch-fancy-pypi-readme>=25.1",  # python -m hatch_fancy_pypi_readme previews the PyPI page
     "pillow>=10",  # scripts/make_icons.py packs the Windows and macOS icons
+    "pyte>=0.8",  # scripts/terminal_shot.py: a picture of what the terminal shows
 ]
 
 [project.scripts]

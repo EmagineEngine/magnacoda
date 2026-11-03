@@ -58,6 +58,9 @@ class PagerOptions:
     documents: Path | None = None
     # The Open list also opens a .md or .txt file typed by name.
     typed_files: bool = True
+    # The first section lists the others (as a news page lists its items): the g list numbers them
+    # from 1 and leaves it out, and b goes back to it.
+    front_page: bool = False
     # Where the settings came from, so a color chosen with c is saved there (set by resolve).
     settings_path: Path | None = None
     settings_section: str = SETTINGS_SECTION

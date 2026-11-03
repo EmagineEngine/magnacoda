@@ -68,6 +68,7 @@ def show(
     remember: Callable[[int, int], None] | None = None,
     start_line: int = 0,
     start_heading: str = "",
+    shown: Callable[[int], None] | None = None,
 ) -> Outcome | None:
     """Page the sections, or print them all where paging is off or impossible (like man into a pipe).
 
@@ -80,14 +81,25 @@ def show(
 
     The Open list (o) offers `documents`, or else those in options.documents' list file; `document`
     is the file showing. With `open_document` the program shows what is chosen (see page_sections);
-    without it, the pager reads and shows it here, and goes back to where it was left.
+    without it, the pager reads and shows it here, and goes back to where it was left. `shown` is
+    told each section's index the first time it shows (in these sections, not another document).
     """
     options = options or PagerOptions()
     if documents is None:
         documents = read_list(options.documents) if options.documents else []
     if documents and open_document is None:
         return _browse(
-            sections, options, format, title, out, start_at, outline, list(documents), document, start_heading
+            sections,
+            options,
+            format,
+            title,
+            out,
+            start_at,
+            outline,
+            list(documents),
+            document,
+            start_heading,
+            shown,
         )
     return _page(
         sections,
@@ -105,6 +117,7 @@ def show(
         remember,
         start_line,
         start_heading,
+        shown,
     )
 
 
@@ -119,6 +132,7 @@ def _browse(
     documents: list[Entry],
     document: Path | None,
     start_heading: str,
+    shown: Callable[[int], None] | None = None,
 ) -> Outcome | None:
     """Page from one document to another as the Open list asks, on the pager's own."""
     places: dict[Path, tuple[int, int]] = {}
@@ -165,12 +179,14 @@ def _browse(
                 keep,
                 start_line,
                 start_heading,
+                shown,
             )
+            shown = None  # only the first document's sections
             if outcome is not Outcome.GO:
                 return outcome
             opening, file, parsed = asked[-1]
             came_from, showing[0], fade_in = showing[0], opening.entry.path, False
-            settings[0] = dataclasses.replace(settings[0], title_bar=opening.entry.title)
+            settings[0] = dataclasses.replace(settings[0], title_bar=opening.entry.title, front_page=False)
             if parsed is None:
                 sections, format, title, outline = [(file.path.name, file.text)], TEXT, None, ()
             else:
@@ -202,10 +218,11 @@ def _page(
     remember: Callable[[int, int], None] | None,
     start_line: int,
     start_heading: str,
+    shown: Callable[[int], None] | None = None,
 ) -> Outcome | None:
     # An opening section of a line or two (a license's "Abbreviation") looks like something is
     # missing, so such a document starts on its section list.
-    short = bool(sections) and len(_text_only(sections[0][1])) < _SHORT_OPENING
+    short = bool(sections) and len(_text_only(sections[0][1])) < _SHORT_OPENING and not options.front_page
     if options.document_title == "first_page":
         sections = with_title(title, sections)
     if not (options.paging and pager_available(off_switch=options.off_switch_env)):
@@ -215,6 +232,9 @@ def _page(
             printed = [(name, emphasis.plain(body)) for name, body in printed]
         text = "\n\n".join("\n".join(format.render(body, width)) for _, body in printed)
         print(text, file=sys.stdout if out is None else out)
+        for index in range(len(sections)) if start_at is None else [start_at]:
+            if shown is not None:
+                shown(index)
         return None
     loaded = themes.load(options.colors_file) if colors.enabled() else themes.Loaded()
     choices = (
@@ -261,6 +281,8 @@ def _page(
         fade_in=fade_in,
         own_code=colors.own_code_codes,
         save_color=save_color,
+        front_page=options.front_page,
+        shown=shown,
     )
 
 

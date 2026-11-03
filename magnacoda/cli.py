@@ -5,6 +5,7 @@ import dataclasses
 import difflib
 import os
 import platform
+import re
 import shlex
 import shutil
 import subprocess
@@ -77,7 +78,8 @@ from magnacoda.findings.models import SEVERITY_RANK, ScanReport, WcagLevel
 from magnacoda.help_sections import pager_options, show_file, show_help, show_pages
 from magnacoda.orchestrator import run_dark_pass, run_scan
 from magnacoda.pager import browser as user_browser  # the person's own browser, not the scanning one
-from magnacoda.pager import formats, markdown
+from magnacoda.pager import formats, links, markdown
+from magnacoda.pager.screen import pager_available
 from magnacoda.report.json_export import to_json, write_json
 from magnacoda.report.markdown_export import write_markdown
 from magnacoda.report.paths import default_report_stem, make_self_ignoring, scans_folder, short
@@ -1113,17 +1115,44 @@ def _addon_commands_line(current: str | None = None) -> str:
 
 
 @main.command(name="news")
+@click.argument("item", type=int, required=False)
 @click.pass_context
-def news_cmd(ctx: click.Context) -> None:
-    """Updates, what's new in this version, and news about magnacoda."""
+def news_cmd(ctx: click.Context, item: int | None) -> None:
+    """Updates, what's new in this version, and news about magnacoda; ITEM opens that news item."""
     if news.allowed():
         news.refresh()  # at most once a day; quick, and silent when it can't connect
-    sections = news.sections()
-    news.mark_all_seen()
-    if not sections:
+    options = pager_options("News", front_page=True)
+    paged = options.paging and pager_available(off_switch=options.off_switch_env)
+    found = news.pages(paged=paged)
+    if not found.sections:
         _echo("Nothing new to show.")
         return
-    show_pages(ctx, sections, pager_options("News"))
+    count = len(found.sections) - 1
+    if item is not None and not 1 <= item <= count:
+        raise click.ClickException(
+            f"No news item {item}: they go from 1 to {count}." if count else "There's no news to show."
+        )
+
+    def shown(index: int) -> None:
+        if found.ids[index] == news.NOTES_ITEM:
+            news.mark_notes_seen(__version__)
+        elif found.ids[index]:
+            news.mark_items_seen([found.ids[index]])
+
+    show_pages(ctx, found.sections, options, format=formats.MARKDOWN, start_at=item, shown=shown)
+
+
+def _show_notes_before_update(notes: list[tuple[str, str]]) -> None:
+    """The new versions' notes, newest first, laid out as the news page has them (code in bold)."""
+    if not notes:
+        return
+    console = Console()
+    width = max(min(console.width, 100) - 2, 40)
+    for version, text in notes:
+        _echo(f"\nWhat's new in {version}:\n")
+        for line in markdown.render(news.as_markdown(text), width, mark_code=True):
+            line = line.replace(links.CODE_MARK, "").replace(markdown.HEADING_MARK, "")
+            console.print(Text.from_ansi("  " + re.sub(r"`([^`]+)`", "\x1b[1m\\1\x1b[22m", line)))
 
 
 def _leave_the_session(ctx: click.Context) -> None:
@@ -1164,6 +1193,9 @@ def update_cmd(ctx: click.Context, yes: bool, use_saved: bool) -> None:
         return
     for item in found:
         _echo(f"  {item.name} {item.installed} -> {item.latest}")
+    ours = next((item for item in found if item.name == "magnacoda"), None)
+    notes = news.notes_before_update(ours.installed, ours.latest) if ours and not yes else []
+    _show_notes_before_update(notes)
     steps = updater.plan([item.name for item in found], kind)
     if steps.kind == updater.SHOW:
         _echo("\n" + steps.note)
@@ -1201,7 +1233,9 @@ def update_cmd(ctx: click.Context, yes: bool, use_saved: bool) -> None:
     log = updater.log_path()
     _echo("\nUpdating... (this can take a minute)")
     if updater.run(steps.commands, log):
-        _echo("Updated. Start magnacoda again to use the new version.")
+        if notes and ours:  # read just now, so the new version doesn't announce them again
+            news.mark_notes_seen(ours.latest)
+        _echo("Updated. Closing magnacoda now. Start it again to use the new version.")
         _leave_the_session(ctx)
     else:
         last = "\n".join(f"  {line}" for line in updater.tail(log))
@@ -1240,6 +1274,31 @@ _ADVENTURE_WORDS = {
     "i": "You are carrying one {name} shell.",
     **dict.fromkeys(("north", "south", "east", "west", "n", "s", "e", "w"), "You can't go that way."),
 }
+
+
+# Commands that start on a page of their own with the banner (sections.new_page): typed at the title
+# screen, they draw it themselves.
+_OWN_PAGE = frozenset({"scan", "wizard", "review", "update", "about"})
+
+
+def _offer_update_on_leaving(shell_state: dict[str, Any]) -> None:
+    """Leaving the shell with an update available: offer it, once a day (Enter leaves without it)."""
+    update = news.update_available()
+    if update is None or not news.ask_on_leaving():
+        return
+    try:
+        if not _ask_yes_no(
+            f"{update.name} {update.latest} is available. Update before you go?", default=False
+        ):
+            return
+    except click.Abort:
+        return
+    try:
+        main.main(args=["update"], prog_name="magnacoda", standalone_mode=False, obj=shell_state)
+    except (click.Abort, KeyboardInterrupt):
+        _echo("\nCancelled.")
+    except SystemExit:
+        pass
 
 
 def _leave_on_purpose(name: str) -> bool:
@@ -1324,27 +1383,34 @@ def shell(force_setup_notice: bool, from_shortcut: bool, show_title: bool) -> No
 
     news.note_first_run()
     news.refresh_in_background()  # once a day; the banner shows what the previous check found
-    # Updates and news: only in the day's first shell, on up to three days (news.today_notice).
+    # Updates and news: only in the day's first shell (news.today_notice); on the title screen when it
+    # shows, else under the session's first banner.
     today = news.today_notice()
+    titled = title.due(console, forced=show_title)
+    banner_news = set() if titled else today
 
-    def show_banner(current: str | None = None, glow: bool = False) -> bool:
-        """The banner and its notices, with the current section's command highlighted; whether any
-        notice was shown. With `glow`, the glow passes along the name first."""
-        # The news line is worked out each time, so it goes once the news has been read.
+    def show_banner(current: str | None = None, glow: bool = False, at_once: bool = False) -> bool:
+        """The banner and its notices, with the current section's command highlighted; whether the
+        Chromium notice was shown. With `glow`, the glow passes along the name first; `at_once`
+        prints it without typing it out."""
+        nonlocal banner_news
         if glow:
             title.glow(console, names.display_name, name, background)
             teletype.say(console, banner(current).removeprefix(name_markup))
+        elif at_once:
+            console.print(banner(current), highlight=False)
         else:
             teletype.say(console, banner(current))
         # Worked out each time, so the notice goes once setup has run.
         show_chromium_notice = force_setup_notice or not _chromium_probably_installed()
         if show_chromium_notice:
             _print_notice(console, _CHROMIUM_NOTICE)
-        notice = news.notice_line(only=today) if today else ""
+        notice = news.notice_line(only=banner_news) if banner_news else ""
+        banner_news = set()  # once a session: later banners (clear, a new page) leave it out
         if notice:
             label, _, rest = notice.partition(": ")
             _print_notice(console, f"[bold]{escape(label)}:[/bold] {escape(rest)}")
-        return show_chromium_notice or bool(notice)
+        return show_chromium_notice
 
     # Teletype style (see teletype.py): nothing is erased. Earlier text scrolls up into the scrollback,
     # output keeps printing below; only start-up, `clear`, the sections (sections.new_page: scan, wizard,
@@ -1352,17 +1418,23 @@ def shell(force_setup_notice: bool, from_shortcut: bool, show_title: bool) -> No
     teletype.page_feed(console)
     screenreader.offer()  # once, before anything is typed out
     pending: str | None = None
-    titled = title.due(console, forced=show_title)
     if titled:
+        notices = news.title_lines(only=today) if today else []
         try:
-            pending = title.show(console, names.display_name, name, background) or None
+            pending = title.show(console, names.display_name, name, background, notices) or None
         except EOFError:  # Ctrl+D: leave, as at the prompt
             console.print()
             pending = "exit"
-        if pending != "exit":
-            teletype.page_feed(console)
-    if pending != "exit" and not show_banner(glow=not titled):  # a tip only when there's no other notice
-        _show_tip(console)
+    first_word = (pending or "").split(" ", 1)[0].lower()
+    if pending is None:
+        if titled:
+            teletype.page_feed(console)  # the banner on a page of its own, under the title's scrollback
+        if not show_banner(glow=not titled):  # a tip, unless setup is needed first
+            _show_tip(console)
+    elif pending != "exit" and first_word not in _OWN_PAGE:
+        # Typed at the title: the banner at once, for the prompt after a pager (help, news) to come back to.
+        teletype.page_feed(console)
+        show_banner(at_once=True)
     offer_setup = not force_setup_notice and not _chromium_probably_installed()
     if pending is None and offer_setup and _is_interactive():
         try:
@@ -1383,7 +1455,8 @@ def shell(force_setup_notice: bool, from_shortcut: bool, show_title: bool) -> No
     def title_now() -> None:
         """`--title` typed in the shell: the title, then the banner; what's typed at it runs next."""
         try:
-            shell_state["typed"] = title.show(console, names.display_name, name, background)
+            notices = news.title_lines()
+            shell_state["typed"] = title.show(console, names.display_name, name, background, notices)
         except EOFError:
             console.print()
         teletype.page_feed(console)
@@ -1468,6 +1541,8 @@ def shell(force_setup_notice: bool, from_shortcut: bool, show_title: bool) -> No
         pending = shell_state.pop("typed", None) or None
         if shell_state.pop("leave", False):  # `update` ended the session (see _leave_the_session)
             break
+    if goodbye and _is_interactive():
+        _offer_update_on_leaving(shell_state)
     if goodbye and _interactive(console):
         for text in farewell.lines():
             teletype.say(console, text)

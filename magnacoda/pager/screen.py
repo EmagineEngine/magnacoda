@@ -114,6 +114,7 @@ class PagerState:
     doc_pick: int | None = None
     doc_top: int = 0  # first row of the Open list showing, when it is too tall
     opening_doc: Opening | None = None  # what Enter in the Open list asks the caller to show
+    front_page: bool = False  # see use_front_page
     _links: tuple[object, list[Link]] | None = field(default=None, repr=False)
     _matches: tuple[object, list[tuple[int, tuple[tuple[int, int, int], ...]]]] | None = field(
         default=None, repr=False
@@ -133,7 +134,7 @@ class PagerState:
 
     @property
     def title_rows(self) -> int:
-        return 1 if self.title else 0
+        return 2 if self.title else 0  # the title, and a blank row under it
 
     @property
     def fits(self) -> bool:
@@ -185,6 +186,22 @@ class PagerState:
     def _count(self) -> int:
         return len(self.sections)
 
+    def use_front_page(self) -> None:
+        """The first section lists the others: it is number 0, kept out of the g list (b goes back to
+        it), and they go from 1."""
+        self.front_page = len(self.sections) > 1
+        if self.front_page and not self.outline:
+            self.outline = [OutlineRow(0, name, n) for n, (name, _) in enumerate(self.sections) if n]
+
+    @property
+    def _first(self) -> int:
+        """The first section's number."""
+        return 0 if self.front_page else 1
+
+    @property
+    def _last(self) -> int:
+        return self._count - 1 + self._first
+
     def set_sections(self, sections: list[tuple[str, list[str]]], height: int) -> None:
         """Re-wrap after a resize, keeping the same section and roughly the same place in it."""
         ratio = self.top / max(len(self.lines), 1)
@@ -223,7 +240,10 @@ class PagerState:
         """The links in the current section, in reading order."""
         key = (self.index, id(self.lines))
         if self._links is None or self._links[0] != key:
-            self._links = (key, _section_links(self.lines))
+            found = _section_links(self.lines)
+            if self.front_page and self.index == 0:
+                found = sorted(found + _listed_links(self.lines, self._last), key=lambda link: link.parts[0])
+            self._links = (key, found)
         return self._links[1]
 
     def _tab(self, step: int) -> Action:
@@ -246,6 +266,11 @@ class PagerState:
         elif last >= self.top + self.body_height:
             self.top = min(max(last - self.body_height + 1, 0), self.max_top)
         return Action.REDRAW
+
+    def _on_listed_link(self) -> bool:
+        """Tab is on an item of a front page's list."""
+        on = self.front_page and self.index == 0 and self.focus is not None
+        return on and bool(self.links[self.focus or 0].section)
 
     def _follow(self) -> Action:
         link = self.links[self.focus or 0]
@@ -461,12 +486,12 @@ class PagerState:
         return best
 
     def _outline_text(self, n: int) -> str:
-        row, digits = self.outline[n], len(str(self._count))
+        row, digits = self.outline[n], len(str(self._last))
         if row.section is None or self.single:  # a group label, or a one-page table of contents
             return "  " * row.depth + row.label
         if row.heading:  # a subsection: a hyphen under the first letter of its section's name
             return f"{'':>{digits}}  {'  ' * max(row.depth - 1, 0)}- {row.label}"
-        return f"{row.section + 1:>{digits}}  {'  ' * row.depth}{row.label}"
+        return f"{row.section + self._first:>{digits}}  {'  ' * row.depth}{row.label}"
 
     def _outline_width(self, column: list[int | None]) -> int:
         return max(len(self._outline_text(n)) for n in column if n is not None)
@@ -517,10 +542,10 @@ class PagerState:
         widest names with "…" if needed; scrolls if it's still too tall."""
         names = [len(name) for name, _ in self.sections]
         room = self._menu_room()
-        best = (1, len(names), _name_rooms(names, 1, self.width, len(str(self._count))))
+        best = (1, len(names), _name_rooms(names, 1, self.width, len(str(self._last))))
         for columns in range(1, len(names) + 1):
             rows = -(-len(names) // columns)
-            widths = _name_rooms(names, columns, self.width, len(str(self._count)))
+            widths = _name_rooms(names, columns, self.width, len(str(self._last)))
             if columns > 1 and min(widths) < min(_MENU_MIN_NAME, *_column_longest(names, columns)):
                 break  # too narrow: keep the last layout that wasn't, and let it scroll
             best = (columns, rows, widths)
@@ -562,9 +587,9 @@ class PagerState:
             self._close_menu()
             return Action.REDRAW
         if text.isdigit():
-            if 1 <= int(text) <= self._count:
-                return self._go_to(int(text))
-            self.notice = f"No section {text}: they go from 1 to {self._count}."
+            if 1 <= int(text) <= self._last:
+                return self._go_to(int(text) - self._first + 1)
+            self.notice = f"No section {text}: they go from 1 to {self._last}."
             return Action.REDRAW
         if text.lower() == "o" and self.documents:
             self._close_menu()
@@ -630,6 +655,9 @@ class PagerState:
                 return Action.NOTHING
             self.typed, self.menu_pick = self.typed + char, None
             return Action.REDRAW
+        if key in ("up", "down", "left", "right") and self.menu_pick is None:
+            # Tab starts picking, as on a page; until then the arrows scroll a long list.
+            return self._menu_scroll(1 if key == "down" else -1) if key in ("up", "down") else Action.NOTHING
         if key in ("tab", "shift-tab", "up", "down", "left", "right"):
             self.typed = ""  # picking replaces what was typed
             if key in ("tab", "shift-tab"):
@@ -680,8 +708,9 @@ class PagerState:
             mark = " (open)" if row == self.document else ""
             name = _shorten(entry.title, max(self.width - indent - len(mark), 1))
             if row == self.doc_pick or row in matched:
-                name = f"\x1b[7m{name}\x1b[27m"
-            lines.append(" " * indent + name + mark)
+                lines.append(" " * (indent - 2) + f"\x1b[7m{_PICKED}{name}\x1b[27m" + mark)
+            else:
+                lines.append(" " * indent + name + mark)
         visible = lines[self.doc_top : self.doc_top + self._menu_room()]
         return [self._field_line(), "", *visible]
 
@@ -871,6 +900,11 @@ class PagerState:
         if self.focus is not None:
             if key == "enter":
                 return self._follow()
+            if key in ("up", "down") and self._on_listed_link():
+                step = 1 if key == "down" else -1
+                ahead = self.focus + step
+                inside = 0 <= ahead < len(self.links) and self.links[ahead].section
+                return self._tab(step) if inside else Action.NOTHING  # item to item, as in the g list
             if key in ("up", "down", "j", "k"):  # scroll and keep the link, as a browser does
                 return self._scroll_line(1 if key in ("down", "j") else -1)
             self.focus = None  # any other key lets go of the link first
@@ -895,6 +929,9 @@ class PagerState:
             return Action.QUIT_RESTORE
         if key in ("space", "pgdn", "f", "enter", "right", "n"):
             return self._next_screen()
+        if key == "b" and self.front_page and self.index > 0:
+            self.index, self.top, self.focus = 0, 0, None
+            return Action.REDRAW
         if key in ("b", "pgup", "left", "p"):
             return self._previous_screen()
         if key in ("g", ":"):
@@ -940,14 +977,14 @@ class PagerState:
             row = self.outline[self.menu_pick]
             assert row.section is not None
             name = self.sections[row.section][0]
-            where = f"{row.section + 1}, {name}" + (f" › {row.heading}" if row.heading else "")
+            where = f"{row.section + self._first}, {name}" + (f" › {row.heading}" if row.heading else "")
             return [
                 _fit(
                     width,
                     f"Links: {where} | Go: Enter | Move: ↑ ↓ ← → Tab | Back: Esc",
                     f"Links: {where} | Enter go | Esc back",
-                    f"Links: {row.section + 1} | Enter go | ↑↓←→ move | Esc back",
-                    f"{row.section + 1} Enter ↑↓←→ Esc",
+                    f"Links: {row.section + self._first} | Enter go | ↑↓←→ move | Esc back",
+                    f"{row.section + self._first} Enter ↑↓←→ Esc",
                 )
             ]
         if self.menu and self.menu_pick is not None and not self.typed:
@@ -981,9 +1018,10 @@ class PagerState:
             return [
                 _fit(
                     width,
-                    f"Type {what}, then Enter{other} | Pick: ↑ ↓ ← →{more} | Back: Esc",
+                    f"Type {what}, then Enter{other} | Pick: Tab, then ↑ ↓ ← →{more} | Back: Esc",
+                    f"Type {what}, then Enter{other} | Pick: Tab{more} | Back: Esc",
                     f"Type {what}, then Enter{other}{more} | Back: Esc",
-                    f"{short}, then Enter{short_other} | ↑↓←→ pick{short_more} | Esc back",
+                    f"{short}, then Enter{short_other} | Tab pick{short_more} | Esc back",
                     f"{short}, then Enter{short_other}{short_more} | Esc back",
                     f"{short}, then Enter{short_other} | Esc back",
                     f"Type, then Enter{short_other} | Esc back",
@@ -1085,6 +1123,14 @@ class PagerState:
 
     def _link_row(self, width: int) -> str:
         link, n, count = self.links[self.focus or 0], (self.focus or 0) + 1, len(self.links)
+        if link.section and self.front_page and self.index == 0:
+            name = self.sections[link.section - 1][0] if link.section <= self._count else ""
+            return _fit(
+                width,
+                f"{link.section - 1}, {name} | Read: Enter | Move: ↑ ↓ Tab | Back: Esc",
+                f"{link.section - 1} | Enter read | ↑↓ Tab move | Esc back",
+                f"{link.section - 1} Enter ↑↓ Esc",
+            )
         if link.section:
             name = self.sections[link.section - 1][0] if link.section <= self._count else ""
             return _fit(
@@ -1117,6 +1163,8 @@ class PagerState:
                 ]
             return [_fit(width, f"Quit: Esc{g}", f"Esc quit{short_g}", "Esc quit")]
         name = self.sections[self.index][0]
+        if self.front_page:
+            return self._front_page_rows(width, name)
         step = "Finish" if self.at_section_end and self.at_last_section else "Next"
         # One key each, the one a newcomer would try; Space, b and q work too, for those who know them.
         keys = f"Back: ← | {step}: → | Quit: Esc"
@@ -1178,6 +1226,32 @@ class PagerState:
         where = f"{self.top + 1}-{last} of {len(self.lines)}"
         return [first, _fit(width, f"Scroll: ↑ ↓ | lines {where}", f"↑↓ lines {where}", where)]
 
+    def _front_page_rows(self, width: int, name: str) -> list[str]:
+        if self.index == 0:
+            first = _fit(
+                width,
+                "Read one: its number then Enter, or Tab | Scroll: ↑ ↓ | Quit: Esc",
+                "Read: number Enter, or Tab | ↑↓ scroll | Esc quit",
+                "Read: number Enter | ↑↓ scroll | Esc quit",
+                "number Enter | Esc quit",
+                "Esc quit",
+            )
+        else:
+            brief = f"{self.index}/{self._last}"
+            first = _fit(
+                width,
+                f"{brief} {name} | Back to the list: b | Previous: ← | Next: → | Quit: Esc",
+                f"{brief} {name} | b list | ← previous | → next | Esc quit",
+                f"{brief} | b list | ← previous | → next | Esc quit",
+                f"{brief} | b list | ← → | Esc quit",
+                "b list  Esc quit",
+            )
+        if self.fits:
+            return [first]
+        last = min(self.top + self.body_height, len(self.lines))
+        where = f"{self.top + 1}-{last} of {len(self.lines)}"
+        return [first, _fit(width, f"Scroll: ↑ ↓ | lines {where}", f"↑↓ lines {where}", where)]
+
     def status(self, width: int) -> str:
         """All the key hints on one line (for tests and simple callers)."""
         return " / ".join(self.status_rows(width))
@@ -1193,16 +1267,17 @@ class PagerState:
             for column, entries in enumerate(columns):
                 n = entries[row] if row < len(entries) else None
                 if n is None:
-                    parts.append(" " * widths[column])
+                    parts.append(" " * (widths[column] + len(_PICKED)))
                     continue
                 text = _shorten(self._outline_text(n), widths[column])
                 pad = " " * (widths[column] - len(text))
-                lead = len(text) - len(text.lstrip())  # the number column and indent stay unstyled
-                body = text[lead:]
-                if n == self.menu_pick or (self.outline[n].section, self.outline[n].heading) in matched:
-                    body = f"\x1b[7m{body}\x1b[27m"
-                parts.append(text[:lead] + body + pad)
-            lines.append((" " * _MENU_INDENT + (" " * _MENU_GAP).join(parts)).rstrip())
+                picked = n == self.menu_pick or (self.outline[n].section, self.outline[n].heading) in matched
+                lead = "  " + text[: len(text) - len(text.lstrip())]  # the slot, number column and indent
+                if picked:  # the mark in the last two spaces before the name
+                    parts.append(f"{lead[:-2]}\x1b[7m{_PICKED}{text.lstrip()}\x1b[27m{pad}")
+                else:
+                    parts.append(f"  {text}{pad}")
+            lines.append((" " * (_MENU_INDENT - 2) + (" " * (_MENU_GAP - 2)).join(parts)).rstrip())
         visible = lines[self.menu_top : self.menu_top + self._menu_room()]
         return [self._field_line(), "", *visible]
 
@@ -1211,7 +1286,7 @@ class PagerState:
         if self.outline:
             return self._outline_lines()
         columns, rows, widths = self._menu_layout()
-        digits = len(str(self._count))
+        digits = len(str(self._last))
         matched = self._matched()
         lines = []
         for row in range(rows):
@@ -1220,11 +1295,11 @@ class PagerState:
                 n = column * rows + row
                 if n < self._count:
                     name = _shorten(self.sections[n][0], widths[column])
-                    entry = f"{n + 1:>{digits}}  {name}"
+                    entry = f"{n + self._first:>{digits}}  {name}"
                     pad = " " * (digits + 2 + widths[column] - len(entry))
                     marked = n == self.menu_pick or (n, "") in matched
-                    parts.append(f"\x1b[7m{entry}\x1b[27m{pad}" if marked else entry + pad)
-            lines.append((" " * _MENU_INDENT + (" " * _MENU_GAP).join(parts)).rstrip())
+                    parts.append(f"\x1b[7m{_PICKED}{entry}\x1b[27m{pad}" if marked else f"  {entry}{pad}")
+            lines.append((" " * (_MENU_INDENT - 2) + (" " * (_MENU_GAP - 2)).join(parts)).rstrip())
         visible = lines[self.menu_top : self.menu_top + self._menu_room()]
         return [self._field_line(), "", *visible]
 
@@ -1232,7 +1307,7 @@ class PagerState:
         """Where what is typed would go, as (section, heading); more than one: it fits several."""
         text = self.typed.strip()
         if text.isdigit():
-            return {(int(text) - 1, "")} if 1 <= int(text) <= self._count else set()
+            return {(int(text) - self._first, "")} if 1 <= int(text) <= self._last else set()
         if not _long_enough(text):
             return set()
         targets = self._targets()
@@ -1290,7 +1365,8 @@ class PagerState:
         return window
 
     def _color_lines(self) -> list[str]:
-        """The color list, the one in use marked; the screen shows it as it is chosen."""
+        """The color list, the one in use marked and in reverse video; the screen shows it as it is
+        chosen."""
         digits = 1 if len(self.colors) > 9 else len(str(len(self.colors)))
         names = [name.replace("_", " ") for name, _ in self.colors]  # slate_2 shows as slate 2
         longest = max(len(name) for name in names)
@@ -1298,7 +1374,8 @@ class PagerState:
         for n, (name, (_, about)) in enumerate(zip(names, self.colors, strict=True)):
             number = n + 1 if n < 9 else ""  # digits pick the first nine
             mark = "›" if n == self.color else " "
-            rows.append(f"{mark} {number:>{digits}}  {name.ljust(longest)}   {about}".rstrip())
+            row = f"{mark} {number:>{digits}}  {name.ljust(longest)}   {about}".rstrip()
+            rows.append(f"\x1b[7m{row}\x1b[27m" if n == self.color else row)  # as the g list marks its pick
         notes = ["", "Left out of pager-colors.ini:", *(f"  {note}" for note in self.color_notes)]
         return ["Colors:", "", *rows, *(notes if self.color_notes else [])]
 
@@ -1322,7 +1399,7 @@ class PagerState:
                         window[line - self.top] = _highlight(window[line - self.top], start, end)
             if window and self.carried == (self.index, self.top):
                 window = [_CARRIED_MARK + window[0], *window[1:]]
-        rows = [self.title] if self.title else []
+        rows = [self.title, ""] if self.title else []
         return rows + list(window) + [""] * (body - len(window)) + hints
 
 
@@ -1332,6 +1409,7 @@ _OPEN_LABEL = "Open: "
 _FIELD_WIDTH = 30  # the typing field's width, wider as more is typed
 _MENU_INDENT = 2  # spaces before the section list
 _MENU_GAP = 3  # spaces between its columns
+_PICKED = "› "  # in the 2 spaces before a list's pick, as the color list marks the one in use
 _MENU_MIN_NAME = 12  # a narrower column would show too little of a name to be worth it
 
 
@@ -1659,6 +1737,7 @@ _BARE_URL = re.compile(r"(?<![\w/])https?://[A-Za-z0-9][^\s<>()\[\]`\"']*")
 _PLACEHOLDERS = ("example", "mysite")  # placeholder addresses, never links (see links.PLACEHOLDERS)
 _CODE_MARK = "\x1b[10m"  # starts a line of a code block (see links.CODE_MARK)
 _HEADING_MARK = "\x1b[11m"  # starts a line of a heading (see markdown.HEADING_MARK)
+_SUBHEADING = _HEADING_MARK * 2  # starts a line of #### and below (see markdown._SUBHEADING_EDGE)
 _TINT_ON, _TINT_OFF = "\x1b[12m", "\x1b[13m"  # around code (see tint.py); never drawn
 _CARRIED_MARK = "\x1b[14m"  # starts the line repeated from the screen before; never drawn
 _FIELD_ON, _FIELD_OFF = "\x1b[15m", "\x1b[16m"  # around the typing field: code's shading, or else reverse
@@ -1753,6 +1832,22 @@ def _line_links(line: str) -> list[tuple[int, int, str, int]]:
             spans.append((start, end, text[start:end], 0))
     spans += [(m.start(), m.end(), "", int(m.group(1))) for m in _SECTION_REF.finditer(text)]
     return sorted(spans)
+
+
+_LISTED = re.compile(r"^\s*(\d+)[.)]?\s+\S")
+
+
+def _listed_links(lines: Sequence[str], last: int) -> list[Link]:
+    """A front page's list of the other sections (under its last heading): each numbered line goes to
+    that section, from its number to the end of the line."""
+    start = max((n for n, line in enumerate(lines) if line.startswith(_HEADING_MARK)), default=-1) + 1
+    found = []
+    for number in range(start, len(lines)):
+        text = _visible(lines[number]).rstrip()
+        match = _LISTED.match(text)
+        if match and 1 <= int(match.group(1)) <= last:
+            found.append(Link(((number, match.start(1), len(text)),), section=int(match.group(1)) + 1))
+    return found
 
 
 def _section_links(lines: Sequence[str]) -> list[Link]:
@@ -1866,15 +1961,16 @@ def _paint_code(line: str, on: str, off: str, width: int, hide: bool | None = No
     return line + off if tinted else line
 
 
-def _accented(line: str, colors: str, accent: str, reverse: str, tint: str = "") -> str:
+def _accented(line: str, colors: str, accent: str, reverse: str, tint: str = "", dimmer: str = "") -> str:
     """One row with its headings and links (underlined) in the accent color, and reverse video (the
     link Tab is on, the g list's pick) as `reverse`: the background color on the accent. Marked code
-    gets `tint`."""
+    gets `tint`; #### and below, `dimmer` if given."""
     underline = inverse = tinted = False
     heading = line.startswith(_HEADING_MARK)
+    shade = dimmer if dimmer and line.startswith(_SUBHEADING) else accent
 
     def color() -> str:
-        base = reverse if inverse else accent if underline or heading else colors
+        base = reverse if inverse else shade if heading and not underline else accent if underline else colors
         return base + tint if tinted and not inverse else base
 
     def recolor(match: re.Match[str]) -> str:
@@ -1939,6 +2035,7 @@ def _draw(
     hide_ticks: bool | None = None,
     faint: str = "",
     tail: str = "",
+    dimmer: str = "",
 ) -> None:
     """Draw every row, then write `tail` (such as where the cursor goes). Styling is optional; the
     text works without it.
@@ -1949,6 +2046,7 @@ def _draw(
     background color on the accent) is used for the key hints and other reverse video; without them
     these keep the text color. `space` puts blank margins around it all (see Margins); the rows
     are the window less its top and gap rows. `code` is (on, off) for code's background (tint.py).
+    `dimmer` is the text color for #### and below.
     """
     parts = [colors]
     first_hint = len(rows) - hint_rows
@@ -1972,9 +2070,13 @@ def _draw(
         elif number > first_hint and not plain:
             text = f"{reverse or _REVERSE}{text}\x1b[0m{colors}"
         elif accent:
-            text = _accented(_prepare_code(text, on, width, hide_ticks), colors, accent, reverse, on)
+            text = _accented(_prepare_code(text, on, width, hide_ticks), colors, accent, reverse, on, dimmer)
         else:
-            text = _paint_code(text.replace(_HEADING_MARK, ""), on, off or colors, width, hide_ticks)
+            sub = text.startswith(_SUBHEADING)
+            text = text.replace(_HEADING_MARK, "")
+            text = _paint_code(text, on, off or colors, width, hide_ticks)
+            if sub and dimmer:
+                text = dimmer + _SGR.sub(lambda match: match.group(0) + dimmer, text) + (colors or "\x1b[39m")
         if carried and faint:
             text = faint + _SGR.sub(lambda match: match.group(0) + faint, text) + "\x1b[39m"
         elif carried:  # faint is set again after every code, which may turn it off
@@ -1997,6 +2099,7 @@ FADE_STEP_SECONDS = 0.025  # 8 steps: a fifth of a second
 _FADE_CONTRAST = 3.0  # fade only between backgrounds this far apart (a dark and a light one)
 _COLOR_QUESTION = "\x1b]10;?\x1b\\\x1b]11;?\x1b\\\x1b[c"  # text color, background, then any reply
 _COLOR_ANSWER = re.compile(rb"\x1b\](1[01]);rgb:([0-9a-fA-F]{1,4})/([0-9a-fA-F]{1,4})/([0-9a-fA-F]{1,4})")
+_ACCENT_COLOR = re.compile(r"\x1b\[38;2;(\d+);(\d+);(\d+)m")
 _TRUE_COLORS = re.compile(r"\x1b\[38;2;(\d+);(\d+);(\d+);48;2;(\d+);(\d+);(\d+)m")
 
 
@@ -2099,6 +2202,19 @@ _TITLE_CONTRAST = 7.0
 def _contrast(a: RGB, b: RGB) -> float:
     light, dark = sorted((_luminance(a), _luminance(b)), reverse=True)
     return (light + 0.05) / (dark + 0.05)
+
+
+_DIMMER_STEPS = (0.4, 0.35, 0.3, 0.25, 0.2, 0.15)  # toward the background; the first that keeps 7:1
+
+
+def dimmer(text: RGB, background: RGB) -> RGB | None:
+    """The text a shade toward the background, for #### and below: as far as keeps 7:1.
+    None when the text has no room to spare."""
+    for step in _DIMMER_STEPS:
+        mixed = tuple(round(t + (b - t) * step) for t, b in zip(text, background, strict=True))
+        if _contrast(mixed, background) >= _TITLE_CONTRAST:  # type: ignore[arg-type]
+            return mixed  # type: ignore[return-value]
+    return None
 
 
 def title_blue(background: RGB) -> RGB | None:
@@ -2250,6 +2366,8 @@ def page_sections(
     fade_in: bool = True,
     own_colors: Pair | None = None,
     own_code: Callable[[Pair | None], tuple[str, str]] = lambda own: ("", ""),
+    front_page: bool = False,
+    shown: Callable[[int], None] | None = None,
 ) -> Outcome:
     """Page through (name, text) sections and restore the screen afterwards.
 
@@ -2267,7 +2385,8 @@ def page_sections(
     (the list's pick starts there, and a notice says how to go back), and with `typed_files` a .md or
     .txt file can be typed by name. What is chosen goes to `open_document`, which returns "" if it
     shows it (the pager then leaves, returning GO, and the caller shows it) or a line saying why not,
-    shown in the list. `remember` is told the section and line the pager was left on.
+    shown in the list. `remember` is told the section and line the pager was left on, and `shown` each
+    section the first time it shows.
     `start_section` is the index of the section to open on (and then the section list doesn't open),
     `start_line` the line in it, or `start_heading` a heading in it.
     `outline` lays the section list out as the document's own outline (see markdown.Document.outline).
@@ -2304,6 +2423,8 @@ def page_sections(
         for depth, label, name, heading in outline
         if not name or name in numbers
     ]
+    if front_page:
+        state.use_front_page()
     state.color = next((n for n, choice in enumerate(colors) if choice[0] == color), 0)
     state.documents, state.typed_files = list(documents), typed_files
     state.document = index_of(state.documents, document)
@@ -2311,8 +2432,9 @@ def page_sections(
     if came_from is not None and left != state.document:
         state.came_from = left
         if left is not None and document is not None:
-            shown = state.documents[state.document].title if state.document is not None else document.name
-            state.arrived = shown
+            state.arrived = (
+                state.documents[state.document].title if state.document is not None else document.name
+            )
     color_codes = [choice[2] for choice in colors]
     accents = [(choice[3], choice[4]) if len(choice) > 4 else ("", "") for choice in colors]
     code_codes = [(choice[5], choice[6]) if len(choice) > 6 else ("", "") for choice in colors]
@@ -2360,7 +2482,21 @@ def page_sections(
             code,
             faint=own_faint(now),
             tail=tail,
+            dimmer=dimmer_code(now, accent),
         )
+
+    def dimmer_code(codes: str, accent: str) -> str:
+        """Full color only, where the text and background colors are known."""
+        full_color = os.environ.get("COLORTERM", "").lower() in ("truecolor", "24bit")
+        pair = pair_of(codes)
+        if pair is None or not full_color or os.environ.get("NO_COLOR"):
+            return ""
+        text = pair[0]
+        accented = _ACCENT_COLOR.fullmatch(accent)
+        if accented:
+            text = tuple(int(value) for value in accented.groups())  # type: ignore[assignment]
+        shade = dimmer(text, pair[1])
+        return f"\x1b[38;2;{';'.join(map(str, shade))}m" if shade else ""
 
     def own_faint(codes: str) -> str:
         """The terminal's own text halfway to its background: not every terminal makes it faint."""
@@ -2420,8 +2556,16 @@ def page_sections(
     if own_colors is None and old_settings is not None and colors:
         own_colors = terminal_colors(sys.stdin.fileno(), out)
     left_normally = False
+    told: set[int] = set()
+
+    def tell() -> None:
+        if shown is not None and state.index not in told:
+            told.add(state.index)
+            shown(state.index)
+
     try:
         draw()
+        tell()
         while True:
             try:
                 key = key_source()
@@ -2460,6 +2604,7 @@ def page_sections(
                 state.notice = open_link(state.opening) if open_link else "Links can't be opened from here."
             if action in (Action.REDRAW, Action.SAVE_COLORS, Action.OPEN_LINK):
                 draw()
+                tell()
             if action is Action.SAVE_COLORS and save_color is not None:
                 try:
                     save_color(state.color_name)

@@ -242,7 +242,7 @@ def test_the_banner_line_says_what_is_new(checks_on, monkeypatch):
     assert news.notice_line() == (
         "News: magnacoda 0.5.0 is available (you have 0.4.0; type update) · 2 news items - type news"
     )
-    news.mark_all_seen()
+    news.mark_items_seen(item.id for item in news.load_state().feed)
     assert news.notice_line() == "News: magnacoda 0.5.0 is available (you have 0.4.0; type update)"
 
 
@@ -252,7 +252,7 @@ def test_release_notes_are_announced_once_after_an_upgrade_not_on_a_first_instal
     assert news.notice_line() == ""  # just installed: nothing to announce
     monkeypatch.setattr(news, "__version__", "0.5.0")  # upgraded
     assert news.notice_line() == "News: what's new in 0.5.0 - type news"
-    news.mark_all_seen()
+    news.mark_notes_seen("0.5.0")
     assert news.notice_line() == ""
 
 
@@ -297,3 +297,50 @@ def test_the_banner_shows_each_item_in_the_first_shell_of_a_day_on_up_to_three_d
     chosen = news.today_notice(today="2026-11-12")
     assert chosen == {"news:b"}  # a new item gets its own three days
     assert news.notice_line(only=chosen) == "News: 2 news items - type news"
+
+
+def test_an_update_is_mentioned_every_day_until_it_is_installed(checks_on):
+    news.save_state(State(checked="x", latest={"magnacoda": "0.5.0"}))
+    for day in ("2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-20"):
+        assert news.today_notice(today=day) == {"update:magnacoda:0.5.0"}
+        assert news.today_notice(today=day) == set()  # once a day
+    assert news.title_lines() == ["magnacoda 0.5.0 is available - type update"]
+
+
+NOTES = """## 0.6.0
+
+Six.
+
+## 0.5.0
+
+Five.
+
+## 0.4.1
+
+Four one.
+
+## 0.4.0
+
+Four.
+"""
+
+
+def test_update_reads_the_notes_of_the_new_versions_from_the_new_tag():
+    fetch = fake_fetch({news.NOTES_URL.format(version="0.5.0"): NOTES.encode()})
+    assert news.notes_before_update("0.4.0", "0.5.0", fetch) == [("0.5.0", "Five."), ("0.4.1", "Four one.")]
+    assert fetch.calls == [
+        "https://raw.githubusercontent.com/EmagineEngine/magnacoda/v0.5.0/magnacoda/data/whats-new.md"
+    ]
+    assert news.notes_before_update("0.4.0", "0.6.0", fake_fetch({})) == []  # can't fetch: none
+
+
+def test_update_shows_at_most_the_newest_few_releases_notes(monkeypatch):
+    monkeypatch.setattr(news, "NOTES_BEFORE_UPDATE", 2)
+    fetch = fake_fetch({news.NOTES_URL.format(version="0.6.0"): NOTES.encode()})
+    assert [v for v, _ in news.notes_before_update("0.3.0", "0.6.0", fetch)] == ["0.6.0", "0.5.0"]
+
+
+def test_leaving_asks_once_a_day():
+    assert news.ask_on_leaving(today="2026-11-02")
+    assert not news.ask_on_leaving(today="2026-11-02")
+    assert news.ask_on_leaving(today="2026-11-03")
