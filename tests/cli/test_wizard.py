@@ -54,16 +54,15 @@ def test_wizard_asks_nothing_about_fixes_or_failing():
     assert "Fix suggestions" not in output and "Output format" not in output and "Fail on" not in output
 
 
-def test_wizard_silently_retries_a_blank_url():
-    # click.prompt() itself re-asks on a bare Enter before the wizard's own validation runs.
-    result = CliRunner().invoke(main, ["wizard"], input="\n" + _answers())
-    assert result.output.count("Page to scan") == 2
-    assert "https://example.com/" in result.output
+@pytest.mark.parametrize("typed", ["\n", "   \n"])
+def test_with_no_address_yet_enter_cancels_the_wizard_and_its_prompt_says_so(typed, monkeypatch):
+    from magnacoda import cli
 
-
-def test_wizard_shows_an_error_for_a_whitespace_only_url():
-    result = CliRunner().invoke(main, ["wizard"], input="   \n" + _answers())
-    assert "Error: A value is required." in result.output
+    monkeypatch.setattr(cli, "_is_interactive", lambda: True)
+    result = CliRunner().invoke(main, ["wizard"], input=typed)
+    assert "Ctrl+C or q cancels at any time." in result.output
+    assert "or localhost:3000), or press Enter to cancel:" in result.output
+    assert "Cancelled." in result.output and "WCAG level" not in result.output
 
 
 @pytest.mark.integration

@@ -156,6 +156,13 @@ def _require_nonempty(value: str) -> str:
     return value
 
 
+def _nonempty_or_cancel(value: str) -> str:
+    """Enter on an empty line cancels, where there's nothing in brackets to take."""
+    if not value.strip():
+        raise click.Abort
+    return value.strip()
+
+
 def _prompt_nonempty(text: str, default: str | None = None) -> str:
     # click.prompt() re-asks on a bare Enter by itself; this catches whitespace-only input.
     return _ask(text, default=default, value_proc=_require_nonempty)  # type: ignore[no-any-return]
@@ -199,18 +206,12 @@ def _ask_address() -> str:
     if not _is_interactive():
         raise click.UsageError("Missing argument 'URL'.")
     ctx = click.get_current_context()
-
-    def check(value: str) -> str:
-        if not value.strip():
-            raise click.Abort  # q cancels too, as at any question
-        return value.strip()
-
     while True:
         typed = _ask(
             "Page to scan (such as example.com), help for more, or press Enter to cancel",
             default="",
             show_default=False,
-            value_proc=check,
+            value_proc=_nonempty_or_cancel,
         )
         if typed.lower() != "help":
             break
@@ -2349,13 +2350,23 @@ def wizard(ctx: click.Context, force_setup_notice: bool) -> None:
     elif not _chromium_probably_installed() and not _offer_chromium():
         _print_notice(Console(), _CHROMIUM_NOTICE)
 
+    if _is_interactive():
+        _echo(questions.CANCEL_HINT)  # as setup does; the questions after this have defaults to take
     history.ensure_file()
     picked = _choose_start_point()
     start = picked or savedcommand.SavedScan()
 
-    url = _prompt_nonempty(
-        "Page to scan (an address such as example.com or localhost:3000)", default=start.url or None
-    )
+    if start.url:
+        url = _prompt_nonempty(
+            "Page to scan (an address such as example.com or localhost:3000)", default=start.url
+        )
+    else:
+        url = _ask(
+            "Page to scan (an address such as example.com or localhost:3000), or press Enter to cancel",
+            default="",
+            show_default=False,
+            value_proc=_nonempty_or_cancel,
+        )
 
     scan = dataclasses.replace(start, url=url, extras=list(start.extras), notes=[])
     ask_everything = True
