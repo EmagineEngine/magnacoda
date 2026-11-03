@@ -393,6 +393,16 @@ class PagerState:
             self.menu_pick = (self.menu_pick + step) % count
         return self._show_pick()
 
+    def _typed_pick(self) -> int | None:
+        """The first entry, in reading order, that what is typed highlights; None if none."""
+        matched = self._matched()
+        if self.outline:
+            return next(
+                (n for n in self._pickable if (self.outline[n].section, self.outline[n].heading) in matched),
+                None,
+            )
+        return next((n for n in range(self._count) if (n, "") in matched), None)
+
     def _menu_arrow(self, key: str) -> Action:
         """Move the pick like in a grid: up and down within a column, left and right to the same row
         in the next column (the list fills each column top to bottom); stop at the edges."""
@@ -655,6 +665,12 @@ class PagerState:
                 return Action.NOTHING
             self.typed, self.menu_pick = self.typed + char, None
             return Action.REDRAW
+        if key in ("tab", "shift-tab", "up", "down", "left", "right") and self.menu_pick is None:
+            start = self._typed_pick()
+            if start is not None:  # what was typed has picked an entry, as Tab would: go on from it
+                self.typed, self.menu_pick = "", start
+                if key in ("tab", "shift-tab"):
+                    return self._show_pick()
         if key in ("up", "down", "left", "right") and self.menu_pick is None:
             # Tab starts picking, as on a page; until then the arrows scroll a long list.
             return self._menu_scroll(1 if key == "down" else -1) if key in ("up", "down") else Action.NOTHING
@@ -1015,10 +1031,11 @@ class PagerState:
                         "o, Enter back",
                     )
                 ]
+            pick = "Pick: ↑ ↓ ← → Tab" if self._typed_pick() is not None else "Pick: Tab, then ↑ ↓ ← →"
             return [
                 _fit(
                     width,
-                    f"Type {what}, then Enter{other} | Pick: Tab, then ↑ ↓ ← →{more} | Back: Esc",
+                    f"Type {what}, then Enter{other} | {pick}{more} | Back: Esc",
                     f"Type {what}, then Enter{other} | Pick: Tab{more} | Back: Esc",
                     f"Type {what}, then Enter{other}{more} | Back: Esc",
                     f"{short}, then Enter{short_other} | Tab pick{short_more} | Esc back",

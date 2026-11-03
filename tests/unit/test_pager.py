@@ -313,13 +313,32 @@ def test_each_section_is_told_once_the_first_time_it_shows(monkeypatch):
 def test_arrows_wait_for_tab_and_picking_replaces_what_was_typed():
     state = _state()
     state.handle("g")
-    state.handle("3")
+    state.handle("9")  # no such section: nothing is highlighted
     state.handle("down")
-    assert state.typed == "3" and state.menu_pick is None  # Tab starts picking, as on a page
+    assert state.typed == "9" and state.menu_pick is None  # Tab starts picking, as on a page
     state.handle("tab")
     assert state.typed == "" and state.menu_pick == 0
     state.handle("t")
     assert state.typed == "t" and state.menu_pick is None
+
+
+@pytest.mark.parametrize(("key", "pick"), [("down", 2), ("up", 0), ("tab", 1)])
+def test_once_typing_highlights_an_entry_the_arrows_and_tab_go_on_from_it(key, pick):
+    state = _state()
+    state.handle("2")  # on the page, a digit opens the list with it typed
+    assert "Pick: ↑ ↓ ← → Tab" in state.render(80)[-1]
+    state.handle(key)
+    assert state.typed == "" and state.menu_pick == pick
+
+
+def test_on_a_front_page_a_typed_number_and_an_arrow_pick_the_next_item():
+    items = [("News", ["\x1b[11mNews", "", " 1 First", " 2 Second", " 3 Third"])]
+    state = PagerState([*items, ("First", ["a"]), ("Second", ["b"]), ("Third", ["c"])], 20)
+    state.use_front_page()
+    state.handle("2")
+    state.handle("down")
+    assert state.status(80).startswith("Links: 3, Third")
+    assert state.handle("enter") is Action.REDRAW and state.index == 3
 
 
 def test_a_single_section_that_fits_shows_only_how_to_quit():

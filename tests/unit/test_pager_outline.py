@@ -326,3 +326,11 @@ def test_a_column_keeps_its_place_beside_a_blank_cell_and_the_pick_is_marked():
     columns = max(len(re.findall(r"\d+(?= {2,}\S)", row)) for row in rows)
     assert len(ends) == columns > 1  # numbers line up in each column, beside a blank cell too
     assert any(row.startswith(" › 1  Introduction") for row in rows)
+
+
+def test_a_typed_name_picks_its_row_and_the_arrows_go_on_from_it():
+    state = _state()  # the list is open
+    for key in "on windows":
+        state.handle("space" if key == " " else key)
+    state.handle("up")
+    assert state.typed == "" and state.outline[state.menu_pick].label == "Install"
