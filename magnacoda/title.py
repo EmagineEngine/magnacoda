@@ -4,6 +4,8 @@ on the first start of the day; the `title` preference, or `--title` to show it n
 On the title the name is reversed, in a block of its blue. A soft glow passes once along the name, on
 the title (through the block) or else in the banner, where the terminal has full color and tells its
 background; its colors move away from the background, so the name never drops below its 7:1 contrast.
+On a light background the block's band brightens instead, nearly to white, since darkening is hard to
+see there; the letters in it turn dark where that reads better, so it stays at 4.5:1 or more.
 Off wherever text isn't typed out (teletype.enabled), so never for a screen reader.
 """
 
@@ -22,6 +24,7 @@ from rich.markup import escape
 from rich.text import Text
 
 from magnacoda import __version__, news, preferences, teletype
+from magnacoda.pager.colors import contrast
 from magnacoda.pager.screen import RGB, title_blue
 from magnacoda.userdir import config_dir, write_private
 
@@ -33,6 +36,7 @@ GLOW_SECONDS = 1.0  # one pass along the name
 GLOW_FRAMES = 30
 GLOW_WIDTH = 2.5  # letters on each side of the band's middle
 GLOW_STRENGTH = 0.6  # how far the middle of the band goes toward white (or black)
+BRIGHT_STRENGTH = 0.85  # on a light background, how far the block's band goes toward white
 
 
 def state_path() -> Path:
@@ -87,20 +91,45 @@ def _mix(color: RGB, toward: RGB, amount: float) -> RGB:
     return r, g, b
 
 
-def glow_colors(base: RGB, background: RGB, letters: int, frames: int = GLOW_FRAMES) -> list[list[RGB]]:
-    """Each frame's color for each letter: a soft band passing left to right, then the plain name."""
-    toward = (255, 255, 255) if sum(background) < sum(base) else (0, 0, 0)
+def _band(letters: int, frames: int) -> list[list[float]]:
+    """Each frame's strength for each letter, 0 to 1: a soft band passing left to right."""
     start, end = -GLOW_WIDTH, letters - 1 + GLOW_WIDTH
     out = []
     for frame in range(frames):
         middle = start + (end - start) * frame / max(frames - 1, 1)
-        row = []
-        for letter in range(letters):
-            distance = abs(letter - middle) / GLOW_WIDTH
-            amount = GLOW_STRENGTH * (math.cos(math.pi * distance) + 1) / 2 if distance < 1 else 0.0
-            row.append(_mix(base, toward, amount))
-        out.append(row)
+        distances = (abs(letter - middle) / GLOW_WIDTH for letter in range(letters))
+        out.append([(math.cos(math.pi * d) + 1) / 2 if d < 1 else 0.0 for d in distances])
+    return out
+
+
+def glow_colors(base: RGB, background: RGB, letters: int, frames: int = GLOW_FRAMES) -> list[list[RGB]]:
+    """Each frame's color for each letter: a soft band passing left to right, then the plain name."""
+    toward = (255, 255, 255) if sum(background) < sum(base) else (0, 0, 0)
+    out = [[_mix(base, toward, GLOW_STRENGTH * a) for a in row] for row in _band(letters, frames)]
     out.append([base] * letters)
+    return out
+
+
+def bright_band(
+    base: RGB, background: RGB, letters: int, frames: int = GLOW_FRAMES
+) -> list[list[tuple[RGB, RGB]]]:
+    """The reversed name's glow on a light background: each frame's (letter, block) colors. The block
+    brightens nearly to white; each letter in it turns white or navy, whichever reads better on its
+    block (white rather than the background's color, which on cream would drop below 4.5:1 where the
+    letters switch). Then the plain name."""
+    white, dark = (255, 255, 255), _mix(base, (0, 0, 0), 0.75)
+    out = []
+    for row in _band(letters, frames):
+        cells = []
+        for amount in row:
+            if amount == 0:
+                cells.append((background, base))
+                continue
+            block = _mix(base, white, BRIGHT_STRENGTH * amount)
+            light_reads = contrast(_hex(white), _hex(block)) >= contrast(_hex(dark), _hex(block))
+            cells.append((white if light_reads else dark, block))
+        out.append(cells)
+    out.append([(background, base)] * letters)
     return out
 
 
@@ -130,12 +159,19 @@ def _name_text(
     letters take the background's color (`back`), as reverse video does."""
     if colors is None:
         return Text(name, style=f"{plain_style} italic" + (" reverse" if reverse else ""))
+    if reverse and back:
+        return _pairs_text(name, [(back, color) for color in colors])
     text = Text()
     for letter, color in zip(name, colors, strict=True):
-        if reverse and back:
-            text.append(letter, style=f"bold italic {_hex(back)} on {_hex(color)}")
-        else:
-            text.append(letter, style=f"bold italic {_hex(color)}")
+        text.append(letter, style=f"bold italic {_hex(color)}")
+    return text
+
+
+def _pairs_text(name: str, pairs: list[tuple[RGB, RGB]]) -> Text:
+    """The name with a (letter, block) color pair for each letter."""
+    text = Text()
+    for letter, (front, block) in zip(name, pairs, strict=True):
+        text.append(letter, style=f"bold italic {_hex(front)} on {_hex(block)}")
     return text
 
 
@@ -150,7 +186,7 @@ def glow(
     """Print the name, with the glow passing along it where the terminal allows; the line goes on.
     With `reverse` (the title), the name sits in a block with a space at each end, and the glow moves
     through the block: away from the letters, which have the background's color, so the contrast only
-    rises."""
+    rises; on a light background, the bright band (`bright_band`)."""
     if reverse and console.color_system:  # the block's padding, only where the block shows
         name = f" {name} "
     back = _rgb(background) if background else None
@@ -161,9 +197,18 @@ def glow(
     try:
         if back and base and moving:
             start = time.monotonic()
-            for frame, colors in enumerate(glow_colors(base, back, len(name))):
+            light = reverse and sum(back) > sum(base)
+            frames: Sequence[Text] = (
+                [_pairs_text(name, pairs) for pairs in bright_band(base, back, len(name))]
+                if light
+                else [
+                    _name_text(name, c, plain_style, reverse, back)
+                    for c in glow_colors(base, back, len(name))
+                ]
+            )
+            for frame, drawn in enumerate(frames):
                 console.file.write("\r" + pad)
-                console.print(_name_text(name, colors, plain_style, reverse, back), end="")
+                console.print(drawn, end="")
                 console.file.flush()
                 # Kept to the clock, so drawing time on a low-end device doesn't stretch it.
                 time.sleep(max(start + (frame + 1) * GLOW_SECONDS / GLOW_FRAMES - time.monotonic(), 0))

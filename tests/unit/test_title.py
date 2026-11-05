@@ -74,6 +74,21 @@ def test_the_glow_only_raises_the_contrast_and_ends_on_the_plain_name(background
     assert brightest == sorted(brightest)  # the band travels left to right
 
 
+@pytest.mark.parametrize("background", ["#ffffff", "#fdf6e3"])
+def test_on_light_backgrounds_a_bright_band_passes_through_the_block(background):
+    from magnacoda.pager.screen import title_blue
+
+    back = title._rgb(background)
+    base = title_blue(back)
+    frames = title.bright_band(base, back, 11)
+    pairs = {(title._hex(front), title._hex(block)) for frame in frames for front, block in frame}
+    assert all(contrast(front, block) >= 4.5 for front, block in pairs)
+    assert frames[-1] == [(back, base)] * 11
+    assert any(sum(front) < sum(back) / 2 for frame in frames for front, _ in frame)  # dark mid-band
+    brightest = [max(range(11), key=lambda n, f=f: sum(f[n][1])) for f in frames[2:-3]]
+    assert brightest == sorted(brightest)  # the band travels left to right
+
+
 def test_what_is_typed_at_the_title_is_returned(monkeypatch):
     console = Console(file=io.StringIO(), force_terminal=True, width=80, height=24)
     monkeypatch.setattr(console, "input", lambda prompt: "  scan https://x  ")
