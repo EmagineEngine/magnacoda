@@ -1,5 +1,5 @@
 """One tip a session, the first time `menu` shows the commands, in turn from data/tips.md; the position
-is kept in tips-state.json."""
+is kept in tips-state.json. A new version starts again at the first tip."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from pathlib import Path
 
 from rich.markup import escape
 
+from magnacoda import __version__
 from magnacoda.userdir import config_dir, write_private
 
 _COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
@@ -34,7 +35,8 @@ def load(text: str | None = None) -> list[str]:
 
 def _next_index() -> int:
     try:
-        value = json.loads(state_path().read_text(encoding="utf-8")).get("next", 0)
+        state = json.loads(state_path().read_text(encoding="utf-8"))
+        value = state.get("next", 0) if state.get("version") == __version__ else 0
     except (OSError, ValueError, AttributeError):
         return 0
     return value if isinstance(value, int) and value >= 0 else 0
@@ -50,7 +52,8 @@ def next_tip() -> str | None:
         return None
     index = _next_index() % len(tips)
     try:
-        write_private(state_path(), json.dumps({"next": (index + 1) % len(tips)}) + "\n")
+        state = {"next": (index + 1) % len(tips), "version": __version__}
+        write_private(state_path(), json.dumps(state) + "\n")
     except OSError:
         pass
     return tips[index]

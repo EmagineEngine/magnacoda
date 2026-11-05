@@ -31,6 +31,13 @@ def test_a_damaged_state_file_starts_over_and_no_tips_gives_none(monkeypatch):
     assert tips.next_tip() is None
 
 
+def test_a_new_version_starts_again_at_the_first_tip(monkeypatch):
+    monkeypatch.setattr(tips, "load", lambda: ["one", "two", "three"])
+    assert [tips.next_tip() for _ in range(2)] == ["one", "two"]
+    monkeypatch.setattr(tips, "__version__", "99.0.0")
+    assert tips.next_tip() == "one"
+
+
 @pytest.fixture
 def at_a_terminal(monkeypatch):
     monkeypatch.setattr(cli, "_interactive", lambda console: True)

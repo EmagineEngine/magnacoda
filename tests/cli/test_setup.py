@@ -49,19 +49,21 @@ def test_setup_prompts_before_installing_and_installs_on_yes(monkeypatch):
     assert len(calls) == 1
 
 
-def test_setup_cancelled_on_no_does_not_install(monkeypatch):
+def test_setup_on_no_does_not_install_and_goes_on_to_the_ai_tiers(monkeypatch):
     monkeypatch.setattr(cli, "_chromium_already_installed", lambda: False)
     monkeypatch.setattr(cli, "_is_interactive", lambda: True)
+    monkeypatch.setattr(cli, "_ask_about_shortcuts", lambda: None)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     calls = []
     monkeypatch.setattr(
         cli.subprocess, "run", lambda *a, **kw: calls.append(a) or SimpleNamespace(returncode=0)
     )
 
-    result = CliRunner().invoke(main, ["setup"], input="n\n")
+    result = CliRunner().invoke(main, ["setup"], input="n\nn\n")
 
-    assert result.exit_code == 1
-    assert "Cancelled" in result.output
-    assert calls == []
+    assert result.exit_code == 0
+    assert "Chromium was not installed." in result.output and "AI tiers" in result.output
+    assert not any("playwright" in a[0] for a in calls)
 
 
 def test_setup_non_interactive_without_yes_refuses(monkeypatch):
@@ -175,20 +177,6 @@ def test_setup_checks_api_key_after_a_fresh_install_too(monkeypatch):
     assert result.exit_code == 0
     assert "Chromium is installed." in result.output
     assert "AI tiers (optional" in result.output
-
-
-def test_setup_skips_api_key_check_when_cancelled(monkeypatch):
-    monkeypatch.setattr(cli, "_chromium_already_installed", lambda: False)
-    monkeypatch.setattr(cli, "_is_interactive", lambda: True)
-    calls = []
-    monkeypatch.setattr(cli.subprocess, "run", _fake_run(calls))
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-
-    result = CliRunner().invoke(main, ["setup"], input="n\n")
-
-    assert result.exit_code == 1
-    assert "AI tiers" not in result.output
-    assert calls == []
 
 
 def _claude_installed(monkeypatch):

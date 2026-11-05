@@ -6,16 +6,20 @@ All notable changes to this project are documented in this file.
 
 ### Changed
 
-- The shell starts with a short welcome instead of the title screen, and keeps color to the command list and the prompt's `»`.
-- `menu` lists the commands below what's on screen, with a tip the first time; `clear` and `cls` start a fresh page.
+- The shell starts with a short welcome.
+- Color in the shell is kept to a minimum, *magnacoda* on the command list and `»` in the prompt.
+- The `menu` command lists the commands below what's on screen, with a tip the first time; `clear` and `cls` start a fresh page.
 - Each command's output has a blank line above and below.
 - At numbered lists, Enter cancels, and `scan` says how to cancel before its first question.
 - Stopping a review in the terminal ends the review page too.
 - After help closes on a resized window, the screen stays as it is; `refresh_after_resize` under `[pager]` brings back the fresh page.
+- Tips start again at the first one after an update.
 
 ### Fixed
 
 - On a Mac, the shortcut shows once in Launchpad, opens one window in front, and closes it when you leave.
+- On Windows, the shell's colors show, matched to the terminal's background.
+- Saying no to Chromium no longer ends `setup` before the shortcut question.
 
 ### Removed
 

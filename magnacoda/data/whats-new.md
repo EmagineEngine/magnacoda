@@ -19,6 +19,8 @@ HOW IT IS READ
 - Enter cancels at numbered lists.
 - Stopping a review ends its browser page too.
 - Mac shortcuts open one window and close it after.
+- Colors show on Windows too.
+- Setup offers a shortcut even when you skip Chromium.
 
 ## 0.1.4
 

@@ -58,6 +58,21 @@ def test_setup_prompts_and_saves_a_key_when_interactive_and_confirmed(monkeypatc
     assert credentials.load_stored_key("ANTHROPIC_API_KEY") == "sk-ant-typed-in"
 
 
+def test_setup_without_chromium_still_asks_about_the_shortcut_but_not_the_wizard(monkeypatch, tmp_path):
+    _use_tmp_config(monkeypatch, tmp_path)
+    monkeypatch.setattr(cli, "_chromium_already_installed", lambda: False)
+    monkeypatch.setattr(cli, "_is_interactive", lambda: True)
+    monkeypatch.setattr(cli, "_install_chromium", lambda: (_ for _ in ()).throw(AssertionError))
+    asked = []
+    monkeypatch.setattr(cli, "_ask_about_shortcuts", lambda: asked.append(True))
+
+    result = CliRunner().invoke(main, ["setup"], input="n\nn\n")
+
+    assert result.exit_code == 0
+    assert "Chromium was not installed." in result.output
+    assert asked and "wizard" not in result.output
+
+
 def test_setup_prompt_declined_falls_back_to_manual_instructions(monkeypatch, tmp_path):
     _use_tmp_config(monkeypatch, tmp_path)
     monkeypatch.setattr(cli, "_chromium_already_installed", lambda: True)

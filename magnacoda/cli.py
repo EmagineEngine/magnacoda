@@ -892,30 +892,30 @@ def setup(yes: bool, forget_key: bool) -> None:
     if _is_interactive() and not yes:
         _echo(questions.CANCEL_HINT)  # setup may ask: install Chromium, an API key, the Claude plan
     first_time = not _chromium_already_installed()
+    installed_now = False
     if not first_time:
         _echo("Chromium is already installed.")
     else:
         missing = "Chromium is not installed yet - this is a one-time download of about 100 MB."
         if yes:
             _echo(missing)
+        elif not _is_interactive():
+            _echo(missing)
+            raise click.UsageError("Re-run with --yes to install non-interactively.")
+        if yes or _ask_yes_no("Download and install it now?", intro=missing, default=True):
+            status = _install_chromium()
+            if status:
+                sys.exit(status)
+            installed_now = True
         else:
-            if not _is_interactive():
-                _echo(missing)
-                raise click.UsageError("Re-run with --yes to install non-interactively.")
-            if not _ask_yes_no("Download and install it now?", intro=missing, default=True):
-                _echo("Cancelled - Chromium was not installed.")
-                sys.exit(1)
-
-        status = _install_chromium()
-        if status:
-            sys.exit(status)
+            _echo(f"Chromium was not installed. Type `{_program()}setup` when you want it.")
 
     if _is_interactive() and not yes:
         _ask_about_shortcuts()
     _echo()
     _report_anthropic_key_status()
     # The wizard then finds Chromium installed, so it doesn't offer setup back.
-    if first_time and _is_interactive() and not yes:
+    if installed_now and _is_interactive() and not yes:
         _echo()
         if _ask_yes_no("Scan your first page with the wizard now?", default=True):
             click.get_current_context().invoke(wizard, force_setup_notice=False)
