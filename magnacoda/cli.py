@@ -1456,7 +1456,9 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
     # read, and the banner names the edition anyway.
     background = name_color.background(console)
     name = name_color.style(console, background)
-    prompt = f"[{name}]{plugins.PRODUCT}[/{name}] [dim]»[/dim] "
+    blue = name.removeprefix(name_color.PLAIN).strip()  # the name's blue, without its bold
+    arrow = f"[{blue}]»[/{blue}]" if blue else "»"
+    prompt = f"[italic]{plugins.PRODUCT}[/italic] {arrow} "
 
     name_markup = f"[{name} italic]{escape(names.display_name)}[/{name} italic]"
 
@@ -1482,12 +1484,14 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
             _print_notice(console, _CHROMIUM_NOTICE)
         return show_chromium_notice
 
-    # Teletype style (see teletype.py): nothing is erased. Earlier text scrolls up into the scrollback,
-    # and each command's output prints below the last; only start-up and `menu` feed a page.
-    teletype.page_feed(console)
+    # Teletype style (see teletype.py): nothing is erased. The shell starts below what the terminal
+    # already shows, each command's output prints below the last, and only `menu` feeds a page.
     screenreader.offer()  # once, before anything is typed out
     version = news.release_label(__version__)
-    teletype.say(console, f'Welcome to {name_markup} v{version}\nType "menu" to get started.')
+    welcome = (
+        f'Welcome to [italic]{escape(names.display_name)}[/italic] v{version}\nType "menu" to get started.'
+    )
+    teletype.say(console, welcome)
     notices = []
     if force_setup_notice or not _chromium_probably_installed():  # it explains the setup offer below
         notices.append(_CHROMIUM_NOTICE)

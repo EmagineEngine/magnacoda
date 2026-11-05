@@ -142,12 +142,25 @@ FEED = "\x1b[H"  # a page feed ends by moving to the top of the fed (empty) scre
 ERASE = ("\x1b[2J", "\x1b[3J")  # clearing the screen or the scrollback: never in the teletype style
 
 
-def test_the_shell_feeds_a_page_when_it_launches_and_erases_nothing(monkeypatch):
+def test_the_shell_starts_below_what_is_on_screen_without_color(monkeypatch):
     _terminal_shell(monkeypatch)
-    output = CliRunner().invoke(main, ["shell"], input="exit\n").output
-    assert output.count(FEED) == 1 and output.index(FEED) < output.index("Welcome to")
-    assert output.startswith("\n" * 10)  # blank lines scroll what was on screen up into the scrollback
-    assert not any(code in output for code in ERASE)
+    env = {"FORCE_COLOR": "1", "TERM": "xterm"}
+    output = CliRunner().invoke(main, ["shell"], input="exit\n", env=env).output
+    assert output.startswith("Welcome to \x1b[3mmagnacoda") and FEED not in output
+    start = output.split("exit")[0]
+    assert "\x1b[3mmagnacoda\x1b[0m v" in start  # the name in italics
+    assert "\x1b[3" not in start.replace("\x1b[3m", "") and "\x1b[H" not in start  # no color, no page
+
+
+def test_only_the_prompts_arrow_is_blue(monkeypatch):
+    from magnacoda import name_color
+
+    prompts = []
+    monkeypatch.setattr(name_color, "background", lambda console: "#1e1e1e")
+    monkeypatch.setattr(name_color, "style", lambda console, background: "bold #6cb6ff")
+    monkeypatch.setattr(cli.Console, "input", lambda self, prompt="": prompts.append(prompt) or "exit")
+    CliRunner().invoke(main, ["shell"])
+    assert prompts == ["[italic]magnacoda[/italic] [#6cb6ff]»[/#6cb6ff] "]
 
 
 def test_launch_clear_is_skipped_when_output_is_not_a_terminal():
@@ -164,7 +177,7 @@ def _terminal_shell(monkeypatch):
 def test_output_continues_below_without_a_new_banner_per_command(monkeypatch):
     _terminal_shell(monkeypatch)
     output = CliRunner().invoke(main, ["shell"], input="--version\n--version\nexit\n").output
-    assert output.count(FEED) == 1  # the launch only: commands print below, like a printer
+    assert FEED not in output  # commands print below, like a printer
     assert "accessibility scanner - type a command" not in output
     assert output.index("Welcome to") < output.index("magnacoda, version")
     assert output.count("magnacoda, version") == 2
@@ -173,9 +186,9 @@ def test_output_continues_below_without_a_new_banner_per_command(monkeypatch):
 def test_clear_feeds_a_page_and_shows_the_banner_on_top_without_erasing(monkeypatch):
     _terminal_shell(monkeypatch)
     output = CliRunner().invoke(main, ["shell"], input="--version\nclear\nexit\n").output
-    assert output.count(FEED) == 2 and output.count("accessibility scanner - type a command") == 1
-    second = output.index(FEED, output.index(FEED) + 1)
-    assert output.index("magnacoda, version") < second < output.rindex("accessibility scanner")
+    assert output.count(FEED) == 1 and output.count("accessibility scanner - type a command") == 1
+    feed = output.index(FEED)
+    assert output.index("magnacoda, version") < feed < output.rindex("accessibility scanner")
     assert not any(code in output for code in ERASE)  # earlier output stays in the scrollback
 
 
@@ -196,7 +209,7 @@ def test_commands_stack_below_the_last_without_a_new_page_or_the_banner(
     monkeypatch.chdir(tmp_path)
     _terminal_shell(monkeypatch)
     output = CliRunner().invoke(main, ["shell"], input=f"--version\n{typed}\nexit\n").output
-    assert output.count(FEED) == 1 and "accessibility scanner - type a command" not in output
+    assert FEED not in output and "accessibility scanner - type a command" not in output
     assert output.index("magnacoda, version") < output.index(first_words)
     assert not any(code in output for code in ERASE)
 
@@ -320,7 +333,7 @@ def test_a_scan_from_saved_settings_prints_below_without_a_page(monkeypatch, tmp
     )
     # scan example.com: the saved settings, Enter (the last scan), Enter (no changes)
     output = CliRunner().invoke(main, ["shell"], input="scan example.com\n\n\nexit\n").output
-    assert "scanned before" in output and output.count(FEED) == 1
+    assert "scanned before" in output and FEED not in output
 
 
 def test_q_and_ctrl_c_at_the_prompt_ask_before_leaving(monkeypatch):

@@ -38,7 +38,7 @@ def test_about_never_starts_a_page_of_its_own(monkeypatch):
     alone = CliRunner().invoke(main, ["about"]).output
     assert fed == [] and "type a command" not in alone  # a normal terminal: no jump, no banner
     CliRunner().invoke(main, ["shell"], input="about\nexit\n")
-    assert fed.count("page") == 1  # the shell's start only: about prints below
+    assert fed == []  # the shell starts below what's on screen, and about prints below that
 
 
 def test_about_is_listed_in_the_banner_and_the_help():

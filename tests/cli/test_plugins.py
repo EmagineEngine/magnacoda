@@ -149,7 +149,9 @@ def test_the_edition_names_the_banner_prompt_about_and_reports(addons, monkeypat
     shell = CliRunner().invoke(main, [])
     assert "magnacoda example accessibility scanner" in shell.output
     assert "Already in the magnacoda example shell" in shell.output
-    assert "magnacoda[/bold]" in prompts[0] and "magnacodaexample" not in prompts[0]  # just magnacoda
+    assert (
+        prompts[0] == "[italic]magnacoda[/italic] » "
+    )  # just magnacoda; the » blue only where colors are known
 
     assert about_text().startswith("\nmagnacoda example ")
 
