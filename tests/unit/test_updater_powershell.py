@@ -52,7 +52,7 @@ def _start(fake: Path, seconds: int) -> subprocess.Popen[bytes]:
     return process
 
 
-def _run(script: Path, keys: str = "\n\n", timeout: float = 30) -> subprocess.CompletedProcess[str]:
+def _run(script: Path, keys: str = "\n\n", timeout: float = 60) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [PWSH, "-NoProfile", "-File", str(script)],
         input=keys,
@@ -78,11 +78,29 @@ def test_the_script_parses():
 
 def test_it_waits_while_magnacoda_runs_then_asks_then_updates(tmp_path):
     script, fake = _script(tmp_path)
-    _start(fake, 10)  # long enough to still be running once PowerShell has started
-    started = time.monotonic()
-    result = _run(script, timeout=60)
-    assert time.monotonic() - started >= 9  # it waited for the fake magnacoda to stop
-    out = result.stdout
+    # The fake runs until the script says it's waiting, then stops: PowerShell can take many seconds
+    # to start on a busy machine, so a fake that ends on its own may be gone before the script looks.
+    running = _start(fake, 120)
+    process = subprocess.Popen(
+        [PWSH, "-NoProfile", "-File", str(script)],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+    lines = []
+    try:
+        process.stdin.write("\n\n")
+        process.stdin.close()
+        for line in process.stdout:
+            lines.append(line)
+            if "Waiting..." in line:
+                running.terminate()
+        process.wait(timeout=60)
+    finally:
+        running.kill()
+        process.kill()
+    out = "".join(lines)
     assert out.index("Waiting...") < out.index("magnacoda has stopped.") < out.index("The update is starting")
     assert "Done. Start magnacoda again" in out
     assert "STAND-IN RAN" not in out  # its output went to the log
@@ -104,16 +122,17 @@ def test_a_failed_update_shows_the_repair(tmp_path):
 @pytest.mark.skipif(sys.platform == "win32", reason="uses a POSIX pseudo-terminal")
 def test_magnacoda_started_again_before_enter_means_no_update(tmp_path):
     script, fake = _script(tmp_path)
-    terminal = _Terminal(script)
+    terminal, running = _Terminal(script), None
     try:
         assert _until(terminal, "Press Enter to update now")  # it saw no magnacoda and asks
-        running = _start(fake, 10)  # magnacoda is started again before Enter
+        running = _start(fake, 120)  # magnacoda is started again before Enter
         terminal.wait(0.5)
         terminal.press_enter()
         assert _until(terminal, "magnacoda was started again, so nothing was changed.")
         assert "STAND-IN RAN" not in terminal.text() and "The update is starting" not in terminal.text()
-        running.kill()
     finally:
+        if running is not None:
+            running.kill()
         terminal.close()
 
 
@@ -165,7 +184,7 @@ class _Terminal:
         os.close(self.fd)
 
 
-def _until(terminal: _Terminal, words: str, seconds: float = 20) -> bool:
+def _until(terminal: _Terminal, words: str, seconds: float = 60) -> bool:
     end = time.monotonic() + seconds
     while time.monotonic() < end and words not in terminal.text():
         terminal.wait(0.2)
@@ -183,11 +202,14 @@ def test_enter_pressed_early_or_during_the_update_is_thrown_away(tmp_path):
         updater.windows_script([stand_in], str(install), "r", log=str(tmp_path / "u.log"), program=FAKE),
         encoding="utf-8-sig",
     )
-    _start(install / FAKE, 4)
+    running = _start(install / FAKE, 120)  # stopped below, once the script has seen it
     terminal = _Terminal(script)
-    assert _until(terminal, "Waiting...")
-    for _ in range(3):
-        terminal.press_enter()  # impatient presses while magnacoda still runs
+    try:
+        assert _until(terminal, "Waiting...")
+        for _ in range(3):
+            terminal.press_enter()  # impatient presses while magnacoda still runs
+    finally:
+        running.terminate()
     assert _until(terminal, "Press Enter to update now")
     terminal.wait(1)
     assert "The update is starting" not in terminal.text()  # the early presses didn't start it
