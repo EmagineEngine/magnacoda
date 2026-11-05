@@ -485,7 +485,7 @@ def review_cmd(ctx: click.Context, folder: str | None, no_browser: bool) -> None
         if not first:
             _echo()
         # The list once; after a review, only the question (the list is still just above).
-        scan = _pick_saved_scan(folder, "review", enter="cancel", show_list=first)
+        scan = _pick_saved_scan(folder, "review", show_list=first)
         if scan is None:
             return  # nothing to review: it said so (q or Enter at the list cancels, as at any question)
         first = False
@@ -511,17 +511,13 @@ def _review_one(ctx: click.Context, scan: saved_reports.SavedScan, no_browser: b
         for number, variant in enumerate(scan.reports, start=1):
             _echo(f"  {number}. {variant.label}")
         which = _pick_number("Which one? Type its number", len(scan.reports))
-        if which is None:
-            return
         report = scan.reports[which]
     ctx.invoke(view_cmd, file=str(report.path))
 
 
-def _pick_saved_scan(
-    folder: str, verb: str, enter: str = "back", show_list: bool = True
-) -> saved_reports.SavedScan | None:
-    """List the saved scans in `folder`, newest first, and let the person pick one (None: none, or
-    Enter). Without `show_list`, only the question, for another one from the list already shown."""
+def _pick_saved_scan(folder: str, verb: str, show_list: bool = True) -> saved_reports.SavedScan | None:
+    """List the saved scans in `folder`, newest first, and let the person pick one (None: there are
+    none; Enter cancels). Without `show_list`, only the question, for another one from the list shown."""
     found = saved_reports.scans(Path(folder).expanduser())
     if not found:
         _echo(
@@ -536,8 +532,7 @@ def _pick_saved_scan(
             for number, scan in enumerate(found, start=1):
                 _echo(f"  {number:>2}. {scan.line()}")
     which = "that scan" if show_list else "another scan"
-    index = _pick_number(f"Type a number to {verb} {which}", len(found), enter)
-    return None if index is None else found[index]
+    return found[_pick_number(f"Type a number to {verb} {which}", len(found))]
 
 
 def _variants_of(scan: saved_reports.SavedScan) -> list[review_page.Variant]:
@@ -630,7 +625,7 @@ def _scan_to_recheck(folder: str | None) -> saved_reports.SavedScan | None:
             err=True,
         )
         sys.exit(2)
-    return _pick_saved_scan(folder or str(scans_folder()), "recheck", enter="cancel")
+    return _pick_saved_scan(folder or str(scans_folder()), "recheck")
 
 
 _UNATTENDED_RECHECKS = ".rechecks-without-a-person"
@@ -1848,6 +1843,7 @@ def scan_cmd(
     )
 
     if not yes and _is_interactive() and preferences.load().confirm and _address_alone():
+        _echo(questions.CANCEL_HINT)  # as setup and the wizard do; Enter takes each question's default
         quick_note = ", quick (set in preferences.ini)" if config.quick else ""
         defaults = f"WCAG {wcag_version} {level}, a desktop screen, light and dark mode, no AI{quick_note}"
         saved = _saved_scans_for(url)
@@ -2253,29 +2249,20 @@ def _scan_option_takes_value(flag: str) -> bool:
     return False
 
 
-def _pick_number(text: str, count: int, enter: str = "back") -> int | None:
-    """Ask for one of 1..count, or Enter for none, which the brackets name ([back]). With enter="cancel",
-    the question ends "or press Enter to cancel" (q cancels too). Re-asks on anything else."""
-    if enter == "cancel":
-        text += ", or press Enter to cancel"
+def _pick_number(text: str, count: int) -> int:
+    """Ask for one of 1..count; the question ends "or press Enter to cancel", and Enter cancels, as q
+    does. Re-asks on anything else."""
 
     def check(value: str) -> int:
         value = value.strip()
-        if not value and enter == "cancel":
-            raise click.Abort
         if not value:
-            return 0
+            raise click.Abort
         if value.isdigit() and 1 <= int(value) <= count:
             return int(value)
-        if enter == "cancel":
-            raise click.BadParameter(
-                f"type one of the numbers above (1 to {count}), or press Enter to cancel."
-            )
-        raise click.BadParameter(f"type one of the numbers above (1 to {count}), or press Enter ({enter}).")
+        raise click.BadParameter(f"type one of the numbers above (1 to {count}), or press Enter to cancel.")
 
-    brackets = "" if enter == "cancel" else f" [{enter}]"
-    chosen = _ask(text + brackets, default="", show_default=False, value_proc=check)
-    return int(chosen) - 1 if chosen else None
+    chosen = _ask(f"{text}, or press Enter to cancel", default="", show_default=False, value_proc=check)
+    return int(chosen) - 1
 
 
 _NEW_SCAN_WORDS = ("new", "n", "fresh")
@@ -2442,8 +2429,6 @@ def _choose_start_point() -> savedcommand.SavedScan | None:
             for number, (label, _) in enumerate(group.entries, start=1):
                 _echo(f"  {number:>{digits}}. {label}")
         index = _pick_number("Type a number", len(group.entries))
-        if index is None:
-            continue  # back to the first question
         command = group.entries[index][1]
         scan = savedcommand.parse(command, takes_value=_scan_option_takes_value)
         if scan is None:

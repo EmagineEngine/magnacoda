@@ -101,7 +101,7 @@ When the shell starts, it says which version you have, and any news or updates. 
 - `q`, `Ctrl+C`, `clear`
   Cancel any question.
 - `Enter`
-  Takes what the brackets show: `[back]`, a default, or the capital letter in `[Y/n]` or `[y/N]`.
+  Takes what the brackets show: a default, or the capital letter in `[Y/n]` or `[y/N]`.
 - `Ctrl+Shift++`, `Ctrl+-`
   Your terminal's zoom makes the text bigger or smaller (in Windows Terminal, `Ctrl++`; on macOS, `Cmd++`). To start bigger every time, choose a larger font in your terminal's settings.
 

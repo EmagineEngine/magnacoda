@@ -1,8 +1,8 @@
 """Questions with consistent spacing: a blank line before and after. Public for add-ons.
 
 The same three rules at every question: Ctrl+C or q cancels (click.Abort: "Cancelled."; clear does
-too, as Cleared, and the shell starts a fresh page), and Enter takes what the brackets show ([Y/n],
-[back], a default). Call printed() after printing, so a question doesn't add a second blank line.
+too, as Cleared, and the shell starts a fresh page), and Enter takes what the brackets show ([Y/n], a
+default). Call printed() after printing, so a question doesn't add a second blank line.
 """
 
 from __future__ import annotations

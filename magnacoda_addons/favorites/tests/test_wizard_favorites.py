@@ -149,7 +149,7 @@ def test_favorites_open_with_fav_and_are_numbered_from_one(monkeypatch, word):
     text = " ".join(result.output.split())
     assert "favorites (2) or recent scans (1)? " in text
     assert "Type new, fav, recent, or press Enter to cancel" in text
-    assert "Favorites 1. Home 2. Blog Type a number [back]" in text
+    assert "Favorites 1. Home 2. Blog Type a number, or press Enter to cancel" in text
 
 
 def test_a_name_needs_three_characters_and_q_cancels(monkeypatch):

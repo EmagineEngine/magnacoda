@@ -346,7 +346,7 @@ def test_review_right_after_a_scan_stays_on_the_same_page(tmp_path, monkeypatch)
 
     monkeypatch.setattr(Console, "is_terminal", property(lambda self: True))
     out, reviewed = _shell_after_a_scan(tmp_path, monkeypatch)
-    assert reviewed and out.count("\x1b[H") == 1  # only the shell's own start feeds a page
+    assert reviewed and "\x1b[H" not in out  # neither the shell's start nor review feeds a page
 
 
 def test_the_logo_is_in_the_header_and_hidden_from_screen_readers(tmp_path):

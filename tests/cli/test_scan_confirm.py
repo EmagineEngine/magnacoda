@@ -93,6 +93,15 @@ def test_the_latest_scan_of_the_page_is_offered_and_enter_takes_it(monkeypatch, 
     assert history.read()[0].command.startswith("scan https://example.com/ --level AAA")
 
 
+def test_how_to_cancel_comes_before_the_first_question_and_q_cancels(monkeypatch, tmp_path):
+    hint = "Ctrl+C or q cancels at any time."
+    text, _ = _scan(monkeypatch, tmp_path, answer="n")
+    assert text.index(hint) < text.index(QUESTION)
+    _history("scan https://example.com --level AAA --ai off")
+    text, seen = _scan(monkeypatch, tmp_path, answer="q")
+    assert text.index(hint) < text.index("was scanned before") and "Cancelled" in text and seen == []
+
+
 def test_choosing_the_defaults_scans_with_them(monkeypatch, tmp_path):
     _history("scan https://example.com --level AAA --ai off")
     text, seen = _scan(monkeypatch, tmp_path, answer="2")

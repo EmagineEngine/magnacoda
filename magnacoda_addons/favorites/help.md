@@ -16,7 +16,7 @@ Save the scans you run often, and start them again from the wizard.
 To save one, answer yes to "Save this as a favorite?" at the end of the wizard, and give it a name. At the start of the wizard, type fav to list them, then pick one to run it again, or to change just the URL. If you change its settings, you're asked whether to update it.
 
 - `favorites`
-  List your favorites, numbered, with their commands. Enter a number to run that scan (it shows the command, says how long it will take, offers faster settings for this run, and asks first), or press Enter to go back.
+  List your favorites, numbered, with their commands. Enter a number to run that scan (it shows the command, says how long it will take, offers faster settings for this run, and asks first), or press Enter to cancel.
 - `favorites delete NUMBER`
   Delete one, after asking. You can give its name instead of its number (in quotes if it has spaces). Add --yes to skip the question.
 - `fav / favs`

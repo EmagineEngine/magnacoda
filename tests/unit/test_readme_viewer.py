@@ -124,7 +124,7 @@ def test_docs_prints_the_manual_or_opens_at_a_named_section():
 
 def test_readme_is_in_the_help_but_not_the_banner():
     assert "readme" in CliRunner().invoke(main, ["help"]).output
-    banner = CliRunner().invoke(main, ["shell"], input="exit\n").output
+    banner = CliRunner().invoke(main, ["shell"], input="menu\nexit\n").output
     assert "readme" not in banner.split("Commands:")[1].splitlines()[0]
 
 

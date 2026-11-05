@@ -48,21 +48,23 @@ def _list(ctx: click.Context) -> None:
         _run(ctx, saved[index])
 
 
-def _pick(count: int) -> int | str | None:
-    """A favorite's index, "help", or None (Enter: back)."""
+def _pick(count: int) -> int | str:
+    """A favorite's index or "help"; Enter cancels, as q does."""
 
     def check(value: str) -> int | str:
         value = value.strip()
-        if not value or value.lower() == "help":
+        if not value:
+            raise click.Abort
+        if value.lower() == "help":
             return value.lower()
         if value.isdigit() and 1 <= int(value) <= count:
             return int(value) - 1
         raise click.BadParameter(messages.text("pick-again", count=count))
 
-    chosen = questions.ask(
-        messages.text("pick-prompt") + " [back]", default="", show_default=False, value_proc=check
+    chosen: int | str = questions.ask(
+        messages.text("pick-prompt"), default="", show_default=False, value_proc=check
     )
-    return None if chosen == "" else chosen
+    return chosen
 
 
 def _show_help(ctx: click.Context) -> None:

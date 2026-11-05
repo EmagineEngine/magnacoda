@@ -20,11 +20,11 @@ Favorites ({count} of {limit}):
 
 ## pick-prompt
 
-Type a number to run that scan, or help for more
+Type a number to run that scan, or help for more, or press Enter to cancel
 
 ## pick-again
 
-type one of the numbers above (1 to {count}), or help, or press Enter (back).
+type one of the numbers above (1 to {count}), or help, or press Enter to cancel.
 
 ## run-confirm
 

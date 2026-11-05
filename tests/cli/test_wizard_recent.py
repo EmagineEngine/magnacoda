@@ -205,11 +205,10 @@ def test_the_recent_list_opens_with_any_of_its_words_one_line_per_scan(monkeypat
     assert lines[1] == "  2. http://old.test  Mar 4 2020, 05:06"  # http:// shows; another year shows
 
 
-def test_enter_at_a_list_goes_back_and_an_unknown_word_asks_again(monkeypatch):
+def test_enter_at_a_list_cancels_and_an_unknown_word_asks_again(monkeypatch):
     history.record("scan https://home.test --level A")
-    result, seen = _wizard(monkeypatch, "recnet", "recent", "", "new", "https://b.test", *_defaults_then("y"))
+    result, seen = _wizard(monkeypatch, "recnet", "recent", "")
     text = _flat(result)
     assert "Error: type new, recent, or press Enter to cancel." in text
-    assert text.count("Start a new scan, or from one of your") == 2  # at first, and after going back
-    assert text.count("Type new, recent, or press Enter to cancel") == 3  # a typo asks just this line again
-    assert {c.url for c in seen} == {"https://b.test"}
+    assert text.count("Type new, recent, or press Enter to cancel") == 2  # a typo asks just this line again
+    assert "Type a number, or press Enter to cancel" in text and seen == []

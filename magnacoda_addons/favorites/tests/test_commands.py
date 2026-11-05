@@ -125,7 +125,7 @@ def _picking(monkeypatch):
 def test_picking_a_favorite_by_number_shows_it_asks_and_runs_its_scan(monkeypatch):
     seen = _picking(monkeypatch)
     output = _run("favorites", input="2\n\n").output  # pick 2, run it
-    assert "Type a number to run that scan, or help for more [back]" in output
+    assert "Type a number to run that scan, or help for more, or press Enter to cancel" in output
     assert "Ctrl+C" not in output
     assert "Run 'Blog (dark)' now? [Y/n]" in output
     assert [c.url for c in seen] == ["https://home.test/blog"] and seen[0].color_scheme == "dark"
@@ -182,5 +182,6 @@ def test_help_at_the_question_shows_the_favorites_help_then_asks_again(monkeypat
     seen = _picking(monkeypatch)
     monkeypatch.setenv("MAGNACODA_PAGER", "off")
     output = _run("favorites", input="help\n\n").output
-    after = output.split("or help for more [back]: help", 1)[1]
-    assert "favorites delete NUMBER" in after and "or help for more [back]:" in after and seen == []
+    question = "or help for more, or press Enter to cancel:"
+    after = output.split(f"{question} help", 1)[1]
+    assert "favorites delete NUMBER" in after and question in after and seen == []
