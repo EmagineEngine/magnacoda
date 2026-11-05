@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.1.6] - 2026-11-05
+
+### Fixed
+
+- On Windows, the shortcut opens Windows Terminal, when installed, instead of the classic console.
+- On Windows, the help viewer shows full colors and shades code under default colors.
+- Checklist ticks show as `[x]` in the classic Windows console, whose fonts lack `✓`.
+
 ## [0.1.5] - 2026-11-05
 
 ### Changed

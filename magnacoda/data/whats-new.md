@@ -10,6 +10,12 @@ HOW IT IS READ
   * Keep each entry to one short sentence, two at most. Leave the details to the manual and help.
 -->
 
+## 0.1.6
+
+- On Windows, the shortcut opens Windows Terminal. Remake it with `shortcut remove`, then `shortcut`.
+- The help viewer now shows its full colors and code shading on Windows.
+- The classic Windows console shows ticks as `[x]`, since its fonts lack `✓`.
+
 ## 0.1.5
 
 - `menu`
