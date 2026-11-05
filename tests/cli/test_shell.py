@@ -1,5 +1,3 @@
-import re
-
 import pytest
 from click.testing import CliRunner
 from rich.console import Console
@@ -28,11 +26,11 @@ def test_the_shell_ends_cleanly_without_exit_and_skips_blank_lines(typed):
     assert CliRunner().invoke(main, ["shell"], input=typed).exit_code == 0
 
 
-def test_shell_shows_a_banner_and_exits_cleanly():
+def test_the_shell_starts_with_a_welcome_and_no_list_of_commands():
     result = CliRunner().invoke(main, ["shell"], input="exit\n")
     assert result.exit_code == 0
-    assert "accessibility scanner" in result.output
-    assert "magnacoda" in result.output
+    assert "Welcome to magnacoda v" in result.output and 'Type "menu" to get started.' in result.output
+    assert "Commands:" not in result.output and "Tip:" not in result.output
 
 
 @pytest.mark.parametrize("exit_word", ["exit", "quit", "q"])
@@ -96,7 +94,7 @@ def test_shell_runs_a_real_scan_then_keeps_prompting(fixture_server):
 def test_the_chromium_notice_shows_when_it_is_missing_or_asked_for(monkeypatch, args, installed, shown):
     monkeypatch.setattr(cli, "_chromium_probably_installed", lambda: installed)
     result = CliRunner().invoke(main, args, input="exit\n")
-    assert result.exit_code == 0 and "accessibility scanner" in result.output  # the shell, not a scan
+    assert result.exit_code == 0 and "Welcome to magnacoda" in result.output  # the shell, not a scan
     assert ("Chromium isn't installed yet" in result.output) is shown
 
 
@@ -124,17 +122,20 @@ def test_the_shell_offers_setup_only_when_chromium_is_missing(monkeypatch, insta
     assert "Set it up now?" not in CliRunner().invoke(main, args, input="exit\n").output
 
 
-def test_the_chromium_notice_comes_under_the_commands_and_again_after_clear(monkeypatch):
+def test_the_chromium_notice_comes_at_the_start_and_under_the_commands_instead_of_a_tip(monkeypatch):
     monkeypatch.setattr(cli, "_chromium_probably_installed", lambda: False)
-    output = CliRunner().invoke(main, ["shell"], input="clear\nexit\n").output
-    assert output.count("Chromium isn't installed yet") == 2
-    assert output.index("Commands:") < output.index("Chromium isn't installed yet")
+    output = CliRunner().invoke(main, ["shell"], input="menu\nexit\n").output
+    assert output.count("Chromium isn't installed yet") == 2 and "Tip:" not in output
+    assert (
+        output.index("Welcome to") < output.index("Chromium isn't installed yet") < output.index("Commands:")
+    )
+    assert output.index("Commands:") < output.rindex("Chromium isn't installed yet")
 
 
 def test_menu_clear_and_cls_show_the_banner_again_in_any_capitalization():
     for word in ("menu", "Menu", "clear", "cls", "CLS", "Clear"):
         result = CliRunner().invoke(main, ["shell"], input=f"{word}\nexit\n")
-        assert result.output.count("accessibility scanner - type a command") == 2, word
+        assert result.output.count("accessibility scanner - type a command") == 1, word
 
 
 FEED = "\x1b[H"  # a page feed ends by moving to the top of the fed (empty) screen
@@ -144,7 +145,7 @@ ERASE = ("\x1b[2J", "\x1b[3J")  # clearing the screen or the scrollback: never i
 def test_the_shell_feeds_a_page_when_it_launches_and_erases_nothing(monkeypatch):
     _terminal_shell(monkeypatch)
     output = CliRunner().invoke(main, ["shell"], input="exit\n").output
-    assert output.count(FEED) == 1 and output.index(FEED) < output.index("accessibility scanner")
+    assert output.count(FEED) == 1 and output.index(FEED) < output.index("Welcome to")
     assert output.startswith("\n" * 10)  # blank lines scroll what was on screen up into the scrollback
     assert not any(code in output for code in ERASE)
 
@@ -164,15 +165,15 @@ def test_output_continues_below_without_a_new_banner_per_command(monkeypatch):
     _terminal_shell(monkeypatch)
     output = CliRunner().invoke(main, ["shell"], input="--version\n--version\nexit\n").output
     assert output.count(FEED) == 1  # the launch only: commands print below, like a printer
-    assert output.count("accessibility scanner - type a command") == 1
-    assert output.index("accessibility scanner") < output.index("magnacoda, version")
+    assert "accessibility scanner - type a command" not in output
+    assert output.index("Welcome to") < output.index("magnacoda, version")
     assert output.count("magnacoda, version") == 2
 
 
 def test_clear_feeds_a_page_and_shows_the_banner_on_top_without_erasing(monkeypatch):
     _terminal_shell(monkeypatch)
     output = CliRunner().invoke(main, ["shell"], input="--version\nclear\nexit\n").output
-    assert output.count(FEED) == 2 and output.count("accessibility scanner - type a command") == 2
+    assert output.count(FEED) == 2 and output.count("accessibility scanner - type a command") == 1
     second = output.index(FEED, output.index(FEED) + 1)
     assert output.index("magnacoda, version") < second < output.rindex("accessibility scanner")
     assert not any(code in output for code in ERASE)  # earlier output stays in the scrollback
@@ -184,45 +185,31 @@ def test_clear_feeds_a_page_and_shows_the_banner_on_top_without_erasing(monkeypa
         ("about", "Author:"),
         ("wizard\nq", "Page to scan"),
         ("review", "No saved scans"),
-        ("Scan", "Missing argument 'URL'."),  # no person here: the error, on its fresh page
+        ("Scan", "Missing argument 'URL'."),
         ("update", "development install"),
         ("setup", "Chromium"),
     ],
 )
-def test_each_section_starts_on_a_fresh_page_under_the_banner_and_its_heading(
+def test_commands_stack_below_the_last_without_a_new_page_or_the_banner(
     monkeypatch, tmp_path, typed, first_words
 ):
     monkeypatch.chdir(tmp_path)
     _terminal_shell(monkeypatch)
     output = CliRunner().invoke(main, ["shell"], input=f"--version\n{typed}\nexit\n").output
-    assert output.count(FEED) == 2 and output.count("accessibility scanner - type a command") == 2
-    second = output.index(FEED, output.index(FEED) + 1)
-    assert output.index("magnacoda, version") < second  # earlier text stays above, in the scrollback
-    heading = typed.split()[0].capitalize()
-    assert second < output.rindex("accessibility scanner") < output.index(first_words)  # banner, then it
-    above = re.sub(r"\x1b\[[0-9;]*m", "", output[second : output.index(first_words)])  # without styles
-    assert f"\n\n{heading}\n\n" in above
+    assert output.count(FEED) == 1 and "accessibility scanner - type a command" not in output
+    assert output.index("magnacoda, version") < output.index(first_words)
     assert not any(code in output for code in ERASE)
 
 
-def test_a_section_underlines_its_command_in_the_banner_and_clear_or_the_launch_does_not():
-    env = {"FORCE_COLOR": "1", "TERM": "xterm"}
-    output = CliRunner().invoke(main, ["shell"], input="wizard\nq\nclear\nexit\n", env=env).output
-    launch, wizard, cleared = output.split("accessibility scanner - type a command")[1:]
-    assert "\x1b[1;4m" not in launch and "\x1b[1;4m" not in cleared
-    assert "\x1b[1;4mwizard\x1b[0m" in wizard and "\x1b[1mWizard\x1b[0m" in wizard  # underlined; the heading
-    assert "\x1b[1mWizard" not in cleared
-
-
-def test_piped_sessions_never_clear_or_reprint_the_banner():
+def test_piped_sessions_never_clear_or_print_the_banner_for_a_section():
     result = CliRunner().invoke(main, ["shell"], input="about\nabout\nexit\n")
     assert "\x1b[" not in result.output
-    assert result.output.count("accessibility scanner - type a command") == 1
+    assert "accessibility scanner - type a command" not in result.output
 
 
 def test_banner_words_use_the_normal_color_and_only_the_dots_are_dim():
     env = {"FORCE_COLOR": "1", "TERM": "xterm"}
-    output = CliRunner().invoke(main, ["shell"], input="exit\n", env=env).output
+    output = CliRunner().invoke(main, ["shell"], input="menu\nexit\n", env=env).output
     assert "or exit to leave." in output  # normal color: dim gray can be too faint to read
     assert "\x1b[1mCommands:\x1b[0m scan \x1b[2m·\x1b[0m wizard" in output  # bold label, dim dots only
     assert "\x1b[2mwizard" not in output
@@ -317,7 +304,7 @@ def test_a_command_typed_with_the_program_name_in_front_runs_as_it_would_outside
     assert "Already in the magnacoda shell." in output
 
 
-def test_a_scan_the_wizard_or_saved_settings_start_gets_no_second_page(monkeypatch, tmp_path):
+def test_a_scan_from_saved_settings_prints_below_without_a_page(monkeypatch, tmp_path):
     from magnacoda import cli, history
     from magnacoda.browser import redirects
     from tests.cli.test_screen import _fake_run
@@ -331,9 +318,9 @@ def test_a_scan_the_wizard_or_saved_settings_start_gets_no_second_page(monkeypat
     history.history_path().write_text(
         history.HEADER + "- 2026-10-17 09:00 `scan https://example.com --level AAA --ai off`\n"
     )
-    # scan example.com: the saved settings, Enter (the last scan), Enter (no changes): one page, not two
+    # scan example.com: the saved settings, Enter (the last scan), Enter (no changes)
     output = CliRunner().invoke(main, ["shell"], input="scan example.com\n\n\nexit\n").output
-    assert "scanned before" in output and output.count(FEED) == 2
+    assert "scanned before" in output and output.count(FEED) == 1
 
 
 def test_q_and_ctrl_c_at_the_prompt_ask_before_leaving(monkeypatch):
@@ -359,60 +346,6 @@ def test_exit_and_quit_leave_at_once(monkeypatch):
         assert "Leave magnacoda?" not in result.output and result.exit_code == 0
 
 
-@pytest.mark.parametrize(
-    ("typed", "said"),
-    [("\nexit\n", "accessibility scanner"), ("shell\nexit\n", "Already in the magnacoda shell")],
-)
-def test_the_title_waits_for_enter_or_runs_what_was_typed(monkeypatch, typed, said):
-    from magnacoda import title
-
-    monkeypatch.setattr(title, "due", lambda console, forced=False: True)
-    result = CliRunner().invoke(main, ["shell"], input=typed)
-    assert result.exit_code == 0 and "Press Enter to continue" in result.output and said in result.output
-
-
-def test_ctrl_d_at_the_title_leaves_without_the_banner(monkeypatch):
-    from magnacoda import title
-
-    monkeypatch.setattr(title, "due", lambda console, forced=False: True)
-    result = CliRunner().invoke(main, ["shell"], input="")
-    assert result.exit_code == 0 and "accessibility scanner" not in result.output
-
-
-def test_title_forces_the_title_screen(monkeypatch):
-    from magnacoda import title
-
-    seen = []
-    monkeypatch.setattr(title, "due", lambda console, forced=False: seen.append(forced) or False)
-    CliRunner().invoke(main, ["--title"], input="exit\n")
-    CliRunner().invoke(main, ["shell", "--title"], input="exit\n")
-    assert seen == [True, True]
-
-
-def test_title_typed_in_the_shell_shows_the_title_without_a_second_shell(monkeypatch):
-    from magnacoda import title
-
-    monkeypatch.setattr(title, "due", lambda console, forced=False: False)
-    result = CliRunner().invoke(main, ["shell"], input="--title\nshell\nexit\n")
-    out = result.output
-    assert result.exit_code == 0 and "Press Enter to continue" in out
-    assert out.count("accessibility scanner") == 2 and "Already in the magnacoda shell" in out
-
-
 def test_other_launch_options_typed_in_the_shell_start_no_second_shell():
     result = CliRunner().invoke(main, ["shell"], input="--force-setup-notice\nexit\n")
-    assert (
-        "works when you start magnacoda" in result.output
-        and result.output.count("accessibility scanner") == 1
-    )
-
-
-@pytest.mark.parametrize("due", [True, False])
-def test_the_glow_runs_on_the_title_or_the_banner_never_both(monkeypatch, due):
-    from magnacoda import title
-
-    glows = []
-    monkeypatch.setattr(title, "due", lambda console, forced=False: due)
-    monkeypatch.setattr(title, "glow", lambda *args, **kwargs: glows.append(args))
-    CliRunner().invoke(main, ["shell"], input="\nexit\n")
-    assert len(glows) == 1
+    assert "works when you start magnacoda" in result.output and result.output.count("Welcome to") == 1

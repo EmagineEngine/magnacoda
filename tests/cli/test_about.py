@@ -27,7 +27,7 @@ def test_about_works_in_the_shell_and_ignores_capitalization():
     assert "Author:" in output and "Invalid URL" not in output
 
 
-def test_in_the_shell_about_starts_on_a_fresh_page_and_outside_it_does_not(monkeypatch):
+def test_about_never_starts_a_page_of_its_own(monkeypatch):
     from magnacoda import teletype
 
     fed = []
@@ -38,13 +38,13 @@ def test_in_the_shell_about_starts_on_a_fresh_page_and_outside_it_does_not(monke
     alone = CliRunner().invoke(main, ["about"]).output
     assert fed == [] and "type a command" not in alone  # a normal terminal: no jump, no banner
     CliRunner().invoke(main, ["shell"], input="about\nexit\n")
-    assert fed.count("page") == 2  # the shell's start, then about
+    assert fed.count("page") == 1  # the shell's start only: about prints below
 
 
 def test_about_is_listed_in_the_banner_and_the_help():
     assert (
         "Commands: scan · wizard · help · setup · review · update · about · menu"
-        in CliRunner().invoke(main, ["shell"], input="exit\n").output
+        in CliRunner().invoke(main, ["shell"], input="menu\nexit\n").output
     )
     assert "about" in CliRunner().invoke(main, ["help"]).output
 

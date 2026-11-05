@@ -777,7 +777,10 @@ def test_the_outcome_says_whether_the_window_was_resized_while_paging(monkeypatc
     assert outcome is pager.Outcome.QUIT_RESIZED and outcome.resized
 
 
-def test_after_paging_the_shell_feeds_a_page_only_when_the_window_was_resized(monkeypatch):
+@pytest.mark.parametrize(("refresh", "after_a_resize"), [(False, []), (True, [True])])
+def test_after_paging_the_shell_feeds_a_page_only_after_a_resize_and_when_asked_to(
+    monkeypatch, refresh, after_a_resize
+):
     from magnacoda import help_sections
 
     fed = []
@@ -786,7 +789,8 @@ def test_after_paging_the_shell_feeds_a_page_only_when_the_window_was_resized(mo
         (),
         {"obj": {"after_pager": lambda: fed.append(True)}, "meta": {}, "find_root": lambda self: self},
     )()
-    for outcome, expected in [(pager.Outcome.QUIT, []), (pager.Outcome.QUIT_RESIZED, [True]), (None, [True])]:
+    options = help_sections.pager_options("Help", refresh_after_resize=refresh)
+    for outcome, expected in [(pager.Outcome.QUIT, []), (pager.Outcome.QUIT_RESIZED, after_a_resize)]:
         monkeypatch.setattr(help_sections, "show", lambda *a, outcome=outcome, **k: outcome)
-        help_sections.show_pages(ctx, [("One", "text")], help_sections.pager_options("Help"))
+        help_sections.show_pages(ctx, [("One", "text")], options)
         assert fed == expected

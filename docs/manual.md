@@ -82,7 +82,7 @@ To open *magnacoda* without a terminal first, type `magnacoda shortcut` and choo
 *magnacoda*'s settings are in `preferences.ini`, in its settings folder: `~/.config/magnacoda/` on Linux and macOS (or under `$XDG_CONFIG_HOME` if that is set), `%APPDATA%\magnacoda\` on Windows. Each setting has a line saying what it does; edit them in any text editor.
 
 - `[scan]`: asking before a scan, the time estimate, quick scans
-- `[display]`: typing text out, tips, the spinner, the title screen
+- `[display]`: typing text out, tips, the spinner
 - `[pager]`: the help viewer, for `help`, `readme`, `docs` and `view`
 - `[review]`: a new tab or window for the review page
 - `[recheck]`: how often a script or an AI agent may recheck one scan
@@ -369,7 +369,7 @@ Save the scans you run often, and start them again from the wizard. At the end o
 
 ### Updates and news
 
-Once a day, when you use *magnacoda* in a terminal, it quietly checks two places in the background: **pypi.org**, for a newer version of *magnacoda* (and of any add-ons published there), and **news.magnacoda.dev**, for news about *magnacoda*, such as a new feature or a known problem. If there's something new, your first shell of the day says so, on the title screen or under the banner. A newer version is mentioned every day until you install it, and news for up to three days. `news` shows it, numbered: first what's new in a newer version, or in the one you just updated to, then the news. `news 2` opens the second item. `update` installs a newer version for you, showing first what's new in it. When one is waiting, leaving the shell offers it too, once a day.
+Once a day, when you use *magnacoda* in a terminal, it quietly checks two places in the background: **pypi.org**, for a newer version of *magnacoda* (and of any add-ons published there), and **news.magnacoda.dev**, for news about *magnacoda*, such as a new feature or a known problem. If there's something new, your first shell of the day says so when it starts. A newer version is mentioned every day until you install it, and news for up to three days. `news` shows it, numbered: first what's new in a newer version, or in the one you just updated to, then the news. `news 2` opens the second item. `update` installs a newer version for you, showing first what's new in it. When one is waiting, leaving the shell offers it too, once a day.
 
 **What is sent:** only an ordinary web request for a public file, the same as visiting the page in a browser (which shows your IP address to the site, as any connection does), naming your version of *magnacoda* (for example `magnacoda/1.2.0`). Nothing about you, your scans or the pages you scan is sent, and there's no tracking, with no ID and no cookies. Private add-ons are never looked up.
 

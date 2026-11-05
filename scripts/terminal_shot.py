@@ -6,7 +6,7 @@ saves the screen as HTML and PNG (pyte draws the screen, Playwright takes the pi
 
 Each --key is typed after the screen settles (escapes such as \\r and \\x1b work); OUT gets .html and
 .png. The terminal answers magnacoda's question about its colors with --background, so the name's blue
-and the glow show as in a real terminal.
+shows as in a real terminal.
 """
 
 from __future__ import annotations

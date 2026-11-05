@@ -92,9 +92,7 @@ The commands and options sections list what's available.
 
 The shell is *magnacoda*'s REPL (read-eval-print loop). To start it, type `magnacoda` on its own; then you type commands without `magnacoda` in front, as often as you like.
 
-The banner at the top lists the commands, and a short tip appears under it, a different one each time. You can turn tips off with `tips = off` under `[display]` in preferences.ini.
-
-On the first start of the day, a title screen comes first. To see it now, start with `magnacoda --title`, or type `--title` in the shell. To show it every time or never, set `title = always` or `title = never` under `[display]`.
+When the shell starts, it says which version you have, and any news or updates. Type `menu` for the list of commands, with a short tip under it, a different one each time. You can turn tips off with `tips = off` under `[display]` in preferences.ini.
 
 - `scan`, `wizard`, `help`
   Commands are single words, and capitalization doesn't matter, so `help` and `Help` both work.
@@ -122,7 +120,7 @@ Like an old terminal printer, the shell never erases anything. Each command's ou
 - `shortcut`, `shortcut remove`
   Add a shortcut to your app menu (on Windows, the Start menu, where `Ctrl+Alt+M` opens it too; on macOS, Applications), your desktop, or both. `uninstall` removes them too.
 - `screenreader on`, `screenreader off`
-  With a screen reader, `on` turns off what reads poorly with one: text typed out a little at a time, the title screen, the spinner and paging. `off` turns them back on, and `screenreader` alone says which are on.
+  With a screen reader, `on` turns off what reads poorly with one: text typed out a little at a time, the spinner and paging. `off` turns them back on, and `screenreader` alone says which are on.
 - `review [FOLDER] [--no-browser]`
   List your saved scans, newest first, so you can pick one by number and review it in your browser. To look in another folder, add its name; to read it in the help viewer instead of your browser, add `--no-browser` (it also opens there when there's no browser). The help viewer only shows it; to tick items, use your browser or a Markdown editor. For more, type `docs reviewing`.
 - `recheck [FOLDER]`

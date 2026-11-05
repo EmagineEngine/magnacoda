@@ -154,9 +154,9 @@ The easiest way to start is to run `magnacoda wizard` (or type `wizard` in the [
 
 Run `magnacoda` with no arguments to open its REPL (read-eval-print loop), the shell. It stays open across commands, so you type them without `magnacoda` in front, such as `scan example.com --ai explain`. Typing `scan` on its own asks for the address. At any question, `Ctrl+C`, `q` or `clear` cancels the command.
 
-The shell never erases anything, so earlier results stay in the scrollback. When the list of commands has scrolled away, `menu` starts a fresh page with it at the top (`clear` works too).
+The shell never erases anything, so earlier results stay in the scrollback. `menu` lists the commands on a fresh page (`clear` works too).
 
-**Screen readers.** A screen reader announces text as it arrives, so you may prefer to type `screenreader on`. Then text appears at once, the title screen is left out, one plain line replaces the spinner, and help is printed plainly instead of paged. `screenreader off` turns them back on. It sets `typing` and `spinner` under `[display]` in `preferences.ini`, and `paging` under `[pager]`. `MAGNACODA_TYPING=off` and `MAGNACODA_PAGER=off` do the same from your shell settings. When the shell or wizard starts and finds a screen reader running, it offers once to turn all three off.
+**Screen readers.** A screen reader announces text as it arrives, so you may prefer to type `screenreader on`. Then text appears at once, one plain line replaces the spinner, and help is printed plainly instead of paged. `screenreader off` turns them back on. It sets `typing` and `spinner` under `[display]` in `preferences.ini`, and `paging` under `[pager]`. `MAGNACODA_TYPING=off` and `MAGNACODA_PAGER=off` do the same from your shell settings. When the shell or wizard starts and finds a screen reader running, it offers once to turn all three off.
 
 ### Help
 

@@ -428,10 +428,10 @@ def notes_unseen(state: State) -> bool:
     return state.notes_seen is not None and state.notes_seen != __version__ and bool(notes_for(__version__))
 
 
-def _notice_parts(state: State, env: dict[str, str] | None) -> list[tuple[str, str, set[str]]]:
-    """The notices, each as (banner text, title-screen text, the items it mentions:
-    "update:name:version", "notes:version", "news:id")."""
-    parts: list[tuple[str, str, set[str]]] = []
+def _notice_parts(state: State, env: dict[str, str] | None) -> list[tuple[str, set[str]]]:
+    """The notices, each as (text, the items it mentions: "update:name:version", "notes:version",
+    "news:id")."""
+    parts: list[tuple[str, set[str]]] = []
     checks = allowed(env)
     available = updates(state) if checks else []
     for update in available:
@@ -439,7 +439,6 @@ def _notice_parts(state: State, env: dict[str, str] | None) -> list[tuple[str, s
             parts.append(
                 (
                     f"magnacoda {update.latest} is available (you have {update.installed}; type update)",
-                    f"magnacoda {update.latest} is available - type update",
                     {f"update:magnacoda:{update.latest}"},
                 )
             )
@@ -449,26 +448,17 @@ def _notice_parts(state: State, env: dict[str, str] | None) -> list[tuple[str, s
         parts.append(
             (
                 f"{len(addon_updates)} add-on update{plural} (type update)",
-                f"{len(addon_updates)} add-on update{plural} - type update",
                 {f"update:{u.name}:{u.latest}" for u in addon_updates},
             )
         )
     if notes_unseen(state):
         label = f"what's new in {release_label(__version__)}"
-        parts.append((label, f"{label} - type news", {f"notes:{__version__}"}))
+        parts.append((label, {f"notes:{__version__}"}))
     unseen = unseen_items(state) if checks else []
     if unseen:
         count = f"{len(unseen)} news item{'s' if len(unseen) > 1 else ''}"
-        parts.append((count, f"{count} - type news", {f"news:{item.id}" for item in unseen}))
+        parts.append((count, {f"news:{item.id}" for item in unseen}))
     return parts
-
-
-def title_lines(env: dict[str, str] | None = None, only: set[str] | None = None) -> list[str]:
-    """The notices as lines for the title screen; with `only`, those today_notice chose."""
-    try:
-        return [title for _, title, items in _notice_parts(load_state(), env) if only is None or items & only]
-    except Exception:  # noqa: BLE001
-        return []
 
 
 def update_available(env: dict[str, str] | None = None) -> Update | None:
@@ -495,7 +485,7 @@ def notice_line(env: dict[str, str] | None = None, only: set[str] | None = None)
     """The banner's update/news line from saved state, or "". With `only`, just the parts that mention
     one of those items (what today_notice chose for this shell)."""
     try:
-        parts = [text for text, _, items in _notice_parts(load_state(), env) if only is None or items & only]
+        parts = [text for text, items in _notice_parts(load_state(), env) if only is None or items & only]
         if not parts:
             return ""
         tail = " - type news" if any(not part.endswith("update)") for part in parts) else ""
@@ -512,7 +502,7 @@ def today_notice(env: dict[str, str] | None = None, today: str | None = None) ->
     try:
         with _lock:
             state = load_state()
-            items = set().union(*(items for _, _, items in _notice_parts(state, env)))
+            items = set().union(*(items for _, items in _notice_parts(state, env)))
             chosen: set[str] = set()
             for item in items:
                 days = state.shown.get(item, [])

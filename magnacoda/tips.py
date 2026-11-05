@@ -1,4 +1,5 @@
-"""One tip per shell start, in turn from data/tips.md; the position is kept in tips-state.json."""
+"""One tip each time `menu` shows the commands, in turn from data/tips.md; the position is kept in
+tips-state.json."""
 
 from __future__ import annotations
 

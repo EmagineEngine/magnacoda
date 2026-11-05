@@ -54,6 +54,9 @@ class PagerOptions:
     hyperlinks: bool = True
     # Blend between a dark and a light background (opening, choosing under c, leaving), in full color.
     fade: bool = True
+    # After the window was resized while paging, the screen the pager restores may look broken: ask the
+    # program to start a fresh page when the pager closes (Outcome.resized tells it a resize happened).
+    refresh_after_resize: bool = False
     # The Open list (o): a list file of documents (documents.py). None: no o key.
     documents: Path | None = None
     # The Open list also opens a .md or .txt file typed by name.
@@ -78,6 +81,7 @@ FILE_SETTINGS = (
     "colors",
     "hyperlinks",
     "fade",
+    "refresh_after_resize",
 )
 _CHOICES: dict[str, tuple[str, ...]] = {
     "document_title": ("drop", "first_page"),

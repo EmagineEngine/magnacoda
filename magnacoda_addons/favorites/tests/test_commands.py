@@ -1,4 +1,3 @@
-import pytest
 from click.testing import CliRunner
 
 from magnacoda import cli, plugins
@@ -79,18 +78,8 @@ def test_the_command_works_inside_the_shell_and_is_listed_in_the_banner(monkeypa
 
     monkeypatch.setattr(cli.Console, "input", fake_input)
     output = _run().output
-    assert "Add-on commands: favorites" in output
+    assert "Add-on commands" not in output  # the banner waits for menu
     assert "Deleted 'Home page'" in output and store.load()[0] == []
-
-
-@pytest.mark.parametrize("typed", ["favorites", "favs"])
-def test_in_the_shell_favorites_is_a_section_underlined_in_the_banner_with_its_heading(monkeypatch, typed):
-    monkeypatch.setattr(cli.Console, "is_terminal", property(lambda self: True))
-    env = {"FORCE_COLOR": "1", "TERM": "xterm"}
-    output = CliRunner().invoke(main, ["shell"], input=f"{typed}\nexit\n", env=env).output
-    page = output.split("accessibility scanner - type a command")[-1]
-    assert "\x1b[1mAdd-on commands:\x1b[0m \x1b[1;4mfavorites\x1b[0m" in page  # the listed word, for favs too
-    assert page.index("\x1b[1mFavorites\x1b[0m\n\n") < page.index("No favorites yet")
 
 
 def test_about_lists_the_command():
@@ -103,8 +92,7 @@ def test_fav_is_a_hidden_short_form_that_lists_and_deletes(monkeypatch):
     result = _run("fav", "delete", "2", input="y\n")
     assert "Deleted 'Blog (dark)' (1 left)." in result.output
     assert store.load()[0] == [HOME]
-    monkeypatch.setattr(cli.Console, "input", lambda self, prompt="": (_ for _ in ()).throw(EOFError()))
-    banner = _run().output
+    banner = _run(input="menu\n").output
     assert "Add-on commands: favorites\n" in banner and "fav " not in banner
     about = _run("about").output
     assert "favorites (built in; commands: favorites)" in about

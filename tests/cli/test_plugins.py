@@ -135,7 +135,7 @@ def test_addons_are_found_once_per_process(addons, monkeypatch):
 
 def test_the_edition_names_the_banner_prompt_about_and_reports(addons, monkeypatch, tmp_path):
     addons(_hooks(edition=lambda: "example"))
-    lines = iter(["shell"])
+    lines = iter(["menu", "shell"])
     prompts = []
 
     def fake_input(self, prompt=""):
@@ -229,8 +229,7 @@ def _commands(*names, hidden=()):
 
 
 def _banner(monkeypatch):
-    monkeypatch.setattr(cli.Console, "input", lambda self, prompt="": (_ for _ in ()).throw(EOFError()))
-    return CliRunner().invoke(main, []).output
+    return CliRunner().invoke(main, [], input="menu\n").output
 
 
 def test_the_banner_lists_commands_that_addons_add_on_a_line_of_its_own(addons, monkeypatch):
@@ -424,7 +423,7 @@ def test_no_addons_starts_the_shell_without_addons(addons, monkeypatch):
     addons(_hooks(edition=lambda: "other"))
     monkeypatch.setattr(cli.Console, "input", lambda self, prompt="": (_ for _ in ()).throw(EOFError()))
     result = CliRunner().invoke(main, ["--no-addons"])
-    assert "magnacoda accessibility scanner" in result.output
+    assert "Welcome to magnacoda v" in result.output
 
 
 def test_no_addons_after_the_command_is_left_to_that_command(addons):

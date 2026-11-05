@@ -27,16 +27,13 @@ check = on
 
 [display]
 # Type short text out in quick chunks in the interactive shell, like a terminal printer (on or off).
-# Turn it off if you use a screen reader, which announces text as it arrives; the title screen is then
-# left out too.
+# Turn it off if you use a screen reader, which announces text as it arrives.
 typing = on
 # Show a spinner and what the scan is doing while it runs (on or off). Turn it off if you use a screen
 # reader, which may announce every change; you then get one plain line per scan instead.
 spinner = on
-# Show a short tip under the banner each time the shell starts (on or off).
+# Show a short tip under the list of commands that menu shows (on or off).
 tips = on
-# The title screen when the shell starts: daily (on the first start of the day), always or never.
-title = daily
 
 [scan]
 # Quick scans (on or off): leave out the slowest tests that use the page, which watch it for moving
@@ -69,6 +66,9 @@ colors = default
 hyperlinks = on
 # Fade between dark and light colors instead of switching at once (on or off).
 fade = on
+# When you resized the window while reading, start a fresh page when you leave (on or off). Off leaves
+# the screen as the resize left it, which may look jumbled; your terminal's scrollback keeps it all.
+refresh_after_resize = off
 
 [ai]
 # Which account the AI tiers (--ai explain/semantic) use: claude-plan (your Claude subscription,
@@ -102,15 +102,6 @@ _AI_CHOICES: dict[str, AIChoice] = {
 _AI_WRITTEN = {"ask": "ask", "claude-code": "claude-plan", "api": "api-key"}
 
 
-_TITLE_CHOICES: dict[str, Literal["daily", "always", "never"]] = {
-    "daily": "daily",
-    "always": "always",
-    "never": "never",
-    "on": "always",
-    "off": "never",
-}
-
-
 @dataclass(frozen=True)
 class Preferences:
     history_max: int = DEFAULT_HISTORY_MAX
@@ -126,7 +117,6 @@ class Preferences:
     confirm: bool = True
     scans_folder: str = ""
     recheck_limit: int = DEFAULT_RECHECK_LIMIT
-    title: Literal["daily", "always", "never"] = "daily"
 
 
 def preferences_path() -> Path:
@@ -194,7 +184,6 @@ def load() -> Preferences:
     except ValueError:
         paging = True
     ai_engine = _AI_CHOICES.get(parser.get("ai", "engine", fallback="ask").strip().lower(), "ask")
-    title = _TITLE_CHOICES.get(parser.get("display", "title", fallback="daily").strip().lower(), "daily")
     window = parser.get("review", "window", fallback="tab").strip().lower()
     return Preferences(
         history_max=_number(parser, "history", "max", DEFAULT_HISTORY_MAX),
@@ -204,7 +193,6 @@ def load() -> Preferences:
         spinner=spinner,
         paging=paging,
         ai_engine=ai_engine,
-        title=title,
         review_window="new" if window in ("new", "window") else "tab",
         quick=quick,
         estimate=estimate,

@@ -47,12 +47,10 @@ from magnacoda import (
     saved_reports,
     savedcommand,
     screenreader,
-    sections,
     shortcuts,
     teletype,
     ticks,
     tips,
-    title,
     uninstaller,
     updater,
     userdir,
@@ -191,16 +189,6 @@ def _record_history(typed_url: str | None = None, url: str | None = None) -> Non
         if typed_url and url and typed_url in args:
             args[args.index(typed_url)] = url
         history.record(shlex.join(savedcommand.redact(args)))
-
-
-def _new_scan_page() -> None:
-    """A fresh page for `scan` typed at the shell's prompt, once; not when the wizard or a favorite
-    runs one, which would push what was just confirmed out of view."""
-    ctx = click.get_current_context()
-    line = ctx.obj.get("line", "") if isinstance(ctx.obj, dict) else ""
-    if line.lower().split()[:1] == ["scan"] and not ctx.meta.get("magnacoda.scan_page"):
-        ctx.meta["magnacoda.scan_page"] = True
-        sections.new_page(ctx, "scan")
 
 
 def _ask_address() -> str:
@@ -399,11 +387,8 @@ class _CleanUsageError(_CleanError):
     default=False,
     help="When this launches the shell (no subcommand given), always show the Chromium setup notice.",
 )
-@click.option(
-    "--title", "show_title", is_flag=True, default=False, help="Start the shell with the title screen."
-)
 @click.pass_context
-def main(ctx: click.Context, force_setup_notice: bool, show_title: bool) -> None:
+def main(ctx: click.Context, force_setup_notice: bool) -> None:
     """WCAG 2 accessibility scanner: axe-core + Playwright, with optional tiered Claude reasoning.
 
     Run with no arguments to start an interactive shell, or `magnacoda scan URL [OPTIONS]` directly.
@@ -414,9 +399,7 @@ def main(ctx: click.Context, force_setup_notice: bool, show_title: bool) -> None
     if ctx.invoked_subcommand is None:
         in_shell = ctx.obj if isinstance(ctx.obj, dict) and ctx.obj.get("in_shell") else None
         if in_shell is None:
-            ctx.invoke(shell, force_setup_notice=force_setup_notice, show_title=show_title)
-        elif show_title:
-            in_shell["show_title"]()
+            ctx.invoke(shell, force_setup_notice=force_setup_notice)
         else:
             click.echo("That option works when you start magnacoda, not inside the shell.")
 
@@ -433,8 +416,6 @@ def about_cmd(ctx: click.Context) -> None:
     # The product name in italics, as in the banner: in the title, and where the disclaimer starts.
     text.stylize("italic", 1, 1 + len(plugins.edition().display_name))
     text.highlight_regex(r"(?m)^magnacoda(?= is an independent project)", "italic")
-    if sections.new_page(ctx, "about"):
-        text = text[1:]  # its opening blank line: the heading already ends with one
     teletype.say(Console(), text, max_chars=_ABOUT_TYPED_CHARS)  # typed like the banner above it
 
 
@@ -497,7 +478,6 @@ def review_cmd(ctx: click.Context, folder: str | None, no_browser: bool) -> None
     if just_scanned is not None:
         _review_one(ctx, just_scanned, no_browser)  # on the same page, under the scan; then the prompt
         return
-    sections.new_page(ctx, "review")
     first = True
     while True:
         if not first:
@@ -769,7 +749,7 @@ _NOTICE_INDENT = 4
 
 
 def _print_notice(console: Console, markup: str, max_width: int | None = None) -> None:
-    """An indented notice under the banner: bold label, the rest in the terminal's own color."""
+    """An indented notice, at the start or under the banner: bold label, the rest in the terminal's color."""
     text = Text.from_markup(markup)
     width = min(console.width, max_width) if max_width else console.width
     for line in text.wrap(console, max(width - _NOTICE_INDENT, 20)):
@@ -912,7 +892,6 @@ def setup(yes: bool, forget_key: bool) -> None:
             _echo("No saved Anthropic API key to remove.")
         return
 
-    sections.new_page(click.get_current_context(), "setup")
     if _is_interactive() and not yes:
         _echo(questions.CANCEL_HINT)  # setup may ask: install Chromium, an API key, the Claude plan
     first_time = not _chromium_already_installed()
@@ -1084,21 +1063,18 @@ _SEPARATOR = " [dim]·[/dim] "  # narrow, so the banner's commands fit in 80 col
 _BANNER_ADDON_COMMANDS = 5  # more than this and the line points to `about` for the rest
 
 
-def _command_words(names: list[str], current: str | None) -> str:
-    """Commands for the banner, `·` between them; the current section's word bold and underlined."""
-    return _SEPARATOR.join(
-        f"[bold underline]{escape(name)}[/bold underline]" if name == current else escape(name)
-        for name in names
-    )
+def _command_words(names: list[str]) -> str:
+    """Commands for the banner, `·` between them."""
+    return _SEPARATOR.join(escape(name) for name in names)
 
 
-def _addon_commands_line(current: str | None = None) -> str:
+def _addon_commands_line() -> str:
     """The banner's third line, listing commands that add-ons added, or "" when there are none."""
     plugins.add_commands(main)  # normally done already while parsing; repeating it is harmless
     names = [name for added in plugins.added_commands().values() for name in added]
     if not names:
         return ""
-    shown = _command_words(names[:_BANNER_ADDON_COMMANDS], current)
+    shown = _command_words(names[:_BANNER_ADDON_COMMANDS])
     if len(names) > _BANNER_ADDON_COMMANDS:
         shown += _SEPARATOR + "… (all in about)"
     return f"[bold]Add-on commands:[/bold] {shown}\n"
@@ -1163,7 +1139,6 @@ def _leave_the_session(ctx: click.Context) -> None:
 @click.pass_context
 def update_cmd(ctx: click.Context, yes: bool, use_saved: bool) -> None:
     """Update magnacoda, and add-ons published on PyPI, to their latest versions."""
-    sections.new_page(ctx, "update")
     kind = updater.install_kind()
     if kind == updater.DEV:
         _echo(updater.plan(["magnacoda"], kind).note)
@@ -1267,7 +1242,6 @@ def uninstall_cmd(
     ctx: click.Context, yes: bool, with_settings: bool, with_chromium: bool, with_scans: bool
 ) -> None:
     """Remove magnacoda and its shortcuts, and if you choose, your settings, Chromium and scans."""
-    sections.new_page(ctx, "uninstall")
     if not yes:
         _echo(questions.CANCEL_HINT)
         if not _ask_yes_no(
@@ -1399,11 +1373,6 @@ _ADVENTURE_WORDS = {
 }
 
 
-# Commands that start on a page of their own with the banner (sections.new_page): typed at the title
-# screen, they draw it themselves.
-_OWN_PAGE = frozenset({"scan", "wizard", "review", "update", "about"})
-
-
 def _offer_update_on_leaving(shell_state: dict[str, Any]) -> None:
     """Leaving the shell with an update available: offer it, once a day (Enter leaves without it)."""
     update = news.update_available()
@@ -1479,8 +1448,7 @@ def _show_details(console: Console, state: dict[str, Any]) -> None:
 )
 # A shortcut's window closes when the shell ends, so the shortcut says so and the shell pauses first.
 @click.option("--from-shortcut", is_flag=True, default=False, hidden=True)
-@click.option("--title", "show_title", is_flag=True, default=False, help="Start with the title screen.")
-def shell(force_setup_notice: bool, from_shortcut: bool, show_title: bool) -> None:
+def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
     """Start an interactive session: run scan/wizard/setup repeatedly without retyping magnacoda."""
     console = Console()
     names = plugins.edition()
@@ -1490,110 +1458,64 @@ def shell(force_setup_notice: bool, from_shortcut: bool, show_title: bool) -> No
     name = name_color.style(console, background)
     prompt = f"[{name}]{plugins.PRODUCT}[/{name}] [dim]»[/dim] "
 
-    # The banner's name is a nameplate: reversed, as on the title (title.glow draws it the same way).
-    plate = " " if console.color_system else ""  # its padding, only where the block shows
-    name_markup = f"[{name} italic reverse]{plate}{escape(names.display_name)}{plate}[/{name} italic reverse]"
+    name_markup = f"[{name} italic]{escape(names.display_name)}[/{name} italic]"
 
-    def banner(current: str | None) -> str:
+    banner_commands = ["scan", "wizard", "help", "setup", "review", "update", "about", "menu"]
+
+    def banner() -> str:
         return (
-            f"{name_markup} accessibility scanner - "
-            "type a command, or exit to leave.\n"
-            "[bold]Commands:[/bold] "
-            + _command_words(
-                ["scan", "wizard", "help", "setup", "review", "update", "about", "menu"], current
-            )
-            + "\n"
-            + _addon_commands_line(current)
+            f"{name_markup} accessibility scanner - type a command, or exit to leave.\n"
+            f"[bold]Commands:[/bold] {_command_words(banner_commands)}\n{_addon_commands_line()}"
         )
 
     news.note_first_run()
-    news.refresh_in_background()  # once a day; the banner shows what the previous check found
-    # Updates and news: only in the day's first shell (news.today_notice); on the title screen when it
-    # shows, else under the session's first banner.
-    today = news.today_notice()
-    titled = title.due(console, forced=show_title)
-    banner_news = set() if titled else today
+    news.refresh_in_background()  # once a day; the start shows what the previous check found
+    today = news.today_notice()  # updates and news: only in the day's first shell
 
-    def show_banner(current: str | None = None, glow: bool = False, at_once: bool = False) -> bool:
-        """The banner and its notices, with the current section's command highlighted; whether the
-        Chromium notice was shown. With `glow`, the glow passes along the name first; `at_once`
-        prints it without typing it out."""
-        nonlocal banner_news
-        if glow:
-            title.glow(console, names.display_name, name, background, reverse=True)
-            teletype.say(console, banner(current).removeprefix(name_markup))
-        elif at_once:
-            console.print(banner(current), highlight=False)
-        else:
-            teletype.say(console, banner(current))
+    def show_banner() -> bool:
+        """The banner (what `menu` shows), and the Chromium notice while setup is needed; whether that
+        notice was shown."""
+        teletype.say(console, banner())
         # Worked out each time, so the notice goes once setup has run.
         show_chromium_notice = force_setup_notice or not _chromium_probably_installed()
         if show_chromium_notice:
             _print_notice(console, _CHROMIUM_NOTICE)
-        notice = news.notice_line(only=banner_news) if banner_news else ""
-        banner_news = set()  # once a session: later banners (clear, a new page) leave it out
-        if notice:
-            label, _, rest = notice.partition(": ")
-            _print_notice(console, f"[bold]{escape(label)}:[/bold] {escape(rest)}")
         return show_chromium_notice
 
     # Teletype style (see teletype.py): nothing is erased. Earlier text scrolls up into the scrollback,
-    # output keeps printing below; only start-up, `clear`, the sections (sections.new_page: scan, wizard,
-    # review, setup, update, about, an add-on's own) and leaving help or news feed a page.
+    # and each command's output prints below the last; only start-up and `menu` feed a page.
     teletype.page_feed(console)
     screenreader.offer()  # once, before anything is typed out
+    version = news.release_label(__version__)
+    teletype.say(console, f'Welcome to {name_markup} v{version}\nType "menu" to get started.')
+    notices = []
+    if force_setup_notice or not _chromium_probably_installed():  # it explains the setup offer below
+        notices.append(_CHROMIUM_NOTICE)
+    notice = news.notice_line(only=today) if today else ""
+    if notice:
+        label, _, rest = notice.partition(": ")
+        notices.append(f"[bold]{escape(label)}:[/bold] {escape(rest)}")
+    if notices:
+        console.print()  # set apart from the welcome, as under the banner
+    for markup in notices:
+        _print_notice(console, markup)
     pending: str | None = None
-    if titled:
-        notices = news.title_lines(only=today) if today else []
-        try:
-            pending = title.show(console, names.display_name, name, background, notices) or None
-        except EOFError:  # Ctrl+D: leave, as at the prompt
-            console.print()
-            pending = "exit"
-    first_word = (pending or "").split(" ", 1)[0].lower()
-    if pending is None:
-        if titled:
-            teletype.page_feed(console)  # the banner on a page of its own, under the title's scrollback
-        if not show_banner(glow=not titled):  # a tip, unless setup is needed first
-            _show_tip(console)
-    elif pending != "exit" and first_word not in _OWN_PAGE:
-        # Typed at the title: the banner at once, for the prompt after a pager (help, news) to come back to.
-        teletype.page_feed(console)
-        show_banner(at_once=True)
     offer_setup = not force_setup_notice and not _chromium_probably_installed()
-    if pending is None and offer_setup and _is_interactive():
+    if offer_setup and _is_interactive():
         try:
             if _ask_yes_no("Set it up now?", default=True):
                 pending = "setup"
         except click.Abort:
             pass
 
-    def banner_on_top(current: str | None = None) -> None:
-        # The help pager restores the screen it found (a resize while paging can shift it); feed a
-        # page so the banner is on top again. Nothing is erased.
+    def show_menu() -> None:
+        """`menu`: the banner on a fresh page, and a tip under it unless setup is needed first."""
         teletype.page_feed(console)
-        show_banner(current)
-        if current:  # a section's page: its name as a heading, which screen readers read out too
-            teletype.say(console, f"[bold]{escape(current.capitalize())}[/bold]\n")
-            questions.printed("\n")
+        if not show_banner():
+            _show_tip(console)
 
-    def title_now() -> None:
-        """`--title` typed in the shell: the title, then the banner; what's typed at it runs next."""
-        try:
-            notices = news.title_lines()
-            shell_state["typed"] = title.show(console, names.display_name, name, background, notices)
-        except EOFError:
-            console.print()
-        teletype.page_feed(console)
-        show_banner()
-
-    # "new_page": a section (sections.new_page) gets a page of its own, with the banner on top.
-    shell_state: dict[str, Any] = {
-        "in_shell": True,
-        "after_pager": banner_on_top,
-        "new_page": banner_on_top,
-        "show_title": title_now,
-    }
+    # The pager's refresh_after_resize: a fresh page after help closes on a resized window.
+    shell_state: dict[str, Any] = {"in_shell": True, "after_pager": lambda: teletype.page_feed(console)}
     goodbye = False  # leaving by choice (exit, Ctrl+D, Ctrl+C at the prompt), not because of `update`
     while True:
         try:
@@ -1635,8 +1557,7 @@ def shell(force_setup_notice: bool, from_shortcut: bool, show_title: bool) -> No
             teletype.say(console, f"{here.format(name=escape(names.display_name))}\n{_OBVIOUS_PATHS}")
             continue
         if line.lower() in _SHELL_MENU_WORDS:
-            teletype.page_feed(console)
-            show_banner()
+            show_menu()
             continue
         if line.lower() == _SHELL_DETAILS_WORD:
             _show_details(console, shell_state)
@@ -1650,8 +1571,7 @@ def shell(force_setup_notice: bool, from_shortcut: bool, show_title: bool) -> No
         try:
             main.main(args=args, prog_name="magnacoda", standalone_mode=False, obj=shell_state)
         except questions.Cleared:
-            teletype.page_feed(console)
-            show_banner()
+            show_menu()
         except (click.Abort, KeyboardInterrupt):
             teletype.say(console, "\nCancelled.")  # Ctrl+C in the middle of a command: back to the prompt
         except SystemExit:
@@ -1663,7 +1583,6 @@ def shell(force_setup_notice: bool, from_shortcut: bool, show_title: bool) -> No
         except Exception as exc:  # noqa: BLE001 - one bad command must not kill the session
             _keep_details(shell_state)
             console.print(f"[red]Error:[/red] {escape(str(exc))}\n{_DETAILS_HINT}")
-        pending = shell_state.pop("typed", None) or None
         if shell_state.pop("leave", False):  # `update` ended the session (see _leave_the_session)
             break
     if goodbye and _is_interactive():
@@ -1680,7 +1599,7 @@ _TIP_WIDTH = 60  # a tip is short reading: its lines stop by column 60, even in 
 
 
 def _show_tip(console: Console) -> None:
-    """A tip under the banner at shell start, unless tips are off."""
+    """A tip under the banner `menu` shows, unless tips are off."""
     if not _interactive(console) or not preferences.load().tips:
         return
     tip = tips.next_tip()
@@ -1795,7 +1714,6 @@ def scan_cmd(
 ) -> None:
     """Scan URL for WCAG accessibility issues."""
     scans_dir = scans_dir or scans_folder()
-    _new_scan_page()
     if url is None:
         url = _ask_address()
     typed_url = url
@@ -2467,7 +2385,6 @@ def _choose_start_point() -> savedcommand.SavedScan | None:
 @click.pass_context
 def wizard(ctx: click.Context, force_setup_notice: bool) -> None:
     """Answer a few questions, see the equivalent command, then run the scan."""
-    sections.new_page(ctx, "wizard")
     screenreader.offer()
     if force_setup_notice:
         _print_notice(Console(), _CHROMIUM_NOTICE)

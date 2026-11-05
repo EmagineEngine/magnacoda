@@ -304,7 +304,7 @@ def test_an_update_is_mentioned_every_day_until_it_is_installed(checks_on):
     for day in ("2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-20"):
         assert news.today_notice(today=day) == {"update:magnacoda:0.5.0"}
         assert news.today_notice(today=day) == set()  # once a day
-    assert news.title_lines() == ["magnacoda 0.5.0 is available - type update"]
+    assert news.notice_line() == "News: magnacoda 0.5.0 is available (you have 0.4.0; type update)"
 
 
 NOTES = """## 0.6.0

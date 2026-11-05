@@ -7,7 +7,7 @@ import sys
 
 import click
 
-from magnacoda import questions, savedcommand, sections
+from magnacoda import questions, savedcommand
 
 from . import messages, settings, store
 from .text import echo
@@ -30,7 +30,6 @@ def _favorites_group(name: str, hidden: bool) -> click.Group:
 
 
 def _list(ctx: click.Context) -> None:
-    sections.new_page(ctx, "favorites")
     saved, problems = store.load()
     for problem in problems:
         echo(problem)

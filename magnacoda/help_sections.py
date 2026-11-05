@@ -125,9 +125,9 @@ def show_pages(
     `document` is the file shown, for the Open list (o), which opens another document from here.
     `start_at` opens on a section by index instead, and `shown` is told each section the first time
     it shows (or is printed).
-    The pager leaves the screen as it found it. Only when the window changed size while paging (the
-    screen underneath then reflows, and may look broken) does an "after_pager" callable in the
-    shell's ctx.obj run, to feed a fresh page with the banner.
+    The pager leaves the screen as it found it. When the window changed size while paging (the screen
+    underneath then reflows, and may look broken) and `refresh_after_resize` is on, an "after_pager"
+    callable in the shell's ctx.obj runs, to feed a fresh page.
     """
     start_heading = ""
     if section is not None:
@@ -179,8 +179,8 @@ def show_pages(
         finally:
             restore_screen()  # if this one was left for one that never came
         return
-    if outcome is None or not outcome.resized:
-        return  # printed, or the screen came back as it was
+    if outcome is None or not outcome.resized or not options.refresh_after_resize:
+        return  # printed, the screen came back as it was, or left as the resize made it
     state: dict[str, Any] = ctx.obj if isinstance(ctx.obj, dict) else {}
     after_pager = state.get("after_pager")
     if callable(after_pager):

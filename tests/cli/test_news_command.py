@@ -157,9 +157,9 @@ def test_the_banner_mentions_news_in_the_days_first_shell_until_it_is_read(setup
     assert "magnacoda 0.5.0 is available" in again and "news item" not in again  # the update stays until done
 
 
-def test_the_banner_mentions_the_news_once_a_session_even_when_drawn_again(setup, monkeypatch):
+def test_the_news_is_mentioned_once_a_session_not_again_under_menu(setup, monkeypatch):
     setup(latest={"magnacoda": "0.5.0"}, notes_seen="0.4.0")
-    output = _shell(monkeypatch, "clear")
+    output = _shell(monkeypatch, "menu", "menu")
     assert output.count("accessibility scanner") == 2 and output.count("News:") == 1
 
 
@@ -251,24 +251,16 @@ def test_use_saved_skips_the_fresh_check(setup, installed_with, monkeypatch):
     assert "magnacoda 0.4.0 -> 9.9.9" in output and "Checking" not in output
 
 
-def test_the_title_screen_carries_the_news_and_the_banner_leaves_it_out(setup, monkeypatch):
-    from magnacoda import title
-
-    setup(latest={"magnacoda": "0.5.0"}, feed=[ITEM], notes_seen="0.4.0")
-    monkeypatch.setattr(title, "due", lambda console, forced=False: True)
-    output = " ".join(_shell(monkeypatch, "").split())
-    assert "magnacoda 0.5.0 is available - type update 1 news item - type news" in output
-    assert "you have" not in output and "News:" not in output
-
-
-def test_a_tip_comes_under_the_banner_even_beside_the_news(setup, monkeypatch):
+def test_the_welcome_carries_the_news_and_the_tip_waits_for_menu(setup, monkeypatch):
     from magnacoda import tips
 
-    setup(latest={"magnacoda": "0.5.0"}, notes_seen="0.4.0")
+    setup(latest={"magnacoda": "0.5.0"}, feed=[ITEM], notes_seen="0.4.0")
     monkeypatch.setattr(cli, "_interactive", lambda console: True)
     monkeypatch.setattr(tips, "next_tip", lambda: "Type help.")
-    output = _shell(monkeypatch)
-    assert "News:" in output and "Tip:" in output
+    output = _shell(monkeypatch, "menu")
+    start, menu = output.split("Commands:")
+    assert "Welcome to" in start and "News:" in start and "0.5.0 is available" in start
+    assert "Tip:" not in start and "Tip:" in menu and "News:" not in menu
 
 
 @pytest.fixture
@@ -321,17 +313,6 @@ def test_update_shows_the_new_versions_notes_before_asking(setup, installed_with
     )
     assert "   • scan\n     Scans are faster." in output  # laid out as on the news page
     assert news.load_state().notes_seen == "0.5.0"  # not announced again after the update
-
-
-@pytest.mark.parametrize(("typed", "banners"), [("update", 0), ("news", 1)])
-def test_a_command_typed_at_the_title_draws_the_banner_once(setup, monkeypatch, typed, banners):
-    from magnacoda import title
-
-    setup(notes_seen="0.4.0")
-    monkeypatch.setattr(title, "due", lambda console, forced=False: True)
-    output = _shell(monkeypatch, typed)
-    # update starts its own page with the banner (only in a terminal); news needs it underneath
-    assert output.count("accessibility scanner") == banners
 
 
 def test_without_news_items_news_is_one_page(setup, monkeypatch):

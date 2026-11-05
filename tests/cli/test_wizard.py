@@ -81,7 +81,7 @@ def test_wizard_reachable_from_inside_the_shell(fixture_server):
     lines = "wizard\n" + _answers(url=f"{fixture_server}/clean_page.html", confirm="y") + "exit\n"
     result = CliRunner().invoke(main, [], input=lines)
     assert result.exit_code == 0
-    assert "accessibility scanner" in result.output  # bare invocation now launches the shell
+    assert "Welcome to magnacoda" in result.output  # bare invocation launches the shell
     assert "Equivalent command:" in result.output
     assert "Found no problems the automated checks can see" in result.output
 
