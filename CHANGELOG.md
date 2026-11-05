@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.1.5] - 2026-11-05
+
+### Changed
+
+- The shell starts with a short welcome instead of the title screen, and keeps color to the command list and the prompt's `»`.
+- `menu` lists the commands below what's on screen, with a tip the first time; `clear` and `cls` start a fresh page.
+- Each command's output has a blank line above and below.
+- At numbered lists, Enter cancels, and `scan` says how to cancel before its first question.
+- Stopping a review in the terminal ends the review page too.
+- After help closes on a resized window, the screen stays as it is; `refresh_after_resize` under `[pager]` brings back the fresh page.
+
+### Fixed
+
+- On a Mac, the shortcut shows once in Launchpad, opens one window in front, and closes it when you leave.
+
+### Removed
+
+- The title screen, `--title` and the `title` preference.
+
 ## [0.1.4] - 2026-11-03
 
 ### Added

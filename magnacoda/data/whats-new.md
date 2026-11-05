@@ -10,6 +10,16 @@ HOW IT IS READ
   * Keep each entry to one short sentence, two at most. Leave the details to the manual and help.
 -->
 
+## 0.1.5
+
+- `menu`
+  Lists the commands. `clear` starts a fresh page.
+- A short welcome replaces the title screen.
+- Blank lines set off each command's output.
+- Enter cancels at numbered lists.
+- Stopping a review ends its browser page too.
+- Mac shortcuts open one window and close it after.
+
 ## 0.1.4
 
 - `news`
