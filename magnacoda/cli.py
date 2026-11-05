@@ -80,7 +80,7 @@ from magnacoda.help_sections import pager_options, show_file, show_help, show_pa
 from magnacoda.orchestrator import run_dark_pass, run_scan
 from magnacoda.pager import browser as user_browser  # the person's own browser, not the scanning one
 from magnacoda.pager import formats, links, markdown
-from magnacoda.pager.screen import pager_available
+from magnacoda.pager.screen import alternate_screen_codes, pager_available
 from magnacoda.report.json_export import to_json, write_json
 from magnacoda.report.markdown_export import write_markdown
 from magnacoda.report.paths import default_report_stem, make_self_ignoring, scans_folder, short
@@ -416,6 +416,8 @@ def about_cmd(ctx: click.Context) -> None:
     # The product name in italics, as in the banner: in the title, and where the disclaimer starts.
     text.stylize("italic", 1, 1 + len(plugins.edition().display_name))
     text.highlight_regex(r"(?m)^magnacoda(?= is an independent project)", "italic")
+    if _in_shell(ctx):
+        text = text[1:]  # its opening blank line: the shell already prints one under the prompt
     teletype.say(Console(), text, max_chars=_ABOUT_TYPED_CHARS)  # typed like the banner above it
 
 
@@ -1349,7 +1351,59 @@ def uninstall_cmd(
 
 
 _SHELL_EXIT_WORDS = ("exit", "quit", "q")
-_SHELL_MENU_WORDS = ("menu", "clear", "cls")  # a fresh page with the banner (its commands) on top
+
+
+class _Tail:
+    """How the shell's output ends (stdout and stderr together, without control codes), so the shell
+    can put a blank line between a command's output and the next prompt without doubling one. What
+    the help viewer draws on the terminal's alternate screen doesn't count: leaving it brings back
+    what was there."""
+
+    _CODES = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]|\x1b\][^\x07]*\x07|\r")
+
+    def __init__(self, alternate: tuple[str, str] | None) -> None:
+        self._enter, self._leave = alternate or ("", "")
+        self._saved: str | None = None
+        self.text = "\n\n"
+
+    def noted(self, text: str) -> None:
+        """Count text as shown; also for text not written here, such as the Enter the terminal echoes."""
+        if self._enter and self._enter in text:
+            before, _, text = text.partition(self._enter)
+            self._add(before)
+            self._saved = self.text
+        if self._leave and self._leave in text and self._saved is not None:
+            self.text, self._saved = self._saved, None
+            text = text.rpartition(self._leave)[2]
+        self._add(text)
+
+    def _add(self, text: str) -> None:
+        self.text = (self.text + text)[-400:]
+
+    def ensure_blank_line(self) -> None:
+        shown = self._CODES.sub("", self.text)
+        missing = 2 - (len(shown) - len(shown.rstrip("\n")))
+        if missing > 0:
+            sys.stdout.write("\n" * missing)
+            sys.stdout.flush()
+
+
+class _Watched:
+    """A stream whose writes the _Tail notes."""
+
+    def __init__(self, stream: IO[str], tail: _Tail) -> None:
+        self.stream, self._tail = stream, tail
+
+    def write(self, text: str) -> int:
+        self._tail.noted(text)
+        return self.stream.write(text)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.stream, name)
+
+
+_SHELL_MENU_WORD = "menu"  # the banner (its commands), printed below like any output
+_SHELL_CLEAR_WORDS = questions.CLEAR_WORDS  # a fresh page; nothing is erased
 _SHELL_DETAILS_WORD = "details"
 _PROGRAM_NAMES = ("magnacoda", "magnacode", "magnaconda")  # the command and its typo aliases
 # Typing the program's name inside its own shell: these in turn, the last one for good, each followed
@@ -1485,7 +1539,7 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
         return show_chromium_notice
 
     # Teletype style (see teletype.py): nothing is erased. The shell starts below what the terminal
-    # already shows, each command's output prints below the last, and only `menu` feeds a page.
+    # already shows, each command's output prints below the last, and only `clear` feeds a page.
     screenreader.offer()  # once, before anything is typed out
     version = news.release_label(__version__)
     welcome = (
@@ -1512,18 +1566,35 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
         except click.Abort:
             pass
 
+    tip_shown = False
+
     def show_menu() -> None:
-        """`menu`: the banner on a fresh page, and a tip under it unless setup is needed first."""
-        teletype.page_feed(console)
-        if not show_banner():
+        """`menu`: the banner below, and under it the session's one tip, unless setup is needed first."""
+        nonlocal tip_shown
+        if not show_banner() and not tip_shown:
             _show_tip(console)
+            tip_shown = True
 
     # The pager's refresh_after_resize: a fresh page after help closes on a resized window.
     shell_state: dict[str, Any] = {"in_shell": True, "after_pager": lambda: teletype.page_feed(console)}
+    # Each command's output gets a blank line above (printed below) and below (before the next prompt).
+    tail = _Tail(alternate_screen_codes())
+    out, err = sys.stdout, sys.stderr
+    sys.stdout, sys.stderr = _Watched(out, tail), _Watched(err, tail)  # type: ignore[assignment]
+
+    def unwatch() -> None:
+        sys.stdout, sys.stderr = out, err
+
+    click.get_current_context().call_on_close(unwatch)
+    after_output = False
     goodbye = False  # leaving by choice (exit, Ctrl+D, Ctrl+C at the prompt), not because of `update`
     while True:
+        if after_output:
+            tail.ensure_blank_line()
+        after_output = False
         try:
             line = pending or console.input(prompt).strip()
+            tail.noted("\n")  # the terminal echoes the Enter
             pending = None
         except EOFError:  # Ctrl+D: leave
             console.print()
@@ -1537,6 +1608,9 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
             continue
         if not line:
             continue
+        console.print()  # each command's output starts after a blank line under the prompt
+        questions.printed("")  # so a question first doesn't add a second one
+        after_output = True
         # A scan the previous command finished, for this command only (`review` opens it directly).
         shell_state["scanned_before"] = shell_state.pop("scanned", None)
         first, _, rest = line.partition(" ")
@@ -1560,8 +1634,11 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
             here = _ADVENTURE_WORDS[line.lower()]
             teletype.say(console, f"{here.format(name=escape(names.display_name))}\n{_OBVIOUS_PATHS}")
             continue
-        if line.lower() in _SHELL_MENU_WORDS:
+        if line.lower() == _SHELL_MENU_WORD:
             show_menu()
+            continue
+        if line.lower() in _SHELL_CLEAR_WORDS:
+            teletype.page_feed(console)
             continue
         if line.lower() == _SHELL_DETAILS_WORD:
             _show_details(console, shell_state)
@@ -1575,7 +1652,7 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
         try:
             main.main(args=args, prog_name="magnacoda", standalone_mode=False, obj=shell_state)
         except questions.Cleared:
-            show_menu()
+            teletype.page_feed(console)
         except (click.Abort, KeyboardInterrupt):
             teletype.say(console, "\nCancelled.")  # Ctrl+C in the middle of a command: back to the prompt
         except SystemExit:

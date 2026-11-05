@@ -132,10 +132,10 @@ def test_the_chromium_notice_comes_at_the_start_and_under_the_commands_instead_o
     assert output.index("Commands:") < output.rindex("Chromium isn't installed yet")
 
 
-def test_menu_clear_and_cls_show_the_banner_again_in_any_capitalization():
-    for word in ("menu", "Menu", "clear", "cls", "CLS", "Clear"):
-        result = CliRunner().invoke(main, ["shell"], input=f"{word}\nexit\n")
-        assert result.output.count("accessibility scanner - type a command") == 1, word
+@pytest.mark.parametrize(("word", "banners"), [("menu", 1), ("Menu", 1), ("clear", 0), ("CLS", 0)])
+def test_menu_shows_the_commands_and_clear_does_not_in_any_capitalization(word, banners):
+    result = CliRunner().invoke(main, ["shell"], input=f"{word}\nexit\n")
+    assert result.output.count("accessibility scanner - type a command") == banners
 
 
 FEED = "\x1b[H"  # a page feed ends by moving to the top of the fed (empty) screen
@@ -163,6 +163,25 @@ def test_only_the_prompts_arrow_is_blue(monkeypatch):
     assert prompts == ["[italic]magnacoda[/italic] [#6cb6ff]»[/#6cb6ff] "]
 
 
+def test_each_commands_output_has_one_blank_line_above_and_below_and_enter_alone_none():
+    output = CliRunner().invoke(main, ["shell"], input="details\n\nbogus\nmenu\nexit\n").output
+    prompt = "magnacoda » "
+    assert (
+        f"{prompt}\nNo error details: nothing unexpected has gone wrong in this session.\n\n{prompt}"
+        in output
+    )
+    assert f"{prompt}{prompt}" in output  # Enter alone: the next prompt, nothing between
+    assert "\nError: bogus isn't" in output and "type scan bogus.\n\n" + prompt in output  # errors too
+    assert "\n\n\n" not in output  # never two blank lines
+
+
+def test_the_help_viewers_screen_does_not_count_as_output():
+    tail = cli._Tail(("<ENTER>", "<LEAVE>"))
+    tail.noted("magnacoda » help\n\n")
+    tail.noted("<ENTER>a whole page of help without a blank line at the end<LEAVE>")
+    assert cli._Tail._CODES.sub("", tail.text).endswith("help\n\n")
+
+
 def test_launch_clear_is_skipped_when_output_is_not_a_terminal():
     result = CliRunner().invoke(main, ["shell"], input="exit\n")
     assert "\x1b[" not in result.output
@@ -183,12 +202,11 @@ def test_output_continues_below_without_a_new_banner_per_command(monkeypatch):
     assert output.count("magnacoda, version") == 2
 
 
-def test_clear_feeds_a_page_and_shows_the_banner_on_top_without_erasing(monkeypatch):
+def test_clear_feeds_a_page_without_erasing_and_menu_prints_below(monkeypatch):
     _terminal_shell(monkeypatch)
-    output = CliRunner().invoke(main, ["shell"], input="--version\nclear\nexit\n").output
+    output = CliRunner().invoke(main, ["shell"], input="--version\nclear\nmenu\nexit\n").output
     assert output.count(FEED) == 1 and output.count("accessibility scanner - type a command") == 1
-    feed = output.index(FEED)
-    assert output.index("magnacoda, version") < feed < output.rindex("accessibility scanner")
+    assert output.index("magnacoda, version") < output.index(FEED) < output.index("accessibility scanner")
     assert not any(code in output for code in ERASE)  # earlier output stays in the scrollback
 
 
@@ -297,7 +315,7 @@ def test_the_lines_come_in_turn_then_nothing_happens_for_good():
     from magnacoda.cli import _ALREADY_HERE
 
     output = CliRunner().invoke(main, ["shell"], input="magnacoda\n" * 7 + "exit\n").output
-    said = [line.split("» ")[-1] for line in output.splitlines() if line.startswith("magnacoda » ")][:7]
+    said = [part.split("\n")[0] for part in output.split("magnacoda » \n")[1:8]]  # input is not echoed here
     expected = [line.format(name="magnacoda") for line in _ALREADY_HERE]
     assert said == [*expected, "Nothing happens.", "Nothing happens."]
 

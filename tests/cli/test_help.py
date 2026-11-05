@@ -97,8 +97,9 @@ def test_shell_commands_ignore_capitalization():
         assert MARKERS["overview"] not in output, f"{word} did not end the session"
 
 
-def test_menu_and_its_aliases_are_documented():
-    assert "menu, clear, cls" in _run("help").output
+def test_menu_and_clear_are_documented():
+    output = _run("help").output
+    assert "\n  menu\n" in output and "clear, cls" in output
 
 
 def test_help_fits_a_narrow_terminal_except_for_unwrapped_terms():

@@ -147,6 +147,11 @@ def test_ctrl_c_inside_the_shell_says_cancelled_instead_of_error(monkeypatch):
 
 
 def test_clear_at_a_question_inside_the_shell_starts_a_fresh_page(monkeypatch):
+    from magnacoda import teletype
+
+    fed = []
+    monkeypatch.setattr(teletype, "page_feed", lambda console: fed.append(True))
+
     def run(typed: str) -> str:
         lines = iter(["wizard"])
 
@@ -160,10 +165,11 @@ def test_clear_at_a_question_inside_the_shell_starts_a_fresh_page(monkeypatch):
         monkeypatch.setattr(cli.click, "prompt", lambda *a, **k: k["value_proc"](typed))
         return CliRunner().invoke(main, []).output
 
-    banner = "type a command, or exit to leave"
-    cancelled, cleared = run("q"), run("clear")
-    assert "Cancelled." in cancelled and "Cancelled." not in cleared and "Error" not in cleared
-    assert cleared.count(banner) == cancelled.count(banner) + 1
+    cancelled = run("q")
+    assert "Cancelled." in cancelled and fed == []
+    cleared = run("clear")
+    assert "Cancelled." not in cleared and "Error" not in cleared and fed == [True]
+    assert "type a command, or exit to leave" not in cleared  # a fresh page only; menu shows the commands
 
 
 # The first question: a new scan, or from a list

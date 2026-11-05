@@ -1,7 +1,7 @@
 # *magnacoda* tips
 
 <!--
-The tips shown under the list of commands that `menu` shows: one each time, in the order below, then from the top again. Edit freely; no code changes are needed.
+The tips shown under the list of commands, the first time `menu` shows it in a session: one per session, in the order below, then from the top again. Edit freely; no code changes are needed.
 
 HOW IT IS READ
   * Anything inside an HTML comment, like this one, is a note to editors. It is never shown.
@@ -10,7 +10,7 @@ HOW IT IS READ
   * Write for people using *magnacoda*: short, plain words, one idea per tip. Keep the menu tip first and the wizard second: they are the first tips a new user sees.
 -->
 
-- Type `menu` any time you want to clear the screen or view commands.
+- Type `menu` any time to see the commands, or `clear` for a fresh page.
 - Not sure which options you need? Type `wizard`: it asks a few plain questions and builds the scan for you.
 - Using a screen reader? Type `screenreader on`, so text arrives all at once and help prints instead of paging.
 - Type `help`, then press g and type a section's number or name to go straight to it.

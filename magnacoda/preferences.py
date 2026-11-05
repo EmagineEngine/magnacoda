@@ -32,7 +32,7 @@ typing = on
 # Show a spinner and what the scan is doing while it runs (on or off). Turn it off if you use a screen
 # reader, which may announce every change; you then get one plain line per scan instead.
 spinner = on
-# Show a short tip under the list of commands that menu shows (on or off).
+# Show a short tip under the list of commands, the first time menu shows it (on or off).
 tips = on
 
 [scan]

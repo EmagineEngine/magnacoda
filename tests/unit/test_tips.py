@@ -38,9 +38,9 @@ def at_a_terminal(monkeypatch):
     monkeypatch.setattr(cli, "_chromium_probably_installed", lambda: True)  # its notice would hide the tip
 
 
-def test_a_tip_shows_under_the_banner_menu_shows_and_not_at_the_start(at_a_terminal):
-    output = CliRunner().invoke(main, ["shell"], input="menu\nclear\nexit\n").output
-    assert output.count("Tip: Try the wizard.") == 2 and "Tip:" not in output.split("Commands:")[0]
+def test_one_tip_a_session_under_the_first_menu_and_not_at_the_start(at_a_terminal):
+    output = CliRunner().invoke(main, ["shell"], input="menu\nmenu\nexit\n").output
+    assert output.count("Tip: Try the wizard.") == 1 and "Tip:" not in output.split("Commands:")[0]
     assert output.index("Commands:") < output.index("Tip:") < output.rindex("Commands:")
     lines = "menu\nexit\n"
     setup_notice = CliRunner().invoke(main, ["shell", "--force-setup-notice"], input=lines).output

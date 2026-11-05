@@ -92,7 +92,7 @@ The commands and options sections list what's available.
 
 The shell is *magnacoda*'s REPL (read-eval-print loop). To start it, type `magnacoda` on its own; then you type commands without `magnacoda` in front, as often as you like.
 
-When the shell starts, it says which version you have, and any news or updates. Type `menu` for the list of commands, with a short tip under it, a different one each time. You can turn tips off with `tips = off` under `[display]` in preferences.ini.
+When the shell starts, it says which version you have, and any news or updates. Type `menu` for the list of commands. The first time in a session, a short tip comes under it, a different one each session. You can turn tips off with `tips = off` under `[display]` in preferences.ini.
 
 - `scan`, `wizard`, `help`
   Commands are single words, and capitalization doesn't matter, so `help` and `Help` both work.
@@ -144,8 +144,10 @@ Like an old terminal printer, the shell never erases anything. Each command's ou
 
 ### Only inside the shell:
 
-- `menu`, `clear`, `cls`
-  Show the commands again. It feeds a fresh page, the way a printer does, with the banner at the top. What was on screen scrolls up into the scrollback, where nothing is erased.
+- `menu`
+  Show the commands, below whatever is on screen.
+- `clear`, `cls`
+  Start a fresh page, the way a printer does. What was on screen scrolls up into the scrollback, where nothing is erased.
 - `details`
   When something goes wrong that *magnacoda* didn't expect, this shows you the full details, to look into it or to report it. Cookie and header values are left out.
 - `exit / quit / q`
