@@ -58,7 +58,7 @@ def places() -> Places:
 
 def existing() -> list[Path]:
     where = places()
-    return [path for path in (where.menu, where.desktop) if path.exists()]
+    return [path for path in (where.menu, where.desktop) if path.exists() or path.is_symlink()]
 
 
 def _launcher() -> Path:
@@ -94,9 +94,9 @@ def add(menu: bool = True, desktop: bool = False) -> list[Path]:
             icon=str(_icon()),
             executable=program,
             terminal=True,
-            desktop=desktop,
+            desktop=desktop and not mac,
             startmenu=menu and not mac,
-            macos_app=menu and mac,
+            macos_app=mac,  # on a Mac the app always goes in Applications; the desktop gets a link to it
         )
     except OSError as error:
         raise ShortcutError(f"Couldn't make the shortcut: {error}") from error
@@ -104,7 +104,10 @@ def add(menu: bool = True, desktop: bool = False) -> list[Path]:
     made = [path for path, wanted in ((where.menu, menu), (where.desktop, desktop)) if wanted]
     if sys.platform == "win32":
         _finish_windows(made, where.menu)
-    elif not mac:
+    elif mac:
+        _finish_mac(where.menu, where.desktop if desktop else None, launcher)
+        made = [where.menu, *([where.desktop] if desktop else [])]
+    else:
         _finish_linux(where.menu if menu else None, where.desktop if desktop else None)
     return made
 
@@ -120,6 +123,50 @@ def _finish_windows(made: list[Path], menu: Path) -> None:
         if path == menu:
             link.Hotkey = WINDOWS_KEY.upper()
         link.save()
+
+
+def mac_launcher(command: str) -> str:
+    """The app's AppleScript: Terminal comes to the front; when it wasn't running, magnacoda takes the
+    window it opens at startup (if it opened just one), instead of a second, empty one; and the shell
+    exits after magnacoda (which then has Terminal close the window, see `window.close_mac_window`)."""
+    quoted = (command + "; exit").replace("\\", "\\\\").replace('"', '\\"')
+    return "\n".join(
+        [
+            "#!/usr/bin/osascript",
+            'set wasRunning to application "Terminal" is running',
+            'tell application "Terminal"',
+            "    activate",
+            "    if wasRunning then",
+            f'        do script "{quoted}"',
+            "    else",
+            "        repeat 50 times",
+            "            if (count of windows) > 0 then exit repeat",
+            "            delay 0.1",
+            "        end repeat",
+            "        if (count of windows) is 1 then",
+            f'            do script "{quoted}" in window 1',
+            "        else",
+            f'            do script "{quoted}"',
+            "        end if",
+            "    end if",
+            "    activate",
+            "end tell",
+            "",
+        ]
+    )
+
+
+def _finish_mac(app: Path, desktop: Path | None, launcher: Path) -> None:
+    """Our own launcher in the app, and on the desktop a link to the app rather than a second copy,
+    which Launchpad would show as a second icon."""
+    import shlex
+
+    script = app / "Contents" / "MacOS" / NAME
+    script.write_text(mac_launcher(f"{shlex.quote(str(launcher))} shell --from-shortcut"), encoding="utf-8")
+    script.chmod(0o755)
+    if desktop is not None:
+        _delete(desktop)
+        desktop.symlink_to(app)
 
 
 def _finish_linux(menu: Path | None, desktop: Path | None) -> None:
@@ -139,8 +186,13 @@ def remove() -> list[Path]:
     """Delete the shortcuts that exist; the paths deleted."""
     gone = existing()
     for path in gone:
-        if path.is_dir():
-            shutil.rmtree(path)
-        else:
-            path.unlink()
+        _delete(path)
     return gone
+
+
+def _delete(path: Path) -> None:
+    """A shortcut file, folder (a Mac app) or link; a link goes, never what it points to."""
+    if path.is_symlink() or path.is_file():
+        path.unlink()
+    elif path.is_dir():
+        shutil.rmtree(path)

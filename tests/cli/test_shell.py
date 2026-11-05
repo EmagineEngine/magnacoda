@@ -131,8 +131,8 @@ def test_the_chromium_notice_comes_under_the_commands_and_again_after_clear(monk
     assert output.index("Commands:") < output.index("Chromium isn't installed yet")
 
 
-def test_clear_and_cls_show_the_banner_again_in_any_capitalization():
-    for word in ("clear", "cls", "CLS", "Clear"):
+def test_menu_clear_and_cls_show_the_banner_again_in_any_capitalization():
+    for word in ("menu", "Menu", "clear", "cls", "CLS", "Clear"):
         result = CliRunner().invoke(main, ["shell"], input=f"{word}\nexit\n")
         assert result.output.count("accessibility scanner - type a command") == 2, word
 

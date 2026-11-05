@@ -43,7 +43,7 @@ def test_in_the_shell_about_starts_on_a_fresh_page_and_outside_it_does_not(monke
 
 def test_about_is_listed_in_the_banner_and_the_help():
     assert (
-        "Commands: scan · wizard · help · setup · review · update · clear · about"
+        "Commands: scan · wizard · help · setup · review · update · about · menu"
         in CliRunner().invoke(main, ["shell"], input="exit\n").output
     )
     assert "about" in CliRunner().invoke(main, ["help"]).output

@@ -1010,14 +1010,15 @@ def _add_shortcut(where: str) -> None:
     except shortcuts.ShortcutError as error:
         _echo(str(error), err=True)
         sys.exit(1)
+    in_menu = menu or sys.platform == "darwin"  # on a Mac, the desktop's shortcut opens the app there
     places = " and ".join(
-        ([f"your {shortcuts.menu_name()}"] if menu else []) + (["your desktop"] if desktop else [])
+        ([f"your {shortcuts.menu_name()}"] if in_menu else []) + (["your desktop"] if desktop else [])
     )
     them = "them" if len(shortcuts.existing()) > 1 else "it"
     _echo(f"Added magnacoda to {places}. To take {them} away, type `{_program()}shortcut remove`.")
     if sys.platform == "win32" and menu:
         _echo(f"{shortcuts.WINDOWS_KEY} opens it too.")
-    elif sys.platform == "darwin" and menu:
+    elif sys.platform == "darwin":
         _echo('The first time, macOS asks whether magnacoda may control Terminal: choose "OK".')
 
 
@@ -1374,7 +1375,7 @@ def uninstall_cmd(
 
 
 _SHELL_EXIT_WORDS = ("exit", "quit", "q")
-_SHELL_CLEAR_WORDS = ("clear", "cls")
+_SHELL_MENU_WORDS = ("menu", "clear", "cls")  # a fresh page with the banner (its commands) on top
 _SHELL_DETAILS_WORD = "details"
 _PROGRAM_NAMES = ("magnacoda", "magnacode", "magnaconda")  # the command and its typo aliases
 # Typing the program's name inside its own shell: these in turn, the last one for good, each followed
@@ -1489,7 +1490,9 @@ def shell(force_setup_notice: bool, from_shortcut: bool, show_title: bool) -> No
     name = name_color.style(console, background)
     prompt = f"[{name}]{plugins.PRODUCT}[/{name}] [dim]»[/dim] "
 
-    name_markup = f"[{name} italic]{escape(names.display_name)}[/{name} italic]"
+    # The banner's name is a nameplate: reversed, as on the title (title.glow draws it the same way).
+    plate = " " if console.color_system else ""  # its padding, only where the block shows
+    name_markup = f"[{name} italic reverse]{plate}{escape(names.display_name)}{plate}[/{name} italic reverse]"
 
     def banner(current: str | None) -> str:
         return (
@@ -1497,7 +1500,7 @@ def shell(force_setup_notice: bool, from_shortcut: bool, show_title: bool) -> No
             "type a command, or exit to leave.\n"
             "[bold]Commands:[/bold] "
             + _command_words(
-                ["scan", "wizard", "help", "setup", "review", "update", "clear", "about"], current
+                ["scan", "wizard", "help", "setup", "review", "update", "about", "menu"], current
             )
             + "\n"
             + _addon_commands_line(current)
@@ -1517,7 +1520,7 @@ def shell(force_setup_notice: bool, from_shortcut: bool, show_title: bool) -> No
         prints it without typing it out."""
         nonlocal banner_news
         if glow:
-            title.glow(console, names.display_name, name, background)
+            title.glow(console, names.display_name, name, background, reverse=True)
             teletype.say(console, banner(current).removeprefix(name_markup))
         elif at_once:
             console.print(banner(current), highlight=False)
@@ -1631,7 +1634,7 @@ def shell(force_setup_notice: bool, from_shortcut: bool, show_title: bool) -> No
             here = _ADVENTURE_WORDS[line.lower()]
             teletype.say(console, f"{here.format(name=escape(names.display_name))}\n{_OBVIOUS_PATHS}")
             continue
-        if line.lower() in _SHELL_CLEAR_WORDS:
+        if line.lower() in _SHELL_MENU_WORDS:
             teletype.page_feed(console)
             show_banner()
             continue

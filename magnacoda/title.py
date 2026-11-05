@@ -1,9 +1,10 @@
 """The title screen: the name, the slogan and the version, centered, when the shell starts (by default
 on the first start of the day; the `title` preference, or `--title` to show it now).
 
-A soft glow passes once along the name, on the title or else in the banner, where the terminal has full
-color and tells its background; its colors move away from the background, so the name never drops below
-its 7:1 contrast. Off wherever text isn't typed out (teletype.enabled), so never for a screen reader.
+On the title the name is reversed, in a block of its blue. A soft glow passes once along the name, on
+the title (through the block) or else in the banner, where the terminal has full color and tells its
+background; its colors move away from the background, so the name never drops below its 7:1 contrast.
+Off wherever text isn't typed out (teletype.enabled), so never for a screen reader.
 """
 
 from __future__ import annotations
@@ -118,17 +119,40 @@ def _rgb(color: str) -> RGB:
     return r, g, b
 
 
-def _name_text(name: str, colors: list[RGB] | None, plain_style: str) -> Text:
+def _hex(color: RGB) -> str:
+    return "#{:02x}{:02x}{:02x}".format(*color)
+
+
+def _name_text(
+    name: str, colors: list[RGB] | None, plain_style: str, reverse: bool = False, back: RGB | None = None
+) -> Text:
+    """The name in its colors, one per letter. With `reverse`, the colors are a block's and the
+    letters take the background's color (`back`), as reverse video does."""
     if colors is None:
-        return Text(name, style=f"{plain_style} italic")
+        return Text(name, style=f"{plain_style} italic" + (" reverse" if reverse else ""))
     text = Text()
-    for letter, (r, g, b) in zip(name, colors, strict=True):
-        text.append(letter, style=f"bold italic #{r:02x}{g:02x}{b:02x}")
+    for letter, color in zip(name, colors, strict=True):
+        if reverse and back:
+            text.append(letter, style=f"bold italic {_hex(back)} on {_hex(color)}")
+        else:
+            text.append(letter, style=f"bold italic {_hex(color)}")
     return text
 
 
-def glow(console: Console, name: str, plain_style: str, background: str | None, pad: str = "") -> None:
-    """Print the name, with the glow passing along it where the terminal allows; the line goes on."""
+def glow(
+    console: Console,
+    name: str,
+    plain_style: str,
+    background: str | None,
+    pad: str = "",
+    reverse: bool = False,
+) -> None:
+    """Print the name, with the glow passing along it where the terminal allows; the line goes on.
+    With `reverse` (the title), the name sits in a block with a space at each end, and the glow moves
+    through the block: away from the letters, which have the background's color, so the contrast only
+    rises."""
+    if reverse and console.color_system:  # the block's padding, only where the block shows
+        name = f" {name} "
     back = _rgb(background) if background else None
     base = title_blue(back) if back else None
     moving = console.color_system == "truecolor" and teletype.enabled(console.file)
@@ -139,7 +163,7 @@ def glow(console: Console, name: str, plain_style: str, background: str | None, 
             start = time.monotonic()
             for frame, colors in enumerate(glow_colors(base, back, len(name))):
                 console.file.write("\r" + pad)
-                console.print(_name_text(name, colors, plain_style), end="")
+                console.print(_name_text(name, colors, plain_style, reverse, back), end="")
                 console.file.flush()
                 # Kept to the clock, so drawing time on a low-end device doesn't stretch it.
                 time.sleep(max(start + (frame + 1) * GLOW_SECONDS / GLOW_FRAMES - time.monotonic(), 0))
@@ -149,7 +173,8 @@ def glow(console: Console, name: str, plain_style: str, background: str | None, 
     finally:
         if back and base and moving:
             console.show_cursor(True)
-    console.print(Text(pad) + _name_text(name, None, plain_style), end="")
+    plain = [base] * len(name) if back and base and console.color_system == "truecolor" else None
+    console.print(Text(pad) + _name_text(name, plain, plain_style, reverse, back), end="")
 
 
 def show(
@@ -161,7 +186,10 @@ def show(
     top, centered = lines(name, console.width, console.height, notices)
     teletype.page_feed(console)
     console.file.write("\n" * top)
-    glow(console, name, plain_style, background, pad=" " * (len(centered[0]) - len(centered[0].lstrip())))
+    indent = len(centered[0]) - len(centered[0].lstrip())
+    glow(
+        console, name, plain_style, background, pad=" " * max(indent - 1, 0), reverse=True
+    )  # its block's space
     console.print()
     rest = centered[1:]
     for line in rest[:-1]:

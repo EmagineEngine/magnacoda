@@ -1,6 +1,7 @@
 """The title screen on the first shell of the day (title.py)."""
 
 import io
+import re
 
 import pytest
 from rich.console import Console
@@ -94,6 +95,22 @@ def test_the_glow_runs_where_typing_is_on_and_ends_on_the_plain_name():
     plain = Console(file=io.StringIO(), force_terminal=True, color_system="truecolor", width=80)
     title.glow(plain, "magnacoda", "bold", "#000000")
     assert "\r" not in plain.file.getvalue() and "?25l" not in plain.file.getvalue()
+
+
+@pytest.mark.parametrize("background", ["#ffffff", "#1e1e1e"])
+def test_on_the_title_the_name_is_reversed_and_the_glow_moves_through_its_block(background):
+    from magnacoda.pager.screen import title_blue
+
+    console = Console(file=Terminal(), force_terminal=True, color_system="truecolor", width=80)
+    title.glow(console, "magnacoda", "bold", background, reverse=True)
+    last = console.file.getvalue().split("\r")[-1]
+    r, g, b = title_blue(title._rgb(background))
+    back = ";".join(str(c) for c in title._rgb(background))
+    assert f"38;2;{back}" in last and f"48;2;{r};{g};{b}m" in last  # letters in the background's color
+    assert "magnacoda" in "".join(re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", last).split())
+    plain = Console(file=io.StringIO(), force_terminal=True, color_system="256", width=80)
+    title.glow(plain, "magnacoda", "bold", None, reverse=True)
+    assert "\x1b[1;3;7m" in plain.file.getvalue()  # no colors known: reverse video
 
 
 def test_news_comes_under_the_version_with_its_command_in_bold():

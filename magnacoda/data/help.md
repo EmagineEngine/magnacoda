@@ -146,8 +146,8 @@ Like an old terminal printer, the shell never erases anything. Each command's ou
 
 ### Only inside the shell:
 
-- `clear / cls`
-  Feed a fresh page, the way a printer does. What was on screen scrolls up into the scrollback, where nothing is erased, and the banner is shown at the top.
+- `menu`, `clear`, `cls`
+  Show the commands again. It feeds a fresh page, the way a printer does, with the banner at the top. What was on screen scrolls up into the scrollback, where nothing is erased.
 - `details`
   When something goes wrong that *magnacoda* didn't expect, this shows you the full details, to look into it or to report it. Cookie and header values are left out.
 - `exit / quit / q`

@@ -97,8 +97,8 @@ def test_shell_commands_ignore_capitalization():
         assert MARKERS["overview"] not in output, f"{word} did not end the session"
 
 
-def test_clear_aliases_are_documented():
-    assert "clear / cls" in _run("help").output
+def test_menu_and_its_aliases_are_documented():
+    assert "menu, clear, cls" in _run("help").output
 
 
 def test_help_fits_a_narrow_terminal_except_for_unwrapped_terms():
@@ -143,7 +143,7 @@ def test_help_file_mentions_every_command_and_shell_word():
     body = help_sections.load_help()[1]["commands"]
     for command in main.commands:
         assert command in body, command
-    for word in ("clear", "cls", "details", "exit", "quit", "q"):
+    for word in ("menu", "clear", "cls", "details", "exit", "quit", "q"):
         assert word in body, word
 
 
