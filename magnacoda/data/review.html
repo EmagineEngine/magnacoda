@@ -177,13 +177,35 @@ visible focus, enough contrast in light and dark, and everything readable withou
       try { localStorage.setItem(key, part.open ? "open" : "closed"); } catch (error) { /* ignore */ }
     });
   }
+  // The Done view: once magnacoda stops showing the scan, nothing here works any more, so the buttons
+  // and the variant links go too.
+  let finished = false;
+  function showDone() {
+    if (finished) return;
+    finished = true;
+    document.querySelectorAll("header .actions, header .variants").forEach((part) => part.remove());
+    document.getElementById("main").innerHTML =
+      "<h1>Done</h1><p><em>magnacoda</em> has stopped showing this scan. You can close this tab.</p>";
+    document.title = "Done - " + document.title;
+  }
   document.getElementById("done").addEventListener("click", async (event) => {
     event.preventDefault();
     try { await fetch("done", { method: "POST" }); } catch (error) { /* already stopped */ }
-    document.getElementById("main").innerHTML =
-      "<h1>Done</h1><p>magnacoda has stopped showing this scan. You can close this tab.</p>";
-    document.title = "Done - " + document.title;
+    showDone();
   });
+  // Stopped in the terminal: magnacoda says so here first. A lost connection is checked once, since a
+  // page that can't reach magnacoda can't save anything either.
+  function listen() {
+    const events = new EventSource("events");
+    events.addEventListener("stopped", () => { events.close(); showDone(); });
+    events.onerror = async () => {
+      events.close();
+      if (finished) return;
+      try { await fetch("events", { method: "HEAD" }); setTimeout(listen, 1000); }
+      catch (error) { showDone(); }
+    };
+  }
+  if (window.EventSource) listen();
 })();
 </script>
 </body>

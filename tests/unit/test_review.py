@@ -3,6 +3,8 @@
 
 import http.client
 import json
+import threading
+import time
 from pathlib import Path
 
 import click
@@ -161,6 +163,50 @@ def test_ctrl_c_stops_the_review_and_says_so(session, monkeypatch):
 
     monkeypatch.setattr(running.server._stopped, "wait", interrupted)
     assert running.server.wait() is True  # the caller then starts its message on a new line, past ^C
+
+
+def _listen(running, heard):
+    """A page's events connection, read in the background; what it hears goes into `heard`."""
+    connection = http.client.HTTPConnection("127.0.0.1", running.server.port, timeout=5)
+    connection.request(
+        "GET", f"/{running.server.token}/events", headers={"Host": f"127.0.0.1:{running.server.port}"}
+    )
+    response = connection.getresponse()
+    assert response.getheader("Content-Type") == "text/event-stream"
+
+    def read():
+        heard.append(response.read().decode())
+
+    reader = threading.Thread(target=read, daemon=True)
+    reader.start()
+    return reader
+
+
+def test_stopping_tells_an_open_page_first(session):
+    running, _ = session
+    heard: list[str] = []
+    reader = _listen(running, heard)
+    time.sleep(0.2)  # the connection is counted
+    running.server.stop()
+    reader.join(2)
+    assert heard and "event: stopped" in heard[0]
+
+
+def test_done_in_one_tab_tells_the_others(session):
+    running, _ = session
+    heard: list[str] = []
+    reader = _listen(running, heard)
+    time.sleep(0.2)
+    assert running.request("POST", f"/{running.server.token}/done")[0] == 200
+    reader.join(2)
+    assert heard and "event: stopped" in heard[0]
+
+
+def test_with_no_page_open_stopping_does_not_wait(session):
+    running, _ = session
+    started = time.monotonic()
+    running.server.stop()
+    assert time.monotonic() - started < review_server.TELL_PAGES_SECONDS / 2
 
 
 # Opening the browser

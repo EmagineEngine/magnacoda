@@ -17,6 +17,8 @@ from magnacoda import recheck, review_page, ticks
 from magnacoda.review_page import Variant
 
 _MAX_BODY = 10_000
+TELL_PAGES_SECONDS = 2.0  # at most this long for the open pages to hear "stopped" before shutting down
+_PING_SECONDS = 15.0  # a comment line now and then, so a closed tab's connection is noticed
 
 
 class ReviewServer:
@@ -30,6 +32,9 @@ class ReviewServer:
         self.port = self.httpd.server_address[1]
         self.url = f"http://127.0.0.1:{self.port}/{self.token}/"
         self._stopped = threading.Event()
+        self._ending = threading.Event()  # set first, so the open pages hear "stopped"
+        self._listening = threading.Condition()
+        self._listeners = 0  # pages with an open events connection
         self._rechecking = threading.Lock()  # one recheck at a time
 
     def start(self) -> None:
@@ -47,10 +52,38 @@ class ReviewServer:
         return False
 
     def stop(self) -> None:
+        """Tell the open pages first (they show their Done view), then shut down, so the terminal only
+        says the review has ended once the browser shows it too."""
         if not self._stopped.is_set():
+            self._ending.set()
+            with self._listening:
+                self._listening.wait_for(lambda: self._listeners == 0, timeout=TELL_PAGES_SECONDS)
             self._stopped.set()
             threading.Thread(target=self.httpd.shutdown, daemon=True).start()
         self.httpd.server_close()
+
+    def _events(self, handler: BaseHTTPRequestHandler) -> None:
+        """A page's events connection (server-sent events): held open until the review stops, then
+        "stopped"."""
+        handler.send_response(200)
+        handler.send_header("Content-Type", "text/event-stream")
+        handler.send_header("Cache-Control", "no-store")
+        handler.end_headers()
+        with self._listening:
+            self._listeners += 1
+        try:
+            while not self._ending.wait(_PING_SECONDS):
+                handler.wfile.write(b": still here\n\n")
+                handler.wfile.flush()
+            handler.wfile.write(b"event: stopped\ndata: \n\n")
+            handler.wfile.flush()
+        except OSError:
+            pass  # the tab was closed
+        finally:
+            handler.close_connection = True
+            with self._listening:
+                self._listeners -= 1
+                self._listening.notify_all()
 
     def variant(self, label: str | None) -> Variant:
         return next((v for v in self.variants if v.label == label), self.variants[0])
@@ -104,6 +137,8 @@ class ReviewServer:
                     current = server.variant(query.get("variant", [""])[0])
                     body = review_page.page(server.variants, current).encode("utf-8")
                     self._send(200, "text/html; charset=utf-8", body)
+                elif rest == "events":
+                    server._events(self)
                 elif rest.startswith("images/"):
                     self._image(rest)
                 else:
