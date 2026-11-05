@@ -37,3 +37,17 @@ def test_on_windows_a_terminal_that_doesnt_answer_counts_as_dark(monkeypatch, an
     monkeypatch.setattr(name_color.sys, "platform", "win32")
     monkeypatch.setattr(winconsole, "background", lambda: answer)
     assert name_color._background() == expected
+
+
+@pytest.mark.parametrize(
+    ("enabled", "before", "after"), [(True, None, "truecolor"), (True, "24bit", "24bit"), (False, None, None)]
+)
+def test_a_windows_console_with_control_codes_says_it_has_full_color(monkeypatch, enabled, before, after):
+    monkeypatch.setattr(winconsole.sys, "platform", "win32")
+    monkeypatch.setattr(winconsole, "_enable", lambda which: enabled)
+    if before is None:
+        monkeypatch.delenv("COLORTERM", raising=False)
+    else:
+        monkeypatch.setenv("COLORTERM", before)
+    winconsole.enable_virtual_terminal()
+    assert winconsole.os.environ.get("COLORTERM") == after

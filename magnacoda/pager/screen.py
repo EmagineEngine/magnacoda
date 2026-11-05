@@ -2148,6 +2148,56 @@ def terminal_colors(fd: int, out: Any, wait: float = 0.3) -> Pair | None:
     return parse_terminal_colors(reply)
 
 
+# Windows Terminal's default scheme (Campbell) and the classic console's: what a Windows terminal that
+# doesn't answer the color question most likely shows.
+WINDOWS_COLORS: Pair = ((204, 204, 204), (12, 12, 12))
+
+
+def windows_terminal_colors(out: Any, wait: float = 0.2) -> Pair:
+    """The terminal's own (text, background) on Windows: its answer, or Windows' default colors."""
+    try:
+        reply = windows_console_reply(_COLOR_QUESTION, out, wait)
+    except (AttributeError, OSError, ValueError):
+        reply = ""
+    return parse_terminal_colors(reply.encode("latin-1", "replace")) or WINDOWS_COLORS
+
+
+def windows_console_reply(question: str, out: Any, wait: float) -> str:  # pragma: no cover - Windows only
+    """Ask the Windows console a question and read its answer, up to the reply every terminal sends
+    last (DA1). "" when stdin or stdout isn't a console, or nothing came within `wait`."""
+    import ctypes
+    import msvcrt
+    from ctypes import wintypes
+
+    k32 = ctypes.WinDLL("kernel32", use_last_error=True)  # type: ignore[attr-defined]
+    k32.GetStdHandle.restype = wintypes.HANDLE
+    k32.GetConsoleMode.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+    k32.SetConsoleMode.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+    handles = k32.GetStdHandle(-10), k32.GetStdHandle(-11)  # stdin, stdout
+    modes = [wintypes.DWORD(), wintypes.DWORD()]
+    if not all(k32.GetConsoleMode(h, ctypes.byref(m)) for h, m in zip(handles, modes, strict=True)):
+        return ""
+    line_input, echo_input, vt_input, vt_output = 0x0002, 0x0004, 0x0200, 0x0004
+    reply = ""
+    try:
+        k32.SetConsoleMode(handles[0], (modes[0].value | vt_input) & ~(line_input | echo_input))
+        k32.SetConsoleMode(handles[1], modes[1].value | vt_output)
+        while msvcrt.kbhit():  # type: ignore[attr-defined]
+            msvcrt.getwch()  # type: ignore[attr-defined]
+        out.write(question)
+        out.flush()
+        deadline = time.monotonic() + wait
+        while time.monotonic() < deadline and not re.search(r"\x1b\[\?[0-9;]*c", reply):
+            if msvcrt.kbhit():  # type: ignore[attr-defined]
+                reply += msvcrt.getwch()  # type: ignore[attr-defined]
+            else:
+                time.sleep(0.001)
+    finally:
+        for handle, mode in zip(handles, modes, strict=True):
+            k32.SetConsoleMode(handle, mode.value)
+    return reply
+
+
 def scheme_pair(codes: str) -> Pair | None:
     """(text, background) of a full-color code; None for the terminal's own or the 256 colors."""
     match = _TRUE_COLORS.fullmatch(codes)
@@ -2572,6 +2622,8 @@ def page_sections(
         drawn[0] = _UNDRAWN  # the first draw clears the screen, in this document's colors
     if own_colors is None and old_settings is not None and colors:
         own_colors = terminal_colors(sys.stdin.fileno(), out)
+    elif own_colors is None and sys.platform == "win32" and colors:
+        own_colors = windows_terminal_colors(out)
     left_normally = False
     told: set[int] = set()
 

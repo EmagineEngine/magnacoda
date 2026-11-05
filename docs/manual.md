@@ -75,7 +75,7 @@ Then type one of these:
 
 If the terminal says it doesn't know the command, open a new terminal window, because a newly installed command is only found in windows opened after it was installed.
 
-To open *magnacoda* without a terminal first, type `magnacoda shortcut` and choose your app menu, your desktop or both. On Windows the menu is the Start menu, where `Ctrl+Alt+M` opens it too; on macOS it's Applications, and the first time, macOS asks whether *magnacoda* may control Terminal. `magnacoda shortcut remove` takes them away, and so does `uninstall`. When you leave *magnacoda*, a shortcut's window stays open until you press `Enter`, so you can read the last lines at your own pace.
+To open *magnacoda* without a terminal first, type `magnacoda shortcut` and choose your app menu, your desktop or both. On Windows the menu is the Start menu, where `Ctrl+Alt+M` opens it too, and the shortcut opens Windows Terminal when it's installed; on macOS it's Applications, and the first time, macOS asks whether *magnacoda* may control Terminal. `magnacoda shortcut remove` takes them away, and so does `uninstall`. When you leave *magnacoda*, a shortcut's window stays open until you press `Enter`, so you can read the last lines at your own pace.
 
 ### Settings
 

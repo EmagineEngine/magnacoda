@@ -1,6 +1,8 @@
 """Progress in a Markdown checklist (checklist.py). (tests/unit/test_checklist.py is about building the
 checklist from a scan, findings/checklist.py.)"""
 
+import pytest
+
 from magnacoda import checklist
 from magnacoda.pager import markdown
 
@@ -41,3 +43,17 @@ def test_prepare_adds_progress_counts_and_check_marks():
 def test_a_document_without_checkboxes_is_left_alone():
     sections = [("Intro", "Just text, and [x] in a sentence.")]
     assert checklist.prepare(sections) == sections
+
+
+@pytest.mark.parametrize(
+    ("platform", "env", "mark"),
+    [
+        ("linux", {}, "[✓]"),
+        ("win32", {"WT_SESSION": "1"}, "[✓]"),
+        ("win32", {"TERM_PROGRAM": "vscode"}, "[✓]"),
+        ("win32", {"TERMINAL_EMULATOR": "JetBrains-JediTerm"}, "[✓]"),
+        ("win32", {}, "[x]"),
+    ],
+)
+def test_the_classic_windows_console_gets_a_plain_x(platform, env, mark):
+    assert checklist.checked_mark(env, platform) == mark

@@ -112,14 +112,26 @@ def add(menu: bool = True, desktop: bool = False) -> list[Path]:
     return made
 
 
+def windows_terminal_command(launcher: Path, terminal: str | None) -> tuple[str, str] | None:
+    """The shortcut's (target, arguments) to open magnacoda in Windows Terminal, if it's installed.
+    Windows 10 can't make it the default terminal, so without this the classic console opens."""
+    if terminal is None:
+        return None
+    return terminal, f'--title {NAME} "{launcher}" shell --from-shortcut'
+
+
 def _finish_windows(made: list[Path], menu: Path) -> None:
-    """A normal window (pyshortcuts asks for style 0), and the shortcut key on the Start menu's."""
+    """A normal window (pyshortcuts asks for style 0) in Windows Terminal where there is one, and the
+    shortcut key on the Start menu's."""
     import win32com.client  # comes with pyshortcuts on Windows
 
     shell = win32com.client.Dispatch("WScript.Shell")
+    in_terminal = windows_terminal_command(_launcher(), shutil.which("wt"))
     for path in made:
         link = shell.CreateShortCut(str(path))
         link.WindowStyle = 1
+        if in_terminal:
+            link.TargetPath, link.Arguments = in_terminal
         if path == menu:
             link.Hotkey = WINDOWS_KEY.upper()
         link.save()

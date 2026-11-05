@@ -1,15 +1,28 @@
 """Checklist progress for the pager: an overall count, per-section counts in the g list, and [✓] for ticks.
 
 Read-only; the file is never changed. [✓] stands out more than [x], and screen readers say "check mark".
+The classic Windows console has no ✓ in its fonts and nothing to fall back on, so it gets [x].
 """
 
 from __future__ import annotations
 
+import os
 import re
+import sys
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 _BOX = re.compile(r"^(\s*[-*+]\s+)\[([ xX])\]", re.MULTILINE)
 CHECKED_MARK = "[✓]"
+PLAIN_CHECKED_MARK = "[x]"
+_OTHER_WINDOWS_TERMINALS = ("WT_SESSION", "TERM_PROGRAM", "TERMINAL_EMULATOR")  # Windows Terminal, VS Code
+# and mintty, JetBrains: each sets one of these, and their fonts fall back to one with ✓
+
+
+def checked_mark(env: Mapping[str, str] | None = None, platform: str = sys.platform) -> str:
+    env = os.environ if env is None else env
+    classic_console = platform == "win32" and not any(env.get(name) for name in _OTHER_WINDOWS_TERMINALS)
+    return PLAIN_CHECKED_MARK if classic_console else CHECKED_MARK
 
 
 @dataclass(frozen=True)
@@ -35,7 +48,8 @@ def _section_name(name: str, done: Progress) -> str:
 
 
 def _with_marks(text: str) -> str:
-    return _BOX.sub(lambda m: m.group(1) + (CHECKED_MARK if m.group(2) in "xX" else "[ ]"), text)
+    mark = checked_mark()
+    return _BOX.sub(lambda m: m.group(1) + (mark if m.group(2) in "xX" else "[ ]"), text)
 
 
 def prepare(sections: list[tuple[str, str]], source: str | None = None) -> list[tuple[str, str]]:

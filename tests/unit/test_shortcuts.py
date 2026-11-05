@@ -78,8 +78,9 @@ def test_with_one_shortcut_setup_offers_the_other_or_removing_it(setup):
     assert "Removed the shortcut." in setup("remove\n") and shortcuts.existing() == []
 
 
+@pytest.mark.parametrize("terminal", [None, r"C:\Users\me\AppData\Local\Microsoft\WindowsApps\wt.exe"])
 def test_on_windows_the_program_is_left_unquoted_and_the_start_menu_s_shortcut_gets_the_key(
-    monkeypatch, tmp_path
+    monkeypatch, tmp_path, terminal
 ):
     import types
 
@@ -87,7 +88,7 @@ def test_on_windows_the_program_is_left_unquoted_and_the_start_menu_s_shortcut_g
 
     class Link:
         def __init__(self, path):
-            self.path, self.Hotkey = path, ""
+            self.path, self.Hotkey, self.TargetPath, self.Arguments = path, "", None, None
 
         def save(self):
             links[self.path] = self
@@ -102,6 +103,7 @@ def test_on_windows_the_program_is_left_unquoted_and_the_start_menu_s_shortcut_g
     )
     monkeypatch.setattr(shortcuts, "_launcher", lambda: tmp_path / "Phillip Honstein" / "magnacoda.exe")
     monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setattr(shortcuts.shutil, "which", lambda name: terminal if name == "wt" else None)
     menu, desktop = shortcuts.add(desktop=True)
     assert (
         made["executable"] == str(tmp_path / "Phillip Honstein" / "magnacoda.exe")
@@ -112,3 +114,8 @@ def test_on_windows_the_program_is_left_unquoted_and_the_start_menu_s_shortcut_g
         str(menu): (1, "CTRL+ALT+M"),
         str(desktop): (1, ""),
     }
+    launcher = tmp_path / "Phillip Honstein" / "magnacoda.exe"
+    in_terminal = (
+        (terminal, f'--title magnacoda "{launcher}" shell --from-shortcut') if terminal else (None, None)
+    )
+    assert all((link.TargetPath, link.Arguments) == in_terminal for link in links.values())

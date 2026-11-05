@@ -301,3 +301,19 @@ def test_show_saves_to_the_settings_file_it_read(tmp_path, monkeypatch):
     monkeypatch.setenv("NO_COLOR", "1")
     show([("One", "text")], options.resolve(path))
     assert seen["colors"] == []
+
+
+@pytest.mark.parametrize(
+    ("reply", "expected"),
+    [
+        (
+            "\x1b]10;rgb:3333/3333/3333\x1b\\\x1b]11;rgb:fafa/fafa/fafa\x1b\\\x1b[?61;6c",
+            ((51, 51, 51), (250, 250, 250)),
+        ),
+        ("\x1b[?1;0c", pager.WINDOWS_COLORS),
+        ("", pager.WINDOWS_COLORS),
+    ],
+)
+def test_on_windows_the_terminal_s_own_colors_or_else_windows_defaults(monkeypatch, reply, expected):
+    monkeypatch.setattr(pager, "windows_console_reply", lambda question, out, wait: reply)
+    assert pager.windows_terminal_colors(io.StringIO()) == expected
