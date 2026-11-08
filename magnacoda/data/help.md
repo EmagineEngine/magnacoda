@@ -19,6 +19,12 @@ HOW IT IS READ
           Text on the same line after the term (- `scan URL` Scan a page) is shown beside it instead, lined up with the other items in that list. It is never wrapped, so keep it short too.
   * **bold**, *italic* and `code` are styled in the pager; printed, they show as written.
 
+ON THE WEBSITE
+This file is also the help on magnacoda.dev, one page per section. Two kinds of comment mark what differs there, and the app ignores both:
+  * A comment holding only the word cli, then a comment holding only /cli: what is between them is shown here but left off the website. Use it for keys and other things about this viewer.
+  * A comment that starts with web: shows the rest of its text on the website only.
+References such as `docs starting` or the url-rules section become links on the website, so write them as usual.
+
 KEEP IT COMPLETE
 This is the only help: commands have no --help of their own. If you add or rename a scan flag or a command, update the matching section below (tests check that every scan flag and every command is mentioned).
 -->
@@ -32,9 +38,9 @@ This is the only help: commands have no --help of their own. If you add or renam
 - To use the AI tiers you can provide your own Anthropic API key (`setup` can save one for you), or use Claude Code if it is installed and logged into your Claude subscription.
 - AI works with *magnacoda* both ways: your AI coding agent can run it, and it can use AI itself. To see both in one round of work on a page, type `docs full example`.
 
-In the help viewer, press `g` to **go** to a section, or `Space` to go to the next page and learn about the **wizard**.
+<!-- cli -->In the help viewer, press `g` to **go** to a section, or `Space` to go to the next page and learn about the **wizard**.
 
-The help viewer shows its keys at the bottom of the screen. To open a page this help mentions, such as `docs starting`, press `o`, type it and press `Enter`. For other commands, first press `q` or `Esc` to close the help viewer.
+The help viewer shows its keys at the bottom of the screen. To open a page this help mentions, such as `docs starting`, press `o`, type it and press `Enter`. For other commands, first press `q` or `Esc` to close the help viewer.<!-- /cli --><!-- web: The **wizard**, next, is the easiest place to start. -->
 
 ## wizard
 
@@ -299,7 +305,7 @@ An add-on is a separate Python package that adds to *magnacoda*: new commands, h
 Anyone can write an add-on, so they vary in quality and in how they're written. *magnacoda* makes it clear when content comes from an add-on:
 
 - The shell's banner lists their commands on a line of their own, "Add-on commands."
-- In this help, their sections come after *magnacoda*'s own. Each is marked "(add-on)" in the section list (press `g`), with a line under its title naming the add-on, its version and its author.
+- In the help, their sections come after *magnacoda*'s own. Each is marked "(add-on)" in the section list<!-- cli --> (press `g`)<!-- /cli -->, with a line under its title naming the add-on, its version and its author.
 - The about screen (`about`) lists every add-on in use, with its version and its commands.
 - When you update *magnacoda* (`update`), add-ons published on PyPI are updated with it.
 
@@ -335,7 +341,7 @@ If *magnacoda* won't start, you can uninstall it by hand. The steps are at https
 - `readme`, `readme NAME`
   The README: installing, the wizard, the shell and the help viewer.
 - `docs`, `docs NAME`
-  The manual, in this same viewer: every option and feature, settings, CI setup, and how *magnacoda* compares with other tools. Start at a section by naming it (docs ci), or press `g` for its contents.
+  The manual<!-- cli -->, in this same viewer<!-- /cli -->: every option and feature, settings, CI setup, and how *magnacoda* compares with other tools. Start at a section by naming it (docs ci)<!-- cli -->, or press `g` for its contents<!-- /cli -->.
 - `news`
   Updates, what's new in them, and news about *magnacoda*.
 - `about`
