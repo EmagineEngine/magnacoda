@@ -19,13 +19,13 @@ This manual covers all of it. To install *magnacoda* and run your first scan, st
   - [Starting *magnacoda*](#starting-magnacoda)
   - [Settings](#settings)
   - [Help viewer](#help-viewer)
-- [Scan options](#scan-options)
-  - [What to check](#what-to-check)
-  - [AI reasoning](#ai-reasoning)
-  - [Output and CI](#output-and-ci)
-  - [Pages behind a login](#pages-behind-a-login)
-  - [Pages that need help to load](#pages-that-need-help-to-load)
-- [Advanced scan options](#advanced-scan-options)
+  - [Scan options](#scan-options)
+    - [What to check](#what-to-check)
+    - [AI reasoning](#ai-reasoning)
+    - [Output and CI](#output-and-ci)
+    - [Pages behind a login](#pages-behind-a-login)
+    - [Pages that need help to load](#pages-that-need-help-to-load)
+  - [Advanced scan options](#advanced-scan-options)
 - [What do the results show?](#what-do-the-results-show)
   - [Saving scans](#saving-scans)
   - [Reviewing and rechecking](#reviewing-and-rechecking)
@@ -110,7 +110,7 @@ code = #34466a      ; optional: code's background
 
 Colors are `#rrggbb`. The text and the accent need a contrast of at least 7:1 against the background, and the text against code; a theme that falls short is left out, and the list says why.
 
-## Scan options
+### Scan options
 
 Every option for `scan`, with more than `help scan` has room for. Type them after the address: `scan example.com --screen both` in the shell, or `magnacoda scan example.com --screen both` from the command line. The rarely needed ones are in [Advanced scan options](#advanced-scan-options).
 
@@ -118,21 +118,21 @@ Every option for `scan`, with more than `help scan` has room for. Type them afte
 
 The address can be short, such as `example.com` or `localhost:3000`; see [URL rules](#url-rules).
 
-### What to check
+#### What to check
 
 - **`--level [A|AA|AAA]`**: the WCAG conformance level. Default: AA, the one most laws and organizations ask for.
 - **`--wcag-version [2.0|2.1|2.2]`**: the WCAG version to test against. Default: 2.2. Some laws and contracts still name 2.1.
 - **`--screen [desktop|mobile|both]`**: scan as a desktop (the default) or as a phone. Mobile uses a Pixel 8 Pro profile: small screen, touch, mobile user-agent. `both` scans desktop, then mobile, into one scan, marking problems found on only one; see [Mobile and desktop](#mobile-and-desktop). Dark mode is checked on every scan, in seconds; see [Light and dark mode](#light-and-dark-mode).
 - **`--quick`, `--thorough`**: `--quick` leaves out the slowest tests that use the page (watching for moving content, hovering, clicking, single keys), about 10 seconds a scan, and the checklist leaves those checks to you. `--thorough` runs them. Default: the `quick` setting under `[scan]` in `preferences.ini` (off).
 
-### AI reasoning
+#### AI reasoning
 
 The AI tiers need your own Anthropic API key, or Claude Code logged in to your Claude subscription; see [AI tiers](#ai-tiers).
 
 - **`--ai [off|explain|semantic]`**: `off`, no AI (axe-core and *magnacoda*'s own tests, with offline fix suggestions). `explain`, plain-language explanations and AI-written fixes for the top 10 findings. `semantic`, the same, and the AI also reads the page's alt text, headings and link text to judge whether they make sense, which rule checks can't. Default: off.
 - **`-y`, `--yes`**: accept the AI data-sharing question in advance, for scripts.
 
-### Output and CI
+#### Output and CI
 
 Every scan is saved in its own folder in `magnacoda-scans`: the checklist (`checklist.md`), the results file (`results.json`) and the page's images; see [Saving scans](#saving-scans). A scan ends with a short summary; the findings are on the review page (`review`).
 
@@ -143,7 +143,7 @@ Every scan is saved in its own folder in `magnacoda-scans`: the checklist (`chec
 
 Colors are turned off by the standard `NO_COLOR` environment variable.
 
-### Pages behind a login
+#### Pages behind a login
 
 - **`--storage-state PATH`**: start from a saved Playwright login session (a storage-state JSON file).
 - **`--cookie NAME=VALUE`**: set a cookie before loading the page. Repeat for several.
@@ -151,14 +151,14 @@ Colors are turned off by the standard `NO_COLOR` environment variable.
 
 Cookie and header values are never stored. With either one, *magnacoda* doesn't fall back to `http://`, so they never cross the network unencrypted.
 
-### Pages that need help to load
+#### Pages that need help to load
 
 - **`--wait-for-selector TEXT`**: wait until this CSS selector appears before scanning, for apps that load their content late.
 - **`--ignore-https-errors`**: continue past invalid or self-signed HTTPS certificates, for local development servers.
 
 For a page that's just slow, see `--wait` in [Advanced scan options](#advanced-scan-options).
 
-## Advanced scan options
+### Advanced scan options
 
 These are rarely needed, so `help` lists them in a section of their own, but they work like the others.
 
