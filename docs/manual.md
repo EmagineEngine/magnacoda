@@ -1,3 +1,4 @@
+<!-- Text between the cli and /cli comment markers is shown in the terminal and left off magnacoda.dev. See "ON THE WEBSITE" in magnacoda/data/help.md. -->
 <p align="center">
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="images/magnacoda-DrkColorGH-Logo.svg">
@@ -10,7 +11,7 @@
 
 *magnacoda* is an accessibility scanner for WCAG, the Web Content Accessibility Guidelines, that you run from your terminal. It explains what it finds and suggests fixes, tests what automated rule checks can't by using the page itself, and shows every criterion that still needs a person.
 
-This manual covers all of it. To install *magnacoda* and run your first scan, start with the [README](../README.md); in *magnacoda*, type `readme`.
+This manual covers all of it. To install *magnacoda* and run your first scan, start with the [README](../README.md)<!-- cli -->; in *magnacoda*, type `readme`<!-- /cli -->.
 
 **Contents**
 
@@ -94,7 +95,7 @@ The other sections say which settings matter to them.
 
 `help`, `readme`, `docs` and `view FILE` all open in the help viewer, with its keys on the bottom rows; the README's [Help](../README.md#help) section lists the rest. Colors are turned off by the standard `NO_COLOR` environment variable.
 
-To open a page this one mentions, such as `docs starting`, press `o`, type it and press `Enter`. For other commands, first press `q` or `Esc` to close the help viewer.
+<!-- cli -->To open a page this one mentions, such as `docs starting`, press `o`, type it and press `Enter`. For other commands, first press `q` or `Esc` to close the help viewer.<!-- /cli -->
 
 **Your own colors.** Add themes to `pager-colors.ini`, in the same folder as `preferences.ini`, and they appear under `c` after the built-in ones:
 

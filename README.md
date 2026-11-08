@@ -1,3 +1,4 @@
+<!-- Text between the cli and /cli comment markers is shown in the terminal and left off magnacoda.dev. See "ON THE WEBSITE" in magnacoda/data/help.md. -->
 <h1 align="center">
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="docs/images/magnacoda-DrkColorGH-Logo.svg">
@@ -44,8 +45,8 @@ There are two ways to use *magnacoda*, human and machine:
 No automated tool can test all of WCAG. *magnacoda* lists every criterion in scope and shows which ones still need a person.
 
 - *magnacoda*'s features range from detecting accessibility problems to offering solutions. See the next section, [What can it do?](#what-can-it-do)
-- For what a scan covers and how to cover more, see [A note on coverage](docs/manual.md#a-note-on-coverage) (from the *magnacoda* shell, type `docs coverage`).
-- See [Related tools](docs/manual.md#related-tools) for how it compares with others (from the *magnacoda* shell, type `docs related tools`).
+- For what a scan covers and how to cover more, see [A note on coverage](docs/manual.md#a-note-on-coverage)<!-- cli --> (from the *magnacoda* shell, type `docs coverage`)<!-- /cli -->.
+- See [Related tools](docs/manual.md#related-tools) for how it compares with others<!-- cli --> (from the *magnacoda* shell, type `docs related tools`)<!-- /cli -->.
 
 *magnacoda is an independent project, not affiliated with the W3C or the WCAG working groups; see [Credits and disclaimer](#credits-and-disclaimer).*
 
@@ -59,7 +60,7 @@ Below is an overview of *magnacoda*'s features, ranging from detecting accessibi
 - **Review and recheck**: a saved scan opens in your browser with its pictures and a box to tick for every item, and once you've fixed something, a recheck tests just those problems again.
 - **CI, scripts and AI agents**: one command with exit codes and JSON output, ready for GitLab CI or GitHub Actions, and for AI coding agents checking their own changes; see [How do I use it with CI, scripts and AI agents?](docs/manual.md#how-do-i-use-it-with-ci-scripts-and-ai-agents) (from the *magnacoda* shell, type `docs ci`). To see an agent and *magnacoda*'s AI work together on a page, see [A full example with an AI agent](docs/manual.md#a-full-example-with-an-ai-agent) (`docs full example`).
 - **Optional AI**: three tiers (`off`, `explain`, `semantic`), using your own Anthropic API key or your Claude Code login. It's off by default and asks before sending anything.
-- **Explanations**: the 10 most serious findings get a plain-language explanation; see [Top-10 ranking](docs/manual.md#top-10-ranking) (from the *magnacoda* shell, type `docs fix suggestions`).
+- **Explanations**: the 10 most serious findings get a plain-language explanation; see [Top-10 ranking](docs/manual.md#top-10-ranking)<!-- cli --> (from the *magnacoda* shell, type `docs fix suggestions`)<!-- /cli -->.
 - **Fix suggestions**: every finding gets one, from offline templates. With AI, the top 10 get a fix written for their context instead.
 
 ## How do I get started?
@@ -142,7 +143,7 @@ magnacoda setup
 - **`pipx`, still:** check it's installed (`py -m pip install --user pipx`). You can also run it through Python, which needs no PATH at all: `py -m pipx install C:\dev\magnacoda`.
 - **`py`:** use `python` instead (`python -m pip install --user pipx`, and so on). `py` comes with Python from python.org; if it's missing, your Python may be the Microsoft Store version (see above).
 
-To update later, run `magnacoda update` (see [Updates and news](docs/manual.md#updates-and-news); from the *magnacoda* shell, type `docs updates`).
+To update later, run `magnacoda update` (see [Updates and news](docs/manual.md#updates-and-news)<!-- cli -->; from the *magnacoda* shell, type `docs updates`<!-- /cli -->).
 
 ### Guided wizard
 
@@ -169,9 +170,9 @@ The shell never erases anything, so earlier results stay in the scrollback. `men
 - `c` picks colors: your terminal's own, retro monitor looks, or dark on light.
 - `Tab` moves through the links on a page, and `Enter` opens one. On the `news` page, `Tab` and then the arrows pick a news item.
 
-To open a page this one mentions, such as `docs starting`, press `o`, type it and press `Enter`. For other commands, first press `q` or `Esc` to close the help viewer.
+<!-- cli -->To open a page this one mentions, such as `docs starting`, press `o`, type it and press `Enter`. For other commands, first press `q` or `Esc` to close the help viewer.<!-- /cli -->
 
-To pick your own colors, see the manual's [Help viewer](docs/manual.md#help-viewer) section (from the *magnacoda* shell, type `docs help viewer`).
+To pick your own colors, see the manual's [Help viewer](docs/manual.md#help-viewer) section<!-- cli --> (from the *magnacoda* shell, type `docs help viewer`)<!-- /cli -->.
 
 **Reading this README in the terminal.** `readme` shows this README in the help viewer. It's the copy that came with your version, so it works offline.
 
