@@ -35,6 +35,7 @@ ENV_OFF_SWITCH = "MAGNACODA_NEWS"
 OFF_VALUES = {"off", "0", "false", "no"}
 CHECK_INTERVAL = timedelta(hours=24)
 TIMEOUT = 3.0  # seconds, per request
+START_WAIT = 2.0  # seconds the shell's start waits for the day's check
 MAX_FEED_BYTES = 64 * 1024
 MAX_PYPI_BYTES = 4 * 1024 * 1024
 MAX_FEED_ITEMS = 20
@@ -355,25 +356,45 @@ def due(state: State, now: datetime | None = None) -> bool:
     return (now or _now()) - last >= CHECK_INTERVAL
 
 
-def refresh(fetch: Fetch | None = None, force: bool = False, now: datetime | None = None) -> None:
-    """Check for updates and fetch the news, if a day has passed (or `force`). Never raises."""
+def refresh(
+    fetch: Fetch | None = None,
+    force: bool = False,
+    now: datetime | None = None,
+    keep_trying: bool = False,
+    cancel: threading.Event | None = None,
+) -> bool:
+    """Check for updates and fetch the news, if a day has passed (or `force`). Never raises. Says whether
+    anything answered. Nothing answering counts as a check made (so it isn't repeated all day), unless
+    `keep_trying`: then nothing is saved and the next start checks again. Once `cancel` is set,
+    nothing is saved either."""
     fetch = fetch or _fetch
+    reached = False
+
+    def reach(url: str, max_bytes: int) -> bytes:
+        nonlocal reached
+        body = fetch(url, max_bytes)
+        reached = True
+        return body
+
     try:
         state = load_state()
         if not force and not due(state, now):
-            return
+            return True
         latest: dict[str, str] = {}
         for package in installed_packages():
-            version = latest_on_pypi(package, fetch)
+            version = latest_on_pypi(package, reach)
             if version:
                 latest[package.name] = version
         try:
-            feed: list[FeedItem] | None = parse_feed(
-                fetch(NEWS_URL, MAX_FEED_BYTES).decode("utf-8", "replace")
-            )
+            text = reach(NEWS_URL, MAX_FEED_BYTES).decode("utf-8", "replace")
+            feed: list[FeedItem] | None = parse_feed(text)
         except Exception:  # noqa: BLE001
             feed = None
+        if keep_trying and not reached:
+            return False
         with _lock:
+            if cancel is not None and cancel.is_set():
+                return reached
             state = load_state()  # re-read: `news` may have marked items seen meanwhile
             state.checked = (now or _now()).isoformat()
             state.latest = latest
@@ -381,13 +402,39 @@ def refresh(fetch: Fetch | None = None, force: bool = False, now: datetime | Non
                 state.feed = feed
             save_state(state)
     except Exception:  # noqa: BLE001 - checking must never break anything
-        pass
+        return False
+    return reached
 
 
-def refresh_in_background() -> None:
-    """Start a daily check without waiting for it (the banner shows what the previous one found)."""
-    if checks_enabled() and due(load_state()):
-        threading.Thread(target=refresh, name="magnacoda-news", daemon=True).start()
+def start_check_due() -> bool:
+    """The shell's start has a daily check to make: allowed, in a terminal, and a day since the last."""
+    return checks_enabled() and due(load_state())
+
+
+@dataclass(frozen=True)
+class StartCheck:
+    outcome: str  # "latest", "update", "timeout" or "failed"
+    version: str = ""  # the newer magnacoda, for "update"
+
+
+def start_check(fetch: Fetch | None = None, wait: float = START_WAIT) -> StartCheck:
+    """The day's check, waited for up to `wait` seconds. When it doesn't finish or nothing answers, nothing
+    is saved, so the next start checks again, even the same day."""
+    cancel, answered = threading.Event(), []
+    worker = threading.Thread(
+        target=lambda: answered.append(refresh(fetch, keep_trying=True, cancel=cancel)),
+        name="magnacoda-news",
+        daemon=True,
+    )
+    worker.start()
+    worker.join(wait)
+    if worker.is_alive():
+        cancel.set()
+        return StartCheck("timeout")
+    if not (answered and answered[0]):
+        return StartCheck("failed")
+    ours = next((u for u in updates() if u.name == "magnacoda"), None)
+    return StartCheck("update", ours.latest) if ours else StartCheck("latest")
 
 
 def note_first_run() -> None:

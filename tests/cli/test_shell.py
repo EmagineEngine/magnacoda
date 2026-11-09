@@ -2,7 +2,7 @@ import pytest
 from click.testing import CliRunner
 from rich.console import Console
 
-from magnacoda import cli
+from magnacoda import cli, news
 from magnacoda.cli import main
 
 
@@ -31,6 +31,23 @@ def test_the_shell_starts_with_a_welcome_and_no_list_of_commands():
     assert result.exit_code == 0
     assert "Welcome to magnacoda v" in result.output and 'Type "menu" to get started.' in result.output
     assert "Commands:" not in result.output and "Tip:" not in result.output
+
+
+@pytest.mark.parametrize(
+    ("outcome", "version", "said"),
+    [
+        ("latest", "", "You have the latest version."),
+        ("update", "0.9.0", "Update to v0.9.0 available (type update)."),
+        ("timeout", "", "Update check timed out. magnacoda will check again at next launch."),
+        ("failed", "", "Couldn't check for updates. magnacoda will check again at next launch."),
+    ],
+)
+def test_the_start_says_what_the_daily_update_check_found(monkeypatch, outcome, version, said):
+    monkeypatch.setattr(news, "start_check_due", lambda: True)
+    monkeypatch.setattr(news, "start_check", lambda: news.StartCheck(outcome, version))
+    result = CliRunner().invoke(main, ["shell"], input="exit\n")
+    assert result.exit_code == 0 and "Checking for updates..." in result.output and said in result.output
+    assert result.output.index("Welcome to") < result.output.index("Checking for updates...")
 
 
 @pytest.mark.parametrize("exit_word", ["exit", "quit", "q"])

@@ -1,5 +1,6 @@
 import json
 import threading
+import time
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
@@ -211,11 +212,36 @@ def test_a_broken_state_file_is_simply_started_again(checks_on):
     assert news.load_state().latest == {"magnacoda": "0.5.0"}
 
 
-def test_no_background_check_without_a_terminal(checks_on, monkeypatch):
-    started = []
-    monkeypatch.setattr(threading.Thread, "start", lambda self: started.append(self))
-    news.refresh_in_background()  # pytest's output isn't a terminal
-    assert started == []
+def test_no_start_check_without_a_terminal(checks_on):
+    assert news.start_check_due() is False  # pytest's output isn't a terminal
+
+
+def test_the_start_check_says_whether_there_is_an_update(checks_on):
+    found = news.start_check(fake_fetch(_answers()))
+    assert found.outcome == "update" and found.version == "0.5.0"
+    assert news.load_state().latest == {"magnacoda": "0.5.0"}
+    news.state_path().unlink()  # a day later
+    old = {news.PYPI_URL.format(name="magnacoda"): _pypi(version="0.0.1"), news.NEWS_URL: FEED.encode()}
+    assert news.start_check(fake_fetch(old)).outcome == "latest"
+
+
+def test_a_start_check_that_cant_reach_anything_is_tried_again_at_the_next_start(checks_on):
+    assert news.start_check(fake_fetch({})).outcome == "failed"
+    assert news.load_state().checked == ""  # not counted as a check, so it is still due
+
+
+def test_a_start_check_that_takes_too_long_saves_nothing_even_if_it_finishes_later(checks_on):
+    release = threading.Event()
+    answers = fake_fetch(_answers())
+
+    def slow(url, max_bytes):
+        release.wait(5)
+        return answers(url, max_bytes)
+
+    assert news.start_check(slow, wait=0.05).outcome == "timeout"
+    release.set()
+    time.sleep(0.3)  # the late answer arrives and is thrown away
+    assert news.load_state().checked == "" and news.load_state().latest == {}
 
 
 class _Tty:

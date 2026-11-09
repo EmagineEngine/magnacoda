@@ -755,6 +755,38 @@ def _print_notice(console: Console, markup: str, max_width: int | None = None) -
     console.print()
 
 
+_CHECKING = "Checking for updates..."
+
+
+def _update_check_notice(result: news.StartCheck) -> str:
+    """What the start says once the day's update check is done."""
+    if result.outcome == "update":
+        return f"Update to v{escape(news.release_label(result.version))} available (type update)."
+    if result.outcome == "latest":
+        return "You have the latest version."
+    why = "Update check timed out." if result.outcome == "timeout" else "Couldn't check for updates."
+    return f"{why} [italic]{plugins.PRODUCT}[/italic] will check again at next launch."
+
+
+def _start_update_check(console: Console) -> news.StartCheck:
+    """The start's one daily check: say so, wait a moment for it, then replace the line with the result
+    (on its own line instead, where text is not typed out, as for a screen reader)."""
+    in_place = teletype.enabled(console.file)
+    console.print()
+    pad = " " * _NOTICE_INDENT
+    if in_place:
+        console.file.write(pad + _CHECKING)
+        console.file.flush()
+    else:
+        _print_notice(console, _CHECKING)
+    result = news.start_check()
+    if in_place:
+        console.file.write("\r" + " " * (_NOTICE_INDENT + len(_CHECKING)) + "\r")
+        console.file.flush()
+    _print_notice(console, _update_check_notice(result))
+    return result
+
+
 _CHROMIUM_NOTICE = (
     "[bold]Chromium isn't installed yet[/bold] - run setup first. magnacoda renders "
     "each page in a real Chromium browser (so it sees JS-rendered content, not just the initial "
@@ -1520,8 +1552,6 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
         )
 
     news.note_first_run()
-    news.refresh_in_background()  # once a day; the start shows what the previous check found
-    today = news.today_notice()  # updates and news: only in the day's first shell
 
     def show_banner() -> bool:
         """The banner (what `menu` shows), and the Chromium notice while setup is needed; whether that
@@ -1541,6 +1571,12 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
         f'Welcome to [italic]{escape(names.display_name)}[/italic] v{version}\nType "menu" to get started.'
     )
     teletype.say(console, welcome)
+    checked = news.start_check_due()  # once a day, waited for, so what it finds shows now
+    if checked:
+        _start_update_check(console)
+    today = news.today_notice()  # updates and news: only in the day's first shell
+    if checked:  # the check just said so, for magnacoda's own update
+        today = {item for item in today if not item.startswith("update:magnacoda:")}
     notices = []
     if force_setup_notice or not _chromium_probably_installed():  # it explains the setup offer below
         notices.append(_CHROMIUM_NOTICE)
@@ -1548,7 +1584,7 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
     if notice:
         label, _, rest = notice.partition(": ")
         notices.append(f"[bold]{escape(label)}:[/bold] {escape(rest)}")
-    if notices:
+    if notices and not checked:
         console.print()  # set apart from the welcome, as under the banner
     for markup in notices:
         _print_notice(console, markup)
