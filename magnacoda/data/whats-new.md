@@ -12,6 +12,7 @@ HOW IT IS READ
 
 ## 0.1.7
 
+- In the help viewer's `g` list, the arrow keys pick a section without `Tab`, and `/` searches the whole document.
 - The docs are easier to use. The guide to writing add-ons is its own document, `view add-ons.md`, and `view contributing.md` is shorter.
 
 ## 0.1.6

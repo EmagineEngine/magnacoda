@@ -164,7 +164,7 @@ The shell never erases anything, so earlier results stay in the scrollback. `men
 `help` (or `magnacoda --help`) opens all of the help in the help viewer, one screen at a time, with its keys on the bottom rows. You can type `help scan`, and it will open at the scan section; the start of a section's name is enough, and `readme quick start`, `docs scan` and `view FILE NAME` work the same way. Besides the keys shown:
 
 - `Space`, `b` and `q` page forward, back and quit, as in less and man; the bar shows the arrows and `Esc`.
-- `g` lists the sections. Type a section's number or the start of its name, then press `Enter`. To pick one with the arrows instead, press `Tab` first, or start from the one your typing has highlighted. If you're used to less or Vim, `:` works like `g`, and `:q` then `Enter` closes the help viewer.
+- `g` lists the sections. Type a section's number or the start of its name, then press `Enter`. To pick one with the arrows instead, just press them. Type `/` to search the whole document. If you're used to less or Vim, `:` works like `g`, and `:q` then `Enter` closes the help viewer.
 - `o` opens another document: the manual, the README, the license and more, or any `.md` or `.txt` file. Add a section's name to open it there, as in `manual starting`.
 - `/` searches every section, not just the one showing.
 - `c` picks colors: your terminal's own, retro monitor looks, or dark on light.

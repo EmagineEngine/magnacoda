@@ -199,7 +199,7 @@ def test_g_lists_the_sections_under_a_field_to_type_in():
     assert rows[0] == "Go to: " + pager._FIELD_ON + " " * 30 + pager._FIELD_OFF
     assert rows[1:5] == ["", "  1  one", "  2  two", "  3  three"] and len(rows) == 7
     assert state.cursor() == (0, 7)  # at the start of the field
-    assert rows[-1] == "Type a number or name, then Enter | Pick: Tab, then ↑ ↓ ← → | Back: Esc"
+    assert rows[-1] == "Type a number or name, then Enter | Pick: ↑ ↓ ← → Tab | Search: / | Back: Esc"
     for key in "2", "enter":
         state.handle(key)
     assert not state.menu and state.index == 1
@@ -311,16 +311,27 @@ def test_each_section_is_told_once_the_first_time_it_shows(monkeypatch):
     assert told == [0, 1]
 
 
-def test_arrows_wait_for_tab_and_picking_replaces_what_was_typed():
+def test_arrows_pick_without_tab_and_picking_replaces_what_was_typed():
     state = _state()
     state.handle("g")
     state.handle("9")  # no such section: nothing is highlighted
     state.handle("down")
-    assert state.typed == "9" and state.menu_pick is None  # Tab starts picking, as on a page
-    state.handle("tab")
-    assert state.typed == "" and state.menu_pick == 0
+    assert state.typed == "" and state.menu_pick == 0  # the arrows start picking, as Tab does
     state.handle("t")
     assert state.typed == "t" and state.menu_pick is None
+
+
+def test_a_slash_in_the_section_list_searches_the_whole_document():
+    state = _state([("one", ["alpha"]), ("two", ["beta"]), ("three", ["gamma needle"])])
+    state.handle("g")
+    state.handle("t")
+    assert state.handle("/") is Action.REDRAW
+    # back on the page Esc would return to, with the search field open
+    assert not state.menu and state.finding and state.typed == "" and state.index == 0
+    for key in "needle":
+        state.handle(key)
+    state.handle("enter")
+    assert state.search == "needle" and state.index == 2
 
 
 @pytest.mark.parametrize(("key", "pick"), [("down", 2), ("up", 0), ("tab", 1)])
@@ -412,7 +423,7 @@ def test_the_section_list_shows_every_section_with_aligned_numbers_and_says_to_p
     state.handle("g")
     rows = state.render(80)
     assert rows[2] == "   1  s1" and rows[13] == "  12  s12"
-    assert rows[-1] == "Type a number or name, then Enter | Pick: Tab, then ↑ ↓ ← → | Back: Esc"
+    assert rows[-1] == "Type a number or name, then Enter | Pick: ↑ ↓ ← → Tab | Search: / | Back: Esc"
 
 
 # --- reading keys ---------------------------------------------------------------------------------

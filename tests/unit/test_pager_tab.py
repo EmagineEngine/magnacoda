@@ -215,8 +215,8 @@ def _grid(count=7, height=6):
 
 def test_arrows_in_the_section_list_move_through_rows_and_columns_and_stop_at_the_edges():
     state = _grid()  # columns: 1 2 3 | 4 5 6 | 7
-    assert state.handle("down") is Action.NOTHING and state.menu_pick is None  # Tab starts picking
-    assert state.handle("tab") is Action.REDRAW and state.menu_pick == 0
+    # an arrow starts picking, as Tab does
+    assert state.handle("down") is Action.REDRAW and state.menu_pick == 0
     assert state.handle("up") is Action.NOTHING  # top of the column
     state.handle("down"), state.handle("down")
     assert state.menu_pick == 2 and state.handle("down") is Action.NOTHING  # bottom of the column

@@ -659,6 +659,10 @@ class PagerState:
                 return Action.NOTHING
             self.typed = self.typed[:-1]
             return Action.REDRAW
+        if key == "/":  # a search of the whole document, from the page Esc would return to
+            self._close_menu()
+            self.finding = True
+            return Action.REDRAW
         char = " " if key == "space" else key
         if len(char) == 1 and char.isprintable():  # letters, digits and the rest are typed
             if char == " " and not self.typed:
@@ -671,9 +675,6 @@ class PagerState:
                 self.typed, self.menu_pick = "", start
                 if key in ("tab", "shift-tab"):
                     return self._show_pick()
-        if key in ("up", "down", "left", "right") and self.menu_pick is None:
-            # Tab starts picking, as on a page; until then the arrows scroll a long list.
-            return self._menu_scroll(1 if key == "down" else -1) if key in ("up", "down") else Action.NOTHING
         if key in ("tab", "shift-tab", "up", "down", "left", "right"):
             self.typed = ""  # picking replaces what was typed
             if key in ("tab", "shift-tab"):
@@ -1031,14 +1032,13 @@ class PagerState:
                         "o, Enter back",
                     )
                 ]
-            pick = "Pick: ↑ ↓ ← → Tab" if self._typed_pick() is not None else "Pick: Tab, then ↑ ↓ ← →"
             return [
                 _fit(
                     width,
-                    f"Type {what}, then Enter{other} | {pick}{more} | Back: Esc",
-                    f"Type {what}, then Enter{other} | Pick: Tab{more} | Back: Esc",
+                    f"Type {what}, then Enter{other} | Pick: ↑ ↓ ← → Tab | Search: /{more} | Back: Esc",
+                    f"Type {what}, then Enter{other} | Pick: ↑ ↓ ← → Tab{more} | Back: Esc",
                     f"Type {what}, then Enter{other}{more} | Back: Esc",
-                    f"{short}, then Enter{short_other} | Tab pick{short_more} | Esc back",
+                    f"{short}, then Enter{short_other} | ↑↓←→ pick{short_more} | Esc back",
                     f"{short}, then Enter{short_other}{short_more} | Esc back",
                     f"{short}, then Enter{short_other} | Esc back",
                     f"Type, then Enter{short_other} | Esc back",
