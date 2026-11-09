@@ -1,6 +1,7 @@
 """The Windows update script, actually run by PowerShell (pwsh) where it is installed; skipped
-elsewhere. A copy of `sleep` named magnacoda stands in for a running magnacoda. Windows itself (file
-locking, Windows PowerShell 5.1, the new window) still needs a check by hand on Windows."""
+elsewhere. A process that gives itself the name of magnacoda stands in for a running magnacoda.
+Windows itself (file locking, Windows PowerShell 5.1, the new window) still needs a check by hand on
+Windows."""
 
 import os
 import shutil
@@ -19,15 +20,21 @@ PWSH = shutil.which("pwsh")
 # make the tests wait for it, and one per test process, so tests run in parallel don't wait for each
 # other's. Linux keeps 15 characters of a process name.
 FAKE = f"fakemc{os.getpid()}"
+# The stand-in is Python, renaming itself with prctl(PR_SET_NAME), so it doesn't depend on a program
+# such as `sleep`, which on Ubuntu 26.04 is one multi-call program that fails when copied under a new name.
+_STAND_IN = (
+    "import ctypes, sys, time; "
+    "ctypes.CDLL(None).prctl(15, sys.argv[1].encode()); "
+    "time.sleep(float(sys.argv[2]))"
+)
 pytestmark = pytest.mark.skipif(
-    PWSH is None or shutil.which("sleep") is None, reason="needs PowerShell (pwsh) and sleep"
+    PWSH is None or not sys.platform.startswith("linux"), reason="needs PowerShell (pwsh) on Linux"
 )
 
 
-def _script(tmp_path: Path, exit_code: int = 0) -> tuple[Path, Path]:
+def _script(tmp_path: Path, exit_code: int = 0) -> Path:
     install = tmp_path / "install"
     install.mkdir()
-    shutil.copy(shutil.which("sleep"), install / FAKE)
     stand_in = [
         PWSH,
         "-NoProfile",
@@ -40,14 +47,14 @@ def _script(tmp_path: Path, exit_code: int = 0) -> tuple[Path, Path]:
         updater.windows_script([stand_in], str(install), "pipx reinstall magnacoda", log=log, program=FAKE),
         encoding="utf-8-sig",
     )
-    return script, install / FAKE
+    return script
 
 
-def _start(fake: Path, seconds: int) -> subprocess.Popen[bytes]:
+def _start(seconds: int) -> subprocess.Popen[bytes]:
     """Start the fake magnacoda, and collect it the moment it ends: on Linux a finished child that
     hasn't been collected still shows in the process list (Windows has no such leftovers), and the
     script would rightly keep waiting for it."""
-    process = subprocess.Popen([str(fake), str(seconds)])
+    process = subprocess.Popen([sys.executable, "-c", _STAND_IN, FAKE, str(seconds)])
     threading.Thread(target=process.wait, daemon=True).start()
     return process
 
@@ -77,10 +84,10 @@ def test_the_script_parses():
 
 
 def test_it_waits_while_magnacoda_runs_then_asks_then_updates(tmp_path):
-    script, fake = _script(tmp_path)
+    script = _script(tmp_path)
     # The fake runs until the script says it's waiting, then stops: PowerShell can take many seconds
     # to start on a busy machine, so a fake that ends on its own may be gone before the script looks.
-    running = _start(fake, 120)
+    running = _start(120)
     process = subprocess.Popen(
         [PWSH, "-NoProfile", "-File", str(script)],
         stdin=subprocess.PIPE,
@@ -112,7 +119,7 @@ def test_it_waits_while_magnacoda_runs_then_asks_then_updates(tmp_path):
 
 
 def test_a_failed_update_shows_the_repair(tmp_path):
-    script, _ = _script(tmp_path, exit_code=3)
+    script = _script(tmp_path, exit_code=3)
     out = _run(script).stdout
     assert "The last lines of its log:" in out and "  STAND-IN RAN" in out and "The whole log is in" in out
     assert "If magnacoda no longer starts, repair it with:" in out
@@ -121,11 +128,11 @@ def test_a_failed_update_shows_the_repair(tmp_path):
 
 @pytest.mark.skipif(sys.platform == "win32", reason="uses a POSIX pseudo-terminal")
 def test_magnacoda_started_again_before_enter_means_no_update(tmp_path):
-    script, fake = _script(tmp_path)
+    script = _script(tmp_path)
     terminal, running = _Terminal(script), None
     try:
         assert _until(terminal, "Press Enter to update now")  # it saw no magnacoda and asks
-        running = _start(fake, 120)  # magnacoda is started again before Enter
+        running = _start(120)  # magnacoda is started again before Enter
         terminal.wait(0.5)
         terminal.press_enter()
         assert _until(terminal, "magnacoda was started again, so nothing was changed.")
@@ -195,14 +202,13 @@ def _until(terminal: _Terminal, words: str, seconds: float = 60) -> bool:
 def test_enter_pressed_early_or_during_the_update_is_thrown_away(tmp_path):
     install = tmp_path / "install"
     install.mkdir()
-    shutil.copy(shutil.which("sleep"), install / FAKE)
     stand_in = [PWSH, "-NoProfile", "-Command", "Start-Sleep 2; exit 0"]
     script = tmp_path / "update.ps1"
     script.write_text(
         updater.windows_script([stand_in], str(install), "r", log=str(tmp_path / "u.log"), program=FAKE),
         encoding="utf-8-sig",
     )
-    running = _start(install / FAKE, 120)  # stopped below, once the script has seen it
+    running = _start(120)  # stopped below, once the script has seen it
     terminal = _Terminal(script)
     try:
         assert _until(terminal, "Waiting...")
