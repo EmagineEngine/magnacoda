@@ -134,7 +134,7 @@ magnacoda setup
   - With uv: `uv tool install C:\dev\magnacoda --with C:\dev\example-addon` (the install command again, with the add-on added; uv rebuilds the install to include it)
   - With pipx: `pipx inject magnacoda C:\dev\example-addon`
 
-  To learn what add-ons are and how they show up in *magnacoda*, type `help add-ons`. To write your own, see [Writing an add-on](CONTRIBUTING.md#writing-an-add-on).
+  To learn what add-ons are and how they show up in *magnacoda*, type `help add-ons`. To write your own, see [Writing an add-on](docs/add-ons.md#writing-an-add-on).
 - **Keep the folder** if you may want to reinstall from it later. The installer copies everything it needs, so *magnacoda* doesn't run from it.
 
 **If Windows says a command is not recognized:**
@@ -216,7 +216,7 @@ It is also a thin layer over other people's work, and it would not exist without
 
 ### Contributing
 
-**To make *magnacoda* do more, write an add-on.** An add-on is a small Python package that adds commands, help, settings or a choice at the start of the wizard. Changes to *magnacoda*'s own code would have to be redone for every new version, but an add-on is a package of its own. It stays installed when you update *magnacoda*, and you can share it or publish it on PyPI. Anyone can write one. To start, see [Writing an add-on](CONTRIBUTING.md#writing-an-add-on), whose first example rings the terminal's bell when a scan finishes.
+**To make *magnacoda* do more, write an add-on.** An add-on is a small Python package that adds commands, help, settings or a choice at the start of the wizard. Changes to *magnacoda*'s own code would have to be redone for every new version, but an add-on is a package of its own. It stays installed when you update *magnacoda*, and you can share it or publish it on PyPI. Anyone can write one. To start, see [Writing an add-on](docs/add-ons.md#writing-an-add-on), whose first example rings the terminal's bell when a scan finishes.
 
 To contribute to *magnacoda* itself, see `CONTRIBUTING.md`, which includes the terms contributions are made under (sign off each commit with `git commit -s`).
 

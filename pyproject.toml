@@ -64,7 +64,7 @@ dev = [
 
 [project.scripts]
 magnacoda = "magnacoda.start:main"
-magnacode = "magnacoda.start:run_as_magnacoda"  # a common slip of the fingers; see CONTRIBUTING "Command names"
+magnacode = "magnacoda.start:run_as_magnacoda"  # a common slip of the fingers; see MAINTAINING.local.md "Command names"
 magnaconda = "magnacoda.start:run_as_magnacoda"  # likewise
 
 # Add-ons that come with magnacoda (magnacoda_addons/), found like installed ones (see plugins.py).
@@ -95,6 +95,7 @@ exclude = ["magnacoda_addons/*/tests"]
 "docs/manual.md" = "magnacoda/data/manual.md"
 "CHANGELOG.md" = "magnacoda/data/CHANGELOG.md"
 "CONTRIBUTING.md" = "magnacoda/data/CONTRIBUTING.md"
+"docs/add-ons.md" = "magnacoda/data/add-ons.md"
 "LICENSE.md" = "magnacoda/data/LICENSE.md"
 "LICENSE-ADDITIONAL-PERMISSION.md" = "magnacoda/data/LICENSE-ADDITIONAL-PERMISSION.md"
 "NOTICE.md" = "magnacoda/data/NOTICE.md"

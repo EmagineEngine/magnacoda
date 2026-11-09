@@ -16,6 +16,7 @@ SOURCES = {
     "manual.md": "docs/manual.md",
     "CHANGELOG.md": "CHANGELOG.md",
     "CONTRIBUTING.md": "CONTRIBUTING.md",
+    "add-ons.md": "docs/add-ons.md",
     "LICENSE.md": "LICENSE.md",
     "LICENSE-ADDITIONAL-PERMISSION.md": "LICENSE-ADDITIONAL-PERMISSION.md",
     "NOTICE.md": "NOTICE.md",

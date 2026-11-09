@@ -8,7 +8,8 @@ The viewer's Open list (`o`): each `##` heading is a group, each link a document
 - [Manual](manual.md) (also: docs)
 - [README](README.md)
 - [What's changed](CHANGELOG.md) (also: changelog)
-- [Contributing and add-ons](CONTRIBUTING.md) (also: contributing)
+- [Writing add-ons](add-ons.md) (also: addons)
+- [Contributing](CONTRIBUTING.md) (also: contributing)
 
 ## Legal
 

@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PACKAGE = ROOT / "magnacoda"
 ADDONS = sorted(path.parent for path in (ROOT / "magnacoda_addons").glob("*/plugin.py"))
 
-# What an add-on may import from magnacoda (CONTRIBUTING, "Add-ons"); everything else is internal.
+# What an add-on may import from magnacoda (docs/add-ons.md); everything else is internal.
 PUBLIC = {
     "magnacoda.plugins",
     "magnacoda.savedcommand",

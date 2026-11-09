@@ -13,7 +13,7 @@ or an instance) with a `PLUGIN_API` number and any of these hooks; hooks it lack
                               after magnacoda's own in `help`
 
 A broken add-on (fails to load, wrong PLUGIN_API, raises in a hook) gets one warning and is ignored.
-MAGNACODA_PLUGINS=off or --no-addons skips them all. See CONTRIBUTING for what add-ons may import.
+MAGNACODA_PLUGINS=off or --no-addons skips them all. See docs/add-ons.md for what add-ons may import.
 """
 
 from __future__ import annotations

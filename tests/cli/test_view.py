@@ -136,6 +136,7 @@ def test_view_and_readme_can_start_at_a_named_section(tmp_path, monkeypatch):
 
 def test_a_document_magnacoda_comes_with_opens_from_any_folder(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    assert "Writing an add-on" in _run("view", "contributing.md").output
+    assert "Writing an add-on" in _run("view", "add-ons.md").output
+    assert "Pull requests" in _run("view", "contributing.md").output
     (tmp_path / "CONTRIBUTING.md").write_text("# Mine\n\nMy own notes.\n")
     assert "My own notes." in _run("view", "CONTRIBUTING.md").output  # a file here comes first
