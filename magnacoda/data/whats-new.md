@@ -10,6 +10,10 @@ HOW IT IS READ
   * Keep each entry to one short sentence, two at most. Leave the details to the manual and help.
 -->
 
+## 0.1.7
+
+- The docs are easier to use. The guide to writing add-ons is its own document, `view add-ons.md`, and `view contributing.md` is shorter.
+
 ## 0.1.6
 
 - On Windows, the shortcut opens Windows Terminal. Remake it with `shortcut remove`, then `shortcut`.

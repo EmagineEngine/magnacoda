@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.1.7] - 2026-11-09
+
+### Changed
+
+- The docs are easier to use. The guide to writing add-ons is its own document, `view add-ons.md`, and `view contributing.md` is shorter.
+
 ## [0.1.6] - 2026-11-05
 
 ### Fixed
