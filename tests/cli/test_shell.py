@@ -50,6 +50,27 @@ def test_the_start_says_what_the_daily_update_check_found(monkeypatch, outcome, 
     assert result.output.index("Welcome to") < result.output.index("Checking for updates...")
 
 
+@pytest.mark.parametrize(
+    ("line", "plain"),
+    [
+        (".help", "help"),
+        (".exit", "exit"),
+        (".scan x", "scan x"),
+        ("./here", "./here"),
+        ("..", ".."),
+        (".5", ".5"),
+    ],
+)
+def test_a_leading_period_before_a_word_is_dropped(line, plain):
+    assert cli._without_dot(line) == plain
+
+
+def test_dot_commands_work_in_the_shell_like_the_plain_ones():
+    result = CliRunner().invoke(main, ["shell"], input=".menu\n.exit\n")
+    assert result.exit_code == 0 and "Commands:" in result.output
+    assert "No such command" not in result.output and "Unknown" not in result.output
+
+
 @pytest.mark.parametrize("exit_word", ["exit", "quit", "q"])
 def test_shell_accepts_any_exit_word(exit_word):
     result = CliRunner().invoke(main, ["shell"], input=f"{exit_word}\n")

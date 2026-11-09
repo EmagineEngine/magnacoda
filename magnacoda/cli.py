@@ -755,6 +755,15 @@ def _print_notice(console: Console, markup: str, max_width: int | None = None) -
     console.print()
 
 
+_LEADING_DOT = re.compile(r"\.(?=[A-Za-z])")
+
+
+def _without_dot(line: str) -> str:
+    """The shell's line without a leading period before a word (".help", ".exit", as in Node's shell), so
+    that habit doesn't trip anyone up. A path such as ./here or .. is left alone."""
+    return _LEADING_DOT.sub("", line, count=1) if line.startswith(".") else line
+
+
 _CHECKING = "Checking for updates..."
 
 
@@ -1624,7 +1633,7 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
             tail.ensure_blank_line()
         after_output = False
         try:
-            line = pending or console.input(prompt).strip()
+            line = _without_dot(pending or console.input(prompt).strip())
             tail.noted("\n")  # the terminal echoes the Enter
             pending = None
         except EOFError:  # Ctrl+D: leave
