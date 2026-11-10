@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.1.8] - 2026-11-10
+
+### Changed
+
+- The start waits up to two seconds for the day's update check, so a new version is announced right away.
+- In the shell, a command can start with a period, as in Node's shell (`.help`, `.exit`).
+- On Windows, links in the help viewer are clickable in VS Code's and PyCharm's terminals.
+
+### Fixed
+
+- On Windows, the classic console and Git Bash show the right colors with a light color scheme.
+
 ## [0.1.7] - 2026-11-09
 
 ### Changed
