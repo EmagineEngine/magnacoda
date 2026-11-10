@@ -109,6 +109,8 @@ def test_the_row_cut_counts_only_what_shows_and_closes_an_open_link():
         ({"TERM_PROGRAM": "iTerm.app"}, "darwin", True),
         ({}, "win32", False),
         ({"WT_SESSION": "x"}, "win32", True),
+        ({"TERM_PROGRAM": "vscode"}, "win32", True),
+        ({"TERMINAL_EMULATOR": "JetBrains-JediTerm"}, "win32", True),
     ],
 )
 def test_hyperlinks_only_where_the_terminal_is_likely_to_have_them(env, platform, expected):

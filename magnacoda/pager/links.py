@@ -47,7 +47,12 @@ def supported(env: Mapping[str, str] | None = None, platform: str = sys.platform
     if env.get("TERM", "") in ("linux", "dumb") or env.get("TERM_PROGRAM") == "Apple_Terminal":
         return False
     if platform == "win32":
-        return bool(env.get("WT_SESSION"))  # Windows Terminal has them; the old console doesn't
+        # Windows Terminal has them, and so do VS Code's (since 1.72) and PyCharm's; the old console doesn't.
+        return (
+            bool(env.get("WT_SESSION"))
+            or env.get("TERM_PROGRAM") == "vscode"
+            or env.get("TERMINAL_EMULATOR", "").startswith("JetBrains")
+        )
     return True
 
 
