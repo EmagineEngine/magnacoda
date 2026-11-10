@@ -316,4 +316,24 @@ def test_show_saves_to_the_settings_file_it_read(tmp_path, monkeypatch):
 )
 def test_on_windows_the_terminal_s_own_colors_or_else_windows_defaults(monkeypatch, reply, expected):
     monkeypatch.setattr(pager, "windows_console_reply", lambda question, out, wait: reply)
+    monkeypatch.setattr(pager, "windows_palette", lambda: None)
     assert pager.windows_terminal_colors(io.StringIO()) == expected
+
+
+def test_on_windows_a_terminal_that_does_not_answer_gets_the_colors_it_is_set_to(monkeypatch):
+    light = ((0, 0, 0), (250, 250, 250))
+    monkeypatch.setattr(pager, "windows_console_reply", lambda question, out, wait: "")
+    monkeypatch.setattr(pager, "windows_palette", lambda: light)
+    assert pager.windows_terminal_colors(io.StringIO()) == light
+
+
+def test_bold_in_the_terminal_s_own_colors_gets_its_text_color_where_asked():
+    body = "\x1b[1mbold\x1b[22m \x1b[1;3mtitle\x1b[0m"
+    assert pager._bold_in_text_color(body) == body
+    pager._BOLD_COLOR[0] = "38;2;51;51;51"
+    try:
+        assert pager._bold_in_text_color(body) == (
+            "\x1b[1;38;2;51;51;51mbold\x1b[22m \x1b[1;3;38;2;51;51;51mtitle\x1b[0m"
+        )
+    finally:
+        pager._BOLD_COLOR[0] = ""

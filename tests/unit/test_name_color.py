@@ -36,7 +36,15 @@ def test_the_windows_answer_gives_the_background(reply, color):
 def test_on_windows_a_terminal_that_doesnt_answer_counts_as_dark(monkeypatch, answer, expected):
     monkeypatch.setattr(name_color.sys, "platform", "win32")
     monkeypatch.setattr(winconsole, "background", lambda: answer)
+    monkeypatch.setattr(name_color.winpalette, "configured", lambda: None)
     assert name_color._background() == expected
+
+
+def test_on_windows_a_terminal_that_doesnt_answer_counts_as_set_to_its_own_palette(monkeypatch):
+    monkeypatch.setattr(name_color.sys, "platform", "win32")
+    monkeypatch.setattr(winconsole, "background", lambda: None)
+    monkeypatch.setattr(name_color.winpalette, "configured", lambda: ((0, 0, 0), (250, 250, 250)))
+    assert name_color._background() == "#fafafa"
 
 
 @pytest.mark.parametrize(
@@ -51,3 +59,16 @@ def test_a_windows_console_with_control_codes_says_it_has_full_color(monkeypatch
         monkeypatch.setenv("COLORTERM", before)
     winconsole.enable_virtual_terminal()
     assert winconsole.os.environ.get("COLORTERM") == after
+
+
+def test_bold_in_mintty_on_windows_is_drawn_in_the_themes_text_color(monkeypatch, tmp_path):
+    (tmp_path / ".minttyrc").write_text("ForegroundColour=51,51,51\nBackgroundColour=250,250,250\n")
+    monkeypatch.setattr(winconsole.sys, "platform", "win32")
+    monkeypatch.setattr(winconsole.Path, "home", lambda: tmp_path)
+    monkeypatch.setenv("TERM_PROGRAM", "mintty")
+    winconsole.bold_color.cache_clear()
+    assert winconsole.bold_color() == (51, 51, 51)
+    monkeypatch.setenv("TERM_PROGRAM", "other")
+    winconsole.bold_color.cache_clear()
+    assert winconsole.bold_color() is None
+    winconsole.bold_color.cache_clear()

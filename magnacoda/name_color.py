@@ -1,7 +1,8 @@
 """The color of magnacoda's name in the shell: a blue that keeps 7:1 contrast on the terminal's background.
 
 The terminal is asked for its background (OSC 11). Without an answer the name is just bold, except on
-Windows, where a terminal that doesn't answer is taken as dark, the default of every Windows terminal.
+Windows, where a terminal that doesn't answer is taken to be set as the console's palette or mintty's
+settings say, else dark, the default of every Windows terminal.
 Without 256 or more colors it's just bold.
 """
 
@@ -13,6 +14,7 @@ import sys
 from rich.console import Console
 
 from magnacoda import winconsole
+from magnacoda.pager import winpalette
 from magnacoda.pager.colors import contrast, nearest256, xterm256
 from magnacoda.pager.screen import terminal_colors, title_blue
 
@@ -38,7 +40,7 @@ def for_background(background: str, color_system: str | None) -> str:
 
 def _background() -> str | None:
     if sys.platform == "win32":
-        found = winconsole.background()
+        found = winconsole.background() or (winpalette.configured() or (None, None))[1]
         return "#{:02x}{:02x}{:02x}".format(*found) if found else WINDOWS_DEFAULT
     if os.name != "posix":
         return None

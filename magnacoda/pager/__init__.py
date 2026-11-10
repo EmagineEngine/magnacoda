@@ -23,7 +23,7 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
-from magnacoda.pager import browser, colors, emphasis, files, links, markdown, themes
+from magnacoda.pager import browser, colors, emphasis, files, links, markdown, screen, themes, winpalette
 from magnacoda.pager.documents import Entry, Opening, read_list
 from magnacoda.pager.formats import MARKDOWN, TEXT, Format
 from magnacoda.pager.markdown import with_title
@@ -36,6 +36,8 @@ from magnacoda.pager.screen import (
     pager_available,
     restore_screen,
 )
+
+screen.windows_palette = winpalette.configured
 
 __all__ = [
     "Entry",

@@ -9,7 +9,13 @@ from __future__ import annotations
 import os
 import re
 import sys
+from functools import cache
+from pathlib import Path
 
+from rich import themes
+from rich.style import Style
+
+from magnacoda.pager import winpalette
 from magnacoda.pager.screen import RGB, windows_console_reply
 
 _ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
@@ -18,11 +24,24 @@ _QUESTION = "\x1b]11;?\x1b\\\x1b[c"  # the background, then a question every ter
 _BACKGROUND = re.compile(r"\x1b\]11;rgb:([0-9a-fA-F]{1,4})/([0-9a-fA-F]{1,4})/([0-9a-fA-F]{1,4})")
 
 
+@cache
+def bold_color() -> tuple[int, int, int] | None:
+    """The text color to give bold text, or None to leave it to the terminal. On Windows, mintty gets our
+    output through a console layer that turns bold default-color text into bright white, which is
+    unreadable on a light theme; bold in the theme's own text color is not changed."""
+    if sys.platform != "win32" or os.environ.get("TERM_PROGRAM") != "mintty":
+        return None
+    pair = winpalette.mintty(os.environ, Path.home())
+    return pair[0] if pair else None
+
+
 def enable_virtual_terminal() -> bool:
     """True if stdout handles control codes now (always True off Windows). Every Windows console that
     does handles full color, but none says so in COLORTERM, which the pager goes by; so this does."""
     if sys.platform != "win32":
         return True
+    if color := bold_color():
+        themes.DEFAULT.styles["bold"] = Style(bold=True, color="#{:02x}{:02x}{:02x}".format(*color))
     _enable(_STD_ERROR_HANDLE)
     enabled = _enable(_STD_OUTPUT_HANDLE)
     if enabled and not os.environ.get("COLORTERM"):

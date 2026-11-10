@@ -2038,6 +2038,18 @@ def text_width(columns: int, space: Margins) -> int:
     return columns - 2 * space.side if space.side else columns - 1
 
 
+# Bold text in the terminal's own colors is drawn with this text color too, as "38;2;r;g;b;" (or ""): on
+# Windows, mintty gets our output through a console layer that turns such bold into bright white.
+_BOLD_COLOR = [""]
+
+
+def _bold_in_text_color(body: str) -> str:
+    code = _BOLD_COLOR[0]
+    return (
+        body.replace("\x1b[1m", f"\x1b[1;{code}m").replace("\x1b[1;3m", f"\x1b[1;3;{code}m") if code else body
+    )
+
+
 def _draw(
     out: Any,
     rows: Sequence[str],
@@ -2103,7 +2115,8 @@ def _draw(
         parts.append(f"\x1b[{line};1H{indent}{text}\x1b[K")
     if colors:
         parts.append("\x1b[0m")
-    out.write("".join(parts) + tail)
+    body = "".join(parts)
+    out.write((body if colors else _bold_in_text_color(body)) + tail)
     out.flush()
 
 
@@ -2151,15 +2164,20 @@ def terminal_colors(fd: int, out: Any, wait: float = 0.3) -> Pair | None:
 # Windows Terminal's default scheme (Campbell) and the classic console's: what a Windows terminal that
 # doesn't answer the color question most likely shows.
 WINDOWS_COLORS: Pair = ((204, 204, 204), (12, 12, 12))
+# Where else to look for the colors a Windows terminal is set to (the console's palette, mintty's
+# settings), when it doesn't answer; the package sets it, so this file still works on its own.
+windows_palette: Callable[[], Pair | None] = lambda: None  # noqa: E731
 
 
 def windows_terminal_colors(out: Any, wait: float = 0.2) -> Pair:
-    """The terminal's own (text, background) on Windows: its answer, or Windows' default colors."""
+    """The terminal's own (text, background) on Windows: its answer, else the colors it is set to (the
+    console's palette, mintty's settings), else Windows' default colors."""
     try:
         reply = windows_console_reply(_COLOR_QUESTION, out, wait)
     except (AttributeError, OSError, ValueError):
         reply = ""
-    return parse_terminal_colors(reply.encode("latin-1", "replace")) or WINDOWS_COLORS
+    answer = parse_terminal_colors(reply.encode("latin-1", "replace"))
+    return answer or windows_palette() or WINDOWS_COLORS
 
 
 def windows_console_reply(question: str, out: Any, wait: float) -> str:  # pragma: no cover - Windows only
@@ -2624,6 +2642,8 @@ def page_sections(
         own_colors = terminal_colors(sys.stdin.fileno(), out)
     elif own_colors is None and sys.platform == "win32" and colors:
         own_colors = windows_terminal_colors(out)
+    mintty = sys.platform == "win32" and os.environ.get("TERM_PROGRAM") == "mintty"
+    _BOLD_COLOR[0] = "38;2;{};{};{}".format(*own_colors[0]) if mintty and own_colors else ""
     left_normally = False
     told: set[int] = set()
 

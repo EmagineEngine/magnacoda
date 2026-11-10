@@ -609,7 +609,7 @@ def recheck_cmd(
             _review_in_browser(scan)
     else:
         command = "review" if isinstance(ctx.obj, dict) else "magnacoda review"
-        bold = click.style(command, bold=True) if sys.stdout.isatty() else command
+        bold = click.style(command, bold=True, fg=winconsole.bold_color()) if sys.stdout.isatty() else command
         _echo(f"Type {bold} to see it.")
 
 
@@ -2274,7 +2274,11 @@ def _say_what_was_saved(
         _echo(took + ".", err=True)
     _echo(f"Saved in {short(folder)}.", err=True)
     review, recheck_word = f"{_program()}review", f"{_program()}recheck"
-    bold = (lambda word: click.style(word, bold=True)) if sys.stderr.isatty() else (lambda word: word)
+    bold = (
+        (lambda word: click.style(word, bold=True, fg=winconsole.bold_color()))
+        if sys.stderr.isatty()
+        else (lambda word: word)
+    )
     fixes = f", and {bold(recheck_word)} once you've fixed some" if report.findings else ""
     _echo(f"\nType {bold(review)} to see them in your browser{fixes}.", err=True)
 
