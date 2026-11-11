@@ -356,3 +356,15 @@ def test_the_logo_is_in_the_header_and_hidden_from_screen_readers(tmp_path):
     logo = header.split('<p class="product">', 1)[1]
     assert logo.startswith('<svg class="logo"') and 'aria-hidden="true"' in logo.split(">", 1)[0]
     assert "<em>magnacoda</em> review" in logo
+
+
+def test_stopping_ends_the_serving_thread_before_closing_and_twice_is_harmless(session, monkeypatch):
+    running, _ = session
+    problems = []
+    monkeypatch.setattr(threading, "excepthook", lambda args: problems.append(args.exc_value))
+    status, _ = running.request("POST", f"/{running.server.token}/done")  # stops it from a request
+    assert status == 200
+    running.server.wait()  # and the terminal's own stop() right behind it
+    running.server.stop()
+    assert running.server._thread is not None and not running.server._thread.is_alive()
+    assert problems == []

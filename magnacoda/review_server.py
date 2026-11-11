@@ -21,6 +21,10 @@ TELL_PAGES_SECONDS = 2.0  # at most this long for the open pages to hear "stoppe
 _PING_SECONDS = 15.0  # a comment line now and then, so a closed tab's connection is noticed
 
 
+class _Server(ThreadingHTTPServer):
+    daemon_threads = True  # closing never waits for (or joins) the thread that is stopping the review
+
+
 class ReviewServer:
     """One review session: start(), the page's address in `url`, then wait() until Done or Ctrl+C."""
 
@@ -28,17 +32,21 @@ class ReviewServer:
         self.folder = folder.resolve()
         self.variants = variants
         self.token = secrets.token_urlsafe(18)
-        self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), self._handler())
+        self.httpd = _Server(("127.0.0.1", 0), self._handler())
         self.port = self.httpd.server_address[1]
         self.url = f"http://127.0.0.1:{self.port}/{self.token}/"
         self._stopped = threading.Event()
+        self._stopping = threading.Lock()  # Done and Ctrl+C can both stop it; only one shuts the server down
+        self._closed = False
+        self._thread: threading.Thread | None = None
         self._ending = threading.Event()  # set first, so the open pages hear "stopped"
         self._listening = threading.Condition()
         self._listeners = 0  # pages with an open events connection
         self._rechecking = threading.Lock()  # one recheck at a time
 
     def start(self) -> None:
-        threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
+        self._thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
+        self._thread.start()
 
     def wait(self) -> bool:
         """Block until the page's Done button (or stop()); Ctrl+C also ends it. Whether it was Ctrl+C."""
@@ -53,14 +61,21 @@ class ReviewServer:
 
     def stop(self) -> None:
         """Tell the open pages first (they show their Done view), then shut down, so the terminal only
-        says the review has ended once the browser shows it too."""
-        if not self._stopped.is_set():
-            self._ending.set()
-            with self._listening:
-                self._listening.wait_for(lambda: self._listeners == 0, timeout=TELL_PAGES_SECONDS)
-            self._stopped.set()
-            threading.Thread(target=self.httpd.shutdown, daemon=True).start()
-        self.httpd.server_close()
+        says the review has ended once the browser shows it too. Safe to call from several threads: the
+        server stops serving before its socket is closed, which Windows insists on."""
+        with self._stopping:
+            if self._closed:
+                return
+            if not self._stopped.is_set():
+                self._ending.set()
+                with self._listening:
+                    self._listening.wait_for(lambda: self._listeners == 0, timeout=TELL_PAGES_SECONDS)
+                self._stopped.set()
+            if self._thread is not None:
+                self.httpd.shutdown()  # returns once serve_forever has finished its last poll
+                self._thread.join(timeout=TELL_PAGES_SECONDS)
+            self.httpd.server_close()
+            self._closed = True
 
     def _events(self, handler: BaseHTTPRequestHandler) -> None:
         """A page's events connection (server-sent events): held open until the review stops, then
