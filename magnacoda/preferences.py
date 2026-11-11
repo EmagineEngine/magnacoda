@@ -34,6 +34,9 @@ typing = on
 spinner = on
 # Show a short tip under the list of commands, the first time menu shows it (on or off).
 tips = on
+# When something goes wrong that magnacoda didn't expect, print its details at once (on or off).
+# Off shows one short message; the errors command shows the saved details either way.
+show_errors = off
 
 [scan]
 # Quick scans (on or off): leave out the slowest tests that use the page, which watch it for moving
@@ -109,6 +112,7 @@ class Preferences:
     typing: bool = True
     spinner: bool = True
     tips: bool = True
+    show_errors: bool = False
     paging: bool = True
     ai_engine: AIChoice = "ask"
     review_window: Literal["tab", "new"] = "tab"
@@ -164,6 +168,10 @@ def load() -> Preferences:
     except ValueError:
         tips = True
     try:
+        show_errors = parser.getboolean("display", "show_errors", fallback=False)
+    except ValueError:
+        show_errors = False
+    try:
         spinner = parser.getboolean("display", "spinner", fallback=True)
     except ValueError:
         spinner = True
@@ -190,6 +198,7 @@ def load() -> Preferences:
         news_check=news_check,
         typing=typing,
         tips=tips,
+        show_errors=show_errors,
         spinner=spinner,
         paging=paging,
         ai_engine=ai_engine,

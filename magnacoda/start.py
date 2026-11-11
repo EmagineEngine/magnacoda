@@ -4,6 +4,9 @@ import sys
 
 
 def _run(name: str) -> None:
+    from magnacoda import errors
+
+    errors.install()  # an error nothing catches: one short message, the details saved
     try:
         from magnacoda import cli
     except KeyboardInterrupt:

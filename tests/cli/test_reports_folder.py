@@ -4,7 +4,7 @@ import subprocess
 import pytest
 from click.testing import CliRunner
 
-from magnacoda import cli
+from magnacoda import cli, errors
 from magnacoda.cli import main
 from magnacoda.findings.models import ScanMeta, ScanReport
 
@@ -241,16 +241,16 @@ def test_an_exit_code_of_2_says_the_scan_did_not_finish(monkeypatch, tmp_path):
     crash = CliRunner().invoke(main, ["scan", "http://example.test"])
     out = " ".join(crash.output.split())
     assert crash.exit_code == 2 and "Traceback" not in crash.output
+    assert "Error: Something went wrong. Please report it at magnacoda.dev/contact" in out
+    assert "Type magnacoda errors to see the details." in out and "Exit code 2:" in out
     assert (
-        "magnacoda stopped unexpectedly (RuntimeError: Target page, context or browser has been closed)"
-        in out
+        "RuntimeError" in errors.text() and "Target page, context or browser has been closed" in errors.text()
     )
-    assert "run the scan again with -v to see the details" in out and "Exit code 2:" in out
     detailed = CliRunner().invoke(main, ["scan", "http://example.test", "-v"])
     assert (
         detailed.exit_code == 2
         and "Traceback" in detailed.output
-        and "The details are above." in detailed.output
+        and "Something went wrong." in detailed.output
     )
 
 

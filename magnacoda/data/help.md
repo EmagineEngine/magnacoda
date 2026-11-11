@@ -90,7 +90,7 @@ To learn how to open a terminal on your computer, type `docs starting`.
 - `magnacoda scan URL [OPTIONS]`
   Scan a page.
 - `magnacoda COMMAND [ARGS]`
-  Run one command: scan, wizard, setup, shortcut, screenreader, review, recheck, shell, news, update, uninstall, about, help, readme, docs or view.
+  Run one command: scan, wizard, setup, shortcut, screenreader, errors, review, recheck, shell, news, update, uninstall, about, help, readme, docs or view.
 
 The commands and options sections list what's available.
 
@@ -127,6 +127,8 @@ Like an old terminal printer, the shell never erases anything. Each command's ou
   Add a shortcut to your app menu (on Windows, the Start menu, where `Ctrl+Alt+M` opens it too; on macOS, Applications), your desktop, or both. `uninstall` removes them too.
 - `screenreader on`, `screenreader off`
   With a screen reader, `on` turns off what reads poorly with one: text typed out a little at a time, the spinner and paging. `off` turns them back on, and `screenreader` alone says which are on.
+- `errors`, `errors on`, `errors off`
+  When something goes wrong that *magnacoda* didn't expect, you see one short message and the details are saved. `errors` shows them. To report a problem, go to magnacoda.dev/contact (in the shell, `details` does the same as `errors`). Cookie and header values are left out. `errors on` shows the details as it happens too, and `errors off` goes back to the short message. It sets `show_errors` under `[display]` in `preferences.ini`, and `MAGNACODA_DEBUG` set in your shell does the same for one run.
 - `review [FOLDER] [--no-browser]`
   List your saved scans, newest first, so you can pick one by number and review it in your browser. To look in another folder, add its name; to read it in the help viewer instead of your browser, add `--no-browser` (it also opens there when there's no browser). The help viewer only shows it; to tick items, use your browser or a Markdown editor. For more, type `docs reviewing`.
 - `recheck [FOLDER]`
@@ -154,8 +156,6 @@ Like an old terminal printer, the shell never erases anything. Each command's ou
   Show the commands, below whatever is on screen.
 - `clear`, `cls`
   Start a fresh page, the way a printer does. What was on screen scrolls up into the scrollback, where nothing is erased.
-- `details`
-  When something goes wrong that *magnacoda* didn't expect, this shows you the full details, to look into it or to report it. Cookie and header values are left out.
 - `exit / quit / q`
   Leave the shell (`Ctrl+D` also works). `q` and `Ctrl+C` ask first, since they're easy to press once too often.
 

@@ -4,7 +4,6 @@ import contextlib
 import dataclasses
 import difflib
 import os
-import platform
 import re
 import shlex
 import shutil
@@ -31,6 +30,7 @@ from magnacoda import (
     addresses,
     checklist,
     documents,
+    errors,
     estimate,
     farewell,
     history,
@@ -1440,7 +1440,7 @@ class _Watched:
 
 _SHELL_MENU_WORD = "menu"  # the banner (its commands), printed below like any output
 _SHELL_CLEAR_WORDS = questions.CLEAR_WORDS  # a fresh page; nothing is erased
-_SHELL_DETAILS_WORD = "details"
+_SHELL_DETAILS_WORD = "details"  # the older name of `errors`
 _PROGRAM_NAMES = ("magnacoda", "magnacode", "magnaconda")  # the command and its typo aliases
 # Typing the program's name inside its own shell: these in turn, the last one for good, each followed
 # by the same real paths.
@@ -1501,31 +1501,33 @@ def _program_names() -> set[str]:
     return {name + word for name in _PROGRAM_NAMES} | set(_PROGRAM_NAMES)
 
 
-_DETAILS_HINT = "Type details to see more."
+def _line_of(state: object) -> str:
+    """The command being run, for the error log: the shell's own line, else the arguments, both without
+    cookie or header values."""
+    if isinstance(state, dict) and state.get("line"):
+        return str(state["line"])
+    return shlex.join(savedcommand.redact(sys.argv[1:]))
 
 
-def _keep_details(state: object) -> bool:
-    """In the shell, keep the error being handled for `details`. True if kept."""
-    if not (isinstance(state, dict) and state.get("in_shell")):
-        return False
-    state["last_error"] = (state.get("line", ""), datetime.now(), traceback.format_exc())
-    return True
-
-
-def _show_details(console: Console, state: dict[str, Any]) -> None:
-    kept = state.get("last_error")
-    if not kept:
-        teletype.say(console, "No error details: nothing unexpected has gone wrong in this session.")
+@main.command(name="errors")
+@click.argument("mode", required=False, type=click.Choice(["on", "off"], case_sensitive=False))
+def errors_cmd(mode: str | None) -> None:
+    """Show the details of the last unexpected error, or turn showing errors as they happen on or off."""
+    if mode is None:
+        click.echo(errors.text())
         return
-    line, when, details = kept
-    console.print(
-        f"The last error, at {when:%H:%M}, from: {line}\n\n{details.rstrip()}\n\n"
-        f"magnacoda {__version__}, Python {platform.python_version()}, {platform.platform()}\n"
-        "If it looks like a bug, please report it with these details (type about for where).",
-        markup=False,
-        highlight=False,
-        soft_wrap=True,  # whole lines, so they copy cleanly into a report
-    )
+    shown = mode.lower() == "on"
+    try:
+        preferences.set_value("display", "show_errors", "on" if shown else "off")
+    except OSError as exc:
+        raise click.ClickException(f"Couldn't change {preferences.preferences_path()}: {exc}.") from exc
+    if shown:
+        _echo("Errors are shown as they happen. To go back to one short message, type errors off.")
+    else:
+        _echo(
+            "Errors show one short message; type errors to see the details. "
+            "To show them as they happen, type errors on."
+        )
 
 
 @main.command()
@@ -1616,6 +1618,7 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
             tip_shown = True
 
     # The pager's refresh_after_resize: a fresh page after help closes on a resized window.
+    errors.in_shell = True  # so a message says "type errors", not "type magnacoda errors"
     shell_state: dict[str, Any] = {"in_shell": True, "after_pager": lambda: teletype.page_feed(console)}
     # Each command's output gets a blank line above (printed below) and below (before the next prompt).
     tail = _Tail(alternate_screen_codes())
@@ -1681,8 +1684,7 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
             teletype.page_feed(console)
             continue
         if line.lower() == _SHELL_DETAILS_WORD:
-            _show_details(console, shell_state)
-            continue
+            line = "errors"
         try:
             args = shlex.split(line)
         except ValueError as exc:
@@ -1702,10 +1704,10 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
         except click.exceptions.Exit:
             pass
         except Exception as exc:  # noqa: BLE001 - one bad command must not kill the session
-            _keep_details(shell_state)
-            console.print(f"[red]Error:[/red] {escape(str(exc))}\n{_DETAILS_HINT}")
+            errors.report(exc, shell_state.get("line", ""))
         if shell_state.pop("leave", False):  # `update` ended the session (see _leave_the_session)
             break
+    errors.in_shell = False
     if goodbye and _is_interactive():
         _offer_update_on_leaving(shell_state)
     if goodbye and _interactive(console):
@@ -2055,19 +2057,10 @@ def scan_cmd(
     except Exception as exc:  # noqa: BLE001 - anything unforeseen: a short message, not a traceback
         if verbose:
             traceback.print_exc()
-        in_shell = _keep_details(click.get_current_context().obj)
-        first = (str(exc).strip().splitlines() or [""])[0][:200]
-        _echo(
-            f"Error: magnacoda stopped unexpectedly ({type(exc).__name__}{': ' + first if first else ''}). "
-            + (
-                "The details are above."
-                if verbose
-                else f"This is likely a bug in magnacoda. {_DETAILS_HINT}"
-                if in_shell
-                else "This is likely a bug in magnacoda; run the scan again with -v to see the details."
-            ),
-            err=True,
-        )
+        errors.record(exc, _line_of(click.get_current_context().obj))
+        if not verbose and errors.showing():
+            traceback.print_exc()
+        _echo(f"Error: {errors.message()}", err=True)
         _stopped()
 
     report = reports[0]

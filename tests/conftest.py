@@ -158,3 +158,13 @@ def _scans_in_the_current_folder(monkeypatch: pytest.MonkeyPatch) -> None:
     import platformdirs
 
     monkeypatch.setattr(platformdirs, "user_documents_dir", lambda: str(Path.cwd()))
+
+
+@pytest.fixture(autouse=True)
+def _outside_the_shell() -> Iterator[None]:
+    """The shell sets errors.in_shell while it runs; no test starts inside it."""
+    from magnacoda import errors
+
+    errors.in_shell = False
+    yield
+    errors.in_shell = False

@@ -77,25 +77,27 @@ def test_shell_accepts_any_exit_word(exit_word):
     assert result.exit_code == 0
 
 
-def test_details_before_any_error_says_there_is_nothing_to_show():
-    result = CliRunner().invoke(main, ["shell"], input="details\nexit\n")
-    assert "nothing unexpected has gone wrong in this session" in result.output
+def test_errors_before_any_error_says_there_is_nothing_to_show():
+    result = CliRunner().invoke(main, ["shell"], input="errors\nexit\n")
+    assert "No errors are saved: nothing unexpected has gone wrong" in result.output
 
 
-def test_details_shows_the_last_unexpected_error_of_a_command(monkeypatch):
+def test_an_unexpected_error_is_one_short_message_and_errors_shows_it(monkeypatch):
     from magnacoda import cli
 
     def broken() -> str:
         raise RuntimeError("boom")
 
     monkeypatch.setattr(cli, "about_text", broken)
-    result = CliRunner().invoke(main, ["shell"], input="about\nDetails\nexit\n")
+    result = CliRunner().invoke(main, ["shell"], input="about\nDetails\nexit\n")  # details: the older name
     out = " ".join(result.output.split())
-    assert "Error: boom Type details to see more." in out and out.count("Traceback") == 1
-    assert "from: about" in out and "RuntimeError: boom" in out and "magnacoda " in out
+    assert "Something went wrong. Please report it at magnacoda.dev/contact" in out
+    assert "Type errors to see the details." in out and "Error: boom Type" not in out
+    assert out.count("Traceback") == 1  # only the one `errors` shows
+    assert "From: about" in out and "RuntimeError: boom" in out and "magnacoda " in out
 
 
-def test_a_scan_that_crashes_in_the_shell_points_to_details_without_cookie_values(monkeypatch, tmp_path):
+def test_a_scan_that_crashes_in_the_shell_is_saved_without_cookie_values(monkeypatch, tmp_path):
     from magnacoda import cli
 
     monkeypatch.chdir(tmp_path)
@@ -104,11 +106,20 @@ def test_a_scan_that_crashes_in_the_shell_points_to_details_without_cookie_value
         raise RuntimeError("Target page, context or browser has been closed")
 
     monkeypatch.setattr(cli, "run_scan", broken)
-    lines = "scan http://example.test --cookie session=secret123\ndetails\nexit\n"
+    lines = "scan http://example.test --cookie session=secret123\nerrors\nexit\n"
     out = " ".join(CliRunner().invoke(main, ["shell"], input=lines).output.split())
-    assert "This is likely a bug in magnacoda. Type details to see more." in out and "-v" not in out
-    assert "Traceback" in out and "from: scan http://example.test --cookie" in out
+    assert "Something went wrong." in out and "Type errors to see the details." in out and "-v" not in out
+    assert "Traceback" in out and "From: scan http://example.test --cookie" in out
     assert "secret123" not in out
+
+
+def test_errors_on_and_off_change_the_setting(tmp_path):
+    from magnacoda import preferences
+
+    assert CliRunner().invoke(main, ["errors", "on"]).exit_code == 0
+    assert preferences.load().show_errors is True
+    assert CliRunner().invoke(main, ["errors", "off"]).exit_code == 0
+    assert preferences.load().show_errors is False
 
 
 @pytest.mark.integration
@@ -202,12 +213,9 @@ def test_only_the_prompts_arrow_is_blue(monkeypatch):
 
 
 def test_each_commands_output_has_one_blank_line_above_and_below_and_enter_alone_none():
-    output = CliRunner().invoke(main, ["shell"], input="details\n\nbogus\nmenu\nexit\n").output
+    output = CliRunner().invoke(main, ["shell"], input="errors\n\nbogus\nmenu\nexit\n").output
     prompt = "magnacoda » "
-    assert (
-        f"{prompt}\nNo error details: nothing unexpected has gone wrong in this session.\n\n{prompt}"
-        in output
-    )
+    assert f"{prompt}\nNo errors are saved: nothing unexpected has gone wrong.\n\n{prompt}" in output
     assert f"{prompt}{prompt}" in output  # Enter alone: the next prompt, nothing between
     assert "\nError: bogus isn't" in output and "type scan bogus.\n\n" + prompt in output  # errors too
     assert "\n\n\n" not in output  # never two blank lines

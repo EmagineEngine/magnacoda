@@ -18,6 +18,7 @@ This manual covers all of it. To install *magnacoda* and run your first scan, st
 - [Using *magnacoda*](#using-magnacoda)
   - [Starting *magnacoda*](#starting-magnacoda)
   - [Settings](#settings)
+  - [When something goes wrong](#when-something-goes-wrong)
   - [Help viewer](#help-viewer)
   - [Scan options](#scan-options)
     - [What to check](#what-to-check)
@@ -83,13 +84,17 @@ To open *magnacoda* without a terminal first, type `magnacoda shortcut` and choo
 *magnacoda*'s settings are in `preferences.ini`, in its settings folder: `~/.config/magnacoda/` on Linux and macOS (or under `$XDG_CONFIG_HOME` if that is set), `%APPDATA%\magnacoda\` on Windows. Each setting has a line saying what it does; edit them in any text editor.
 
 - `[scan]`: asking before a scan, the time estimate, quick scans
-- `[display]`: typing text out, tips, the spinner
+- `[display]`: typing text out, tips, the spinner, showing errors in full
 - `[pager]`: the help viewer, for `help`, `readme`, `docs` and `view`
 - `[review]`: a new tab or window for the review page
 - `[recheck]`: how often a script or an AI agent may recheck one scan
 - `[history]`, `[news]` and `[ai]`: how many scans to remember, the daily check, how the AI tiers run
 
 The other sections say which settings matter to them.
+
+### When something goes wrong
+
+If something happens that *magnacoda* didn't expect, you see one short message and the details are saved. Type `errors` to see them. If you'd like to report the problem, magnacoda.dev/contact says how, and links to GitHub issues. Cookie and header values are left out. `errors on` shows the details as they happen too, and `errors off` goes back to the short message. It sets `show_errors` under `[display]` in `preferences.ini`, and setting `MAGNACODA_DEBUG` in your shell does the same for one run.
 
 ### Help viewer
 
@@ -424,7 +429,7 @@ magnacoda scan https://staging.example.com --fail-on serious --scans-dir magnaco
 
 - **Every scan is saved** in its own folder: the checklist, `results.json` and screenshots of the page's images. `--scans-dir magnacoda-scans` puts them in the project folder instead of the machine's Documents. Keep that folder as a build artifact to look at a failed run later (copy it to your computer and type `review FOLDER`).
 - **`-o FILE`** also writes the results to a file name of your choosing, since each scan folder is named after the site and the time; an existing file is replaced. `-o -` prints the JSON instead, for another program to read (the short summary goes to standard error, so it doesn't mix in).
-- **`--fail-on`** sets which problems fail the run (`critical`, `serious`, the default, `moderate`, `minor`, or `none`). The exit codes: 0 when nothing at or above `--fail-on` was found, 1 when something was, and 2 when the scan couldn't finish, such as a page that couldn't be loaded (it always says why: "Error: ..."). When the output isn't a terminal, as in a script or CI log, a last line also explains the code, such as "Exit code 1: 2 problems at or above serious." An unexpected error also exits with 2; run the scan again with `-v` for the details. `--fail-on none` always exits 0 after a scan. `Ctrl+C` stops a scan at any point, saves nothing and exits with 130; in the shell it says "Cancelled." and returns to the prompt.
+- **`--fail-on`** sets which problems fail the run (`critical`, `serious`, the default, `moderate`, `minor`, or `none`). The exit codes: 0 when nothing at or above `--fail-on` was found, 1 when something was, and 2 when the scan couldn't finish, such as a page that couldn't be loaded (it always says why: "Error: ..."). When the output isn't a terminal, as in a script or CI log, a last line also explains the code, such as "Exit code 1: 2 problems at or above serious." An unexpected error also exits with 2 and prints one short message; `errors` shows the details, or run the scan again with `-v`. `--fail-on none` always exits 0 after a scan. `Ctrl+C` stops a scan at any point, saves nothing and exits with 130; in the shell it says "Cancelled." and returns to the prompt.
 - **`--show-findings`** prints the full findings into the log, besides the short summary.
 - **`--quick`** leaves out the slowest tests that use the page, for about 10 seconds a scan.
 - **Nothing else happens:** no question is asked, the daily check for updates and news never runs in CI or when output isn't a terminal, and nothing is sent to an AI unless you add `--ai` (then also `-y`, to accept the consent question in advance, and an `ANTHROPIC_API_KEY`).
