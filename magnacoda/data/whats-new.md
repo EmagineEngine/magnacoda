@@ -10,6 +10,11 @@ HOW IT IS READ
   * Keep each entry to one short sentence, two at most. Leave the details to the manual and help.
 -->
 
+## 0.1.9
+
+- A message that something unexpected went wrong is now one short line. `errors` shows the details, and `errors on` always does.
+- On Windows, the review page's Done button no longer ends with an error.
+
 ## 0.1.8
 
 - The start waits up to two seconds for the day's update check, so a new version is announced right away.

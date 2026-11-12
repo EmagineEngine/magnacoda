@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased]
+
+### Changed
+
+- A message that something unexpected went wrong is now one short line. `errors` shows the details, and `errors on` always does.
+
+### Fixed
+
+- On Windows, the review page's Done button no longer ends with an error.
+
 ## [0.1.8] - 2026-11-10
 
 ### Changed
