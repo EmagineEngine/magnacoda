@@ -43,7 +43,7 @@ def test_about_never_starts_a_page_of_its_own(monkeypatch):
 
 def test_about_is_listed_in_the_banner_and_the_help():
     assert (
-        "Commands: scan · wizard · help · setup · review · update · about · menu"
+        "Commands: wizard · scan · help · setup · review · update · about · menu"
         in CliRunner().invoke(main, ["shell"], input="menu\nexit\n").output
     )
     assert "about" in CliRunner().invoke(main, ["help"]).output

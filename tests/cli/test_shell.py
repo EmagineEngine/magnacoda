@@ -288,7 +288,7 @@ def test_banner_words_use_the_normal_color_and_only_the_dots_are_dim():
     env = {"FORCE_COLOR": "1", "TERM": "xterm"}
     output = CliRunner().invoke(main, ["shell"], input="menu\nexit\n", env=env).output
     assert "or exit to leave." in output  # normal color: dim gray can be too faint to read
-    assert "\x1b[1mCommands:\x1b[0m scan \x1b[2m·\x1b[0m wizard" in output  # bold label, dim dots only
+    assert "\x1b[1mCommands:\x1b[0m wizard \x1b[2m·\x1b[0m scan" in output  # bold label, dim dots only
     assert "\x1b[2mwizard" not in output
 
 

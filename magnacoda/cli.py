@@ -1554,7 +1554,7 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
 
     name_markup = f"[{name} italic]{escape(names.display_name)}[/{name} italic]"
 
-    banner_commands = ["scan", "wizard", "help", "setup", "review", "update", "about", "menu"]
+    banner_commands = ["wizard", "scan", "help", "setup", "review", "update", "about", "menu"]
 
     def banner() -> str:
         return (

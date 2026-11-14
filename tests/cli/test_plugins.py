@@ -237,7 +237,7 @@ def _banner(monkeypatch):
 def test_the_banner_lists_commands_that_addons_add_on_a_line_of_its_own(addons, monkeypatch):
     addons(("someaddon", _hooks(register_commands=_commands("favorites", "example"))))
     lines = _banner(monkeypatch).splitlines()
-    commands = next(i for i, line in enumerate(lines) if line.startswith("Commands: scan"))
+    commands = next(i for i, line in enumerate(lines) if line.startswith("Commands: wizard"))
     assert lines[commands + 1] == "Add-on commands: favorites · example"
 
 

@@ -12,6 +12,7 @@ HOW IT IS READ
 
 ## 0.1.9
 
+- The menu lists `wizard` before `scan`.
 - A message that something unexpected went wrong is now one short line. `errors` shows the details, and `errors on` always does.
 - On Windows, the review page's Done button no longer ends with an error.
 

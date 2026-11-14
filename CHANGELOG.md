@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file.
 
 ### Changed
 
+- The menu lists `wizard` before `scan`.
 - A message that something unexpected went wrong is now one short line. `errors` shows the details, and `errors on` always does.
 
 ### Fixed

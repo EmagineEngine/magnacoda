@@ -100,7 +100,7 @@ The shell is *magnacoda*'s REPL (read-eval-print loop). To start it, type `magna
 
 When the shell starts, it says which version you have, and any news or updates. Type `menu` for the list of commands. The first time in a session, a short tip comes under it, a different one each session. You can turn tips off with `tips = off` under `[display]` in preferences.ini.
 
-- `scan`, `wizard`, `help`
+- `wizard`, `scan`, `help`
   Commands are single words, and capitalization doesn't matter, so `help` and `Help` both work.
 - `--screen mobile`
   Options start with dashes and fine-tune a command, mostly scan, as in `scan example.com --screen mobile`. The scan section lists them all.
