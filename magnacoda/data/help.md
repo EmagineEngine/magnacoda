@@ -307,7 +307,7 @@ Anyone can write an add-on, so they vary in quality and in how they're written. 
 - The shell's banner lists their commands on a line of their own, "Add-on commands."
 - In the help, their sections come after *magnacoda*'s own. Each is marked "(add-on)" in the section list<!-- cli --> (press `g`)<!-- /cli -->, with a line under its title naming the add-on, its version and its author.
 - The about screen (`about`) lists every add-on in use, with its version and its commands.
-- When you update *magnacoda* (`update`), add-ons published on PyPI are updated with it.
+- When you update *magnacoda* (`update`), add-ons published on PyPI are updated with it. Chromium is downloaded again too, if it was installed, so the next scan finds its browser.
 
 To install an add-on, add it to the same install as *magnacoda*: with uv, `uv tool install magnacoda --with NAME`, or with pipx, `pipx inject magnacoda NAME`.
 

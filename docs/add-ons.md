@@ -71,6 +71,7 @@ example = "example_addon.plugin"
 ```
 
 - **Several add-ons in one package:** give each its own folder and its own entry-point line. `about` shows the package once.
+- **Dependencies:** don't list Playwright, or give it a version. *magnacoda* chooses the Playwright version, and the browser it downloads has to match it.
 - **Installing:** put it in *magnacoda*'s environment: `pipx inject magnacoda ./example-addon` (add `--editable` while developing), or `pip install -e ./example-addon`. `magnacoda about` then lists it.
 - **Testing:** point `XDG_CONFIG_HOME` (and `APPDATA` on Windows) at a temporary folder, so tests never touch the user's real files.
 

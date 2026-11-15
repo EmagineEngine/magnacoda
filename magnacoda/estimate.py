@@ -18,7 +18,7 @@ from magnacoda import addresses, preferences, questions
 from magnacoda.browser.launcher import launch_page
 from magnacoda.browser.stability import wait_for_stable
 from magnacoda.config import ScanConfig
-from magnacoda.exceptions import MagnacodaError, NavigationError
+from magnacoda.exceptions import BrowserNotInstalledError, MagnacodaError, NavigationError
 from magnacoda.savedcommand import SavedScan
 from magnacoda.wrapping import wrap_for_stream
 
@@ -280,6 +280,8 @@ def offer_faster(scan: SavedScan, echo: Callable[[str], None] | None = None) -> 
     _echo("Checking the page, to say how long the scan will take (a few seconds)...")
     try:
         probe = _probe(scan)
+    except BrowserNotInstalledError:
+        raise  # the scan command offers the download, then asks again
     except (MagnacodaError, addresses.NotAnAddress) as exc:
         _echo(f"Couldn't check the page first ({str(exc).splitlines()[0]}); the scan will say more.")
         return scan if _start() else None

@@ -73,7 +73,12 @@ from magnacoda.config import (
 )
 from magnacoda.consent import confirm_ai_usage
 from magnacoda.credentials import clear_key, save_key
-from magnacoda.exceptions import AIAuthenticationError, MagnacodaError, NavigationError
+from magnacoda.exceptions import (
+    AIAuthenticationError,
+    BrowserNotInstalledError,
+    MagnacodaError,
+    NavigationError,
+)
 from magnacoda.findings import merge
 from magnacoda.findings.models import SEVERITY_RANK, ScanReport, WcagLevel
 from magnacoda.help_sections import pager_options, show_file, show_help, show_pages
@@ -1057,7 +1062,7 @@ def setup(yes: bool, forget_key: bool) -> None:
     if not first_time:
         _echo("Chromium is already installed.")
     else:
-        missing = "Chromium is not installed yet - this is a one-time download of about 100 MB."
+        missing = "Chromium is not installed yet - this is a one-time download of about 300 MB."
         if yes:
             _echo(missing)
         elif not _is_interactive():
@@ -1082,14 +1087,38 @@ def setup(yes: bool, forget_key: bool) -> None:
             click.get_current_context().invoke(wizard, force_setup_notice=False)
 
 
-def _offer_chromium() -> bool:
+_CHROMIUM_FIRST_TIME = (
+    "Chromium, the browser magnacoda scans with, isn't installed yet. "
+    "It's a one-time download of about 300 MB."
+)
+_CHROMIUM_NEEDED = (
+    "Chromium, the browser magnacoda scans with, isn't installed, or this version of magnacoda needs a "
+    "newer one. It's a download of about 300 MB."
+)
+
+
+def _estimate_with_browser(
+    planned: savedcommand.SavedScan, browser_name: str
+) -> savedcommand.SavedScan | None:
+    """The estimate step. It is the first thing to open the browser, so a missing Chromium is offered for
+    download here, and the estimate then starts again."""
+    try:
+        return estimate.offer_faster(planned, echo=_echo)
+    except BrowserNotInstalledError as exc:
+        if browser_name != "chromium" or not _offer_chromium(_CHROMIUM_NEEDED):
+            _echo(f"Error: {exc}", err=True)
+            _stopped()
+    try:
+        return estimate.offer_faster(planned, echo=_echo)
+    except BrowserNotInstalledError as exc:
+        _echo(f"Error: {exc}", err=True)
+        _stopped()
+
+
+def _offer_chromium(intro: str = _CHROMIUM_FIRST_TIME) -> bool:
     """Only Chromium: all of setup would offer the wizard again."""
     if not _is_interactive():
         return False
-    intro = (
-        "Chromium, the browser magnacoda scans with, isn't installed yet. "
-        "It's a one-time download of about 100 MB."
-    )
     return _ask_yes_no("Download it now?", intro=intro, default=True) and _install_chromium() == 0
 
 
@@ -1319,14 +1348,14 @@ def update_cmd(ctx: click.Context, yes: bool, use_saved: bool) -> None:
     ours = next((item for item in found if item.name == "magnacoda"), None)
     notes = news.notes_before_update(ours.installed, ours.latest) if ours and not yes else []
     _show_notes_before_update(notes)
-    steps = updater.plan([item.name for item in found], kind)
+    steps = updater.plan([item.name for item in found], kind, browser=_chromium_probably_installed())
     if steps.kind == updater.SHOW:
         _echo("\n" + steps.note)
         for command in steps.commands:
             _echo("  " + updater.shown(command))
         return
     _echo("\nThis will run:")
-    for command in steps.commands:
+    for command in [*steps.commands, *([steps.browser] if steps.browser else [])]:
         _echo("  " + updater.shown(command))
     if not yes and not _ask_yes_no("Update now?", default=True):
         _echo("Nothing was changed.")
@@ -1341,7 +1370,9 @@ def update_cmd(ctx: click.Context, yes: bool, use_saved: bool) -> None:
                 "waits until magnacoda has stopped everywhere, because a copy still running keeps its "
                 "files locked."
             )
-        if not updater.start_in_new_window(steps.commands, repair):
+        if not updater.start_in_new_window(
+            [*steps.commands, *([steps.browser] if steps.browser else [])], repair
+        ):
             _echo(
                 "Couldn't open a new window for the update. Quit magnacoda, then run the commands above.",
                 err=True,
@@ -1358,6 +1389,11 @@ def update_cmd(ctx: click.Context, yes: bool, use_saved: bool) -> None:
     if updater.run(steps.commands, log):
         if notes and ours:  # read just now, so the new version doesn't announce them again
             news.mark_notes_seen(ours.latest)
+        if steps.browser and not updater.run([steps.browser], log, append=True):
+            _echo(
+                "Updated, but Chromium couldn't be downloaded. Type `magnacoda setup` to try again.",
+                err=True,
+            )
         _echo("Updated. Closing magnacoda now. Start it again to use the new version.")
         _leave_the_session(ctx)
     else:
@@ -2020,7 +2056,7 @@ def scan_cmd(
         ctx.meta[_ESTIMATED] = True
         planned = savedcommand.parse(shlex.join(ctx.meta[_ARGS_KEY]), takes_value=_scan_option_takes_value)
         if planned is not None:
-            faster = estimate.offer_faster(planned, echo=_echo)
+            faster = _estimate_with_browser(planned, config.browser_name)
             if faster is None:
                 _echo("Nothing was scanned.")
                 return
@@ -2148,6 +2184,12 @@ def scan_cmd(
                 f"export {config.ai.api_key_env}=sk-ant-...",
                 err=True,
             )
+        _stopped()
+    except BrowserNotInstalledError as exc:
+        if config.browser_name == "chromium" and not yes and _offer_chromium(_CHROMIUM_NEEDED):
+            _echo("Run the scan again to start it.")
+        else:
+            _echo(f"Error: {exc}", err=True)
         _stopped()
     except MagnacodaError as exc:
         _echo(f"Error: {exc}", err=True)

@@ -43,7 +43,7 @@ def test_setup_prompts_before_installing_and_installs_on_yes(monkeypatch):
     result = CliRunner().invoke(main, ["setup"], input="y\n\nn\n")  # install, no shortcut, no wizard
 
     assert result.exit_code == 0
-    assert "100 MB" in result.output
+    assert "300 MB" in result.output
     assert "Download and install it now?" in result.output
     assert "Chromium is installed." in result.output
     assert len(calls) == 1

@@ -33,6 +33,7 @@ class Plan:
     kind: str  # DEV, PIPX, UV, VENV (run), or SHOW (only shown)
     commands: list[list[str]]  # what to run (or, for SHOW, what to suggest)
     note: str = ""
+    browser: list[str] | None = None  # then download Chromium again, for the Playwright just installed
 
 
 def is_editable(name: str = "magnacoda") -> bool:
@@ -63,10 +64,29 @@ def install_kind(
     return SHOW
 
 
+def browser_command() -> list[str]:
+    """The same download `setup` does, run by this environment's Python so its Playwright picks the
+    matching Chromium. Quick when nothing changed."""
+    return [sys.executable, "-m", "playwright", "install", "chromium"]
+
+
 def plan(
-    packages: list[str], kind: str | None = None, pipx: str | None = None, uv: str | None = None
+    packages: list[str],
+    kind: str | None = None,
+    pipx: str | None = None,
+    uv: str | None = None,
+    browser: bool = False,
 ) -> Plan:
-    """The commands that update `packages` (magnacoda and/or add-on names) for this install."""
+    """The commands that update `packages` (magnacoda and/or add-on names) for this install. With
+    `browser` (Chromium was downloaded before), the update is followed by the download: an add-on's update
+    can bring a newer Playwright too, and the download is quick when nothing changed."""
+    updated = _plan(packages, kind, pipx, uv)
+    if browser and updated.kind in (PIPX, UV, VENV):
+        return Plan(updated.kind, updated.commands, updated.note, browser_command())
+    return updated
+
+
+def _plan(packages: list[str], kind: str | None, pipx: str | None, uv: str | None) -> Plan:
     kind = install_kind() if kind is None else kind
     addons = [name for name in packages if name != "magnacoda"]
     if kind == DEV:
@@ -118,9 +138,9 @@ def log_path() -> Path:
     return Path(tempfile.gettempdir()) / "magnacoda-update.log"
 
 
-def run(commands: list[list[str]], log: Path) -> bool:
+def run(commands: list[list[str]], log: Path, append: bool = False) -> bool:
     """Run the commands in turn, output to `log`. False at the first failure."""
-    with log.open("w", encoding="utf-8") as file:
+    with log.open("a" if append else "w", encoding="utf-8") as file:
         for command in commands:
             file.write(f"$ {shown(command)}\n")
             file.flush()

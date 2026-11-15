@@ -70,7 +70,7 @@ Check the [requirements](#requirements), install with the [quick start](#quick-s
 ### Requirements
 
 - **Python 3.11 or newer.** You don't need to install it yourself if you use uv, as the quick start does, since uv brings its own.
-- **One browser, not all of them: Chromium or Firefox.** *magnacoda* drives a browser build that Playwright downloads for you; it does not use the Chrome or Firefox already installed on your computer. `magnacoda setup` installs Chromium (about 100 MB), which is the default. To use Firefox instead, run `playwright install firefox` (about 110 MB) and add `--browser firefox` to your scans. You never need both.
+- **One browser, not all of them: Chromium or Firefox.** *magnacoda* drives a browser build that Playwright downloads for you; it does not use the Chrome or Firefox already installed on your computer. `magnacoda setup` installs Chromium (about 300 MB), which is the default. To use Firefox instead, run `playwright install firefox` (about 120 MB for Playwright's version of Firefox) and add `--browser firefox` to your scans. You never need both.
 - **Browser versions:** you don't choose them; they come with the Playwright release installed alongside *magnacoda*. *magnacoda* is tested with **Playwright 1.63 and 1.64**. A new install gets 1.64, which downloads **Chromium 156 and Firefox 157**.
 
 ### Quick start
@@ -92,7 +92,7 @@ The recommended way to install is [uv](https://docs.astral.sh/uv/), a fast insta
 
 ```bash
 uv tool install magnacoda
-magnacoda setup             # one-time: downloads the Chromium browser (~100 MB), and shows how the AI tiers will run
+magnacoda setup             # one-time: downloads the Chromium browser (~300 MB), and shows how the AI tiers will run
 magnacoda wizard            # a few questions, then it runs the scan for you (the first setup offers to start it)
 magnacoda scan example.com  # or scan a page straight away; https:// is filled in for you (see URL rules)
 ```

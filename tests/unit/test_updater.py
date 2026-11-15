@@ -215,3 +215,23 @@ def test_a_broken_or_looping_process_list_does_not_hang():
     assert updater.count_others({5: (5, "magnacoda.exe")}, me=5) == 0  # its own parent
     assert updater.count_others({}, me=33) == 0
     assert updater.count_others({1: (2, "magnacoda.exe"), 2: (1, "python.exe")}, me=2) == 0
+
+
+def test_an_update_is_followed_by_the_browser_download_when_asked_for():
+    for kind in (PIPX, UV, VENV):
+        with_browser = updater.plan(["magnacoda"], kind, pipx="pipx", uv="uv", browser=True)
+        without = updater.plan(["magnacoda"], kind, pipx="pipx", uv="uv")
+        assert with_browser.browser == updater.browser_command()
+        assert with_browser.browser[1:] == ["-m", "playwright", "install", "chromium"]
+        assert without.browser is None
+        assert with_browser.commands == without.commands
+
+
+def test_an_add_ons_update_is_followed_by_the_browser_download_too():
+    assert updater.plan(["public-addon"], UV, uv="uv", browser=True).browser == updater.browser_command()
+
+
+def test_the_browser_download_is_left_out_for_plans_that_are_only_shown():
+    assert updater.plan(["magnacoda"], SHOW, browser=True).browser is None
+    assert updater.plan(["magnacoda"], DEV, browser=True).browser is None
+    assert updater.plan(["magnacoda"], UV, uv="", browser=True).browser is None

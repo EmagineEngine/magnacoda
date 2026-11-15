@@ -214,11 +214,26 @@ def test_update_asks_and_answering_no_changes_nothing(setup, installed_with, mon
     assert "Nothing was changed." in output
 
 
+def test_an_update_downloads_chromium_afterwards_when_it_was_installed(setup, installed_with, monkeypatch):
+    installed_with(updater.VENV)
+    setup(latest={"magnacoda": "0.5.0"}, notes_seen="0.4.0")
+    ran = []
+    monkeypatch.setattr(cli, "_chromium_probably_installed", lambda: True)
+    monkeypatch.setattr(updater, "run", lambda commands, log, append=False: ran.append(commands) or True)
+
+    output = _shell(monkeypatch, "update --yes", "about")
+
+    assert ran[0] == updater.plan(["magnacoda"], updater.VENV).commands
+    assert ran[1] == [updater.browser_command()]
+    assert "playwright install chromium" in output
+
+
 def test_a_successful_update_in_the_shell_ends_the_session(setup, installed_with, monkeypatch):
     installed_with(updater.VENV)
     setup(latest={"magnacoda": "0.5.0"}, notes_seen="0.4.0")
     ran = []
-    monkeypatch.setattr(updater, "run", lambda commands, log: ran.append(commands) or True)
+    monkeypatch.setattr(cli, "_chromium_probably_installed", lambda: False)
+    monkeypatch.setattr(updater, "run", lambda commands, log, append=False: ran.append(commands) or True)
     output = _shell(monkeypatch, "update --yes", "about")
     assert ran and "Updated. Closing magnacoda now. Start it again" in output
     assert "magnacoda 0.4.0\n" not in output.split("Updated.")[1]  # `about` never ran: the shell ended
@@ -295,7 +310,8 @@ def test_saying_yes_on_leaving_runs_the_update(leaving, monkeypatch):
     _, answer = leaving
     answer.reply = True
     ran = []
-    monkeypatch.setattr(updater, "run", lambda commands, log: ran.append(commands) or True)
+    monkeypatch.setattr(cli, "_chromium_probably_installed", lambda: False)
+    monkeypatch.setattr(updater, "run", lambda commands, log, append=False: ran.append(commands) or True)
     output = _shell(monkeypatch, "exit")
     assert ran and "Updated. Closing magnacoda now. Start it again" in output
 
