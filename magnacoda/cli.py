@@ -34,6 +34,7 @@ from magnacoda import (
     estimate,
     farewell,
     history,
+    margin,
     name_color,
     news,
     plugins,
@@ -1238,6 +1239,7 @@ def screenreader_cmd(mode: str | None) -> None:
         screenreader.set_mode(reader)
     except OSError as exc:
         raise click.ClickException(f"Couldn't change {preferences.preferences_path()}: {exc}.") from exc
+    margin.sync()
     if reader:
         _echo("Typed-out text, the spinner and paging are off. To turn them back on, type screenreader off.")
     else:
@@ -1701,6 +1703,8 @@ def errors_cmd(mode: str | None) -> None:
 def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
     """Start an interactive session: run scan/wizard/setup repeatedly without retyping magnacoda."""
     console = Console()
+    if margin.install():  # after the console is made, so its width follows the window
+        click.get_current_context().call_on_close(margin.uninstall)
     names = plugins.edition()
     # The prompt always says just magnacoda: an edition word run into it ("magnacodaexample") is hard to
     # read, and the banner names the edition anyway.

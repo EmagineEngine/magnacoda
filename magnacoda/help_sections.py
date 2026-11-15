@@ -8,7 +8,7 @@ from typing import Any
 
 import click
 
-from magnacoda import documents, plugins, preferences, readme, viewer
+from magnacoda import documents, margin, plugins, preferences, readme, viewer
 from magnacoda.pager import (
     Format,
     Opening,
@@ -152,23 +152,24 @@ def show_pages(
         if document is not None:
             places[document] = (section, line)
 
-    outcome = show(
-        sections,
-        options,
-        format=format,
-        title=title,
-        start_at=start_at,
-        outline=outline,
-        fade_in=fade_in,
-        documents=documents.entries(),
-        document=document,
-        came_from=came_from,
-        open_document=open_document,
-        remember=remember,
-        start_line=start_line,
-        start_heading=start_heading,
-        shown=shown,
-    )
+    with margin.paused():  # the viewer lays out the whole window itself
+        outcome = show(
+            sections,
+            options,
+            format=format,
+            title=title,
+            start_at=start_at,
+            outline=outline,
+            fade_in=fade_in,
+            documents=documents.entries(),
+            document=document,
+            came_from=came_from,
+            open_document=open_document,
+            remember=remember,
+            start_line=start_line,
+            start_heading=start_heading,
+            shown=shown,
+        )
     if outcome is Outcome.GO:
         opening = asked[-1]
         root.meta[_FROM_PAGE], root.meta[_CAME_FROM] = True, document

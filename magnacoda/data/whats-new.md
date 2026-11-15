@@ -19,6 +19,7 @@ HOW IT IS READ
 - In the wizard, picking a recent or favorite scan no longer asks for its page again.
 - The menu lists `wizard` before `scan`.
 - Pressing Enter alone at the prompt gets an answer every third time.
+- The shell's text has a little space at the left and right edges of the window.
 - The wizard ends with a question for any other options, which can be typed after the address; Enter keeps a saved scan's own.
 - `update` also downloads the browser a new version needs, and a scan that finds its browser missing offers to download it.
 - A message that something unexpected went wrong is now one short line. `errors` shows the details, and `errors on` always does.
