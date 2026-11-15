@@ -80,10 +80,10 @@ def test_a_page_that_cannot_be_checked_does_not_stop_the_scan(monkeypatch, tmp_p
     monkeypatch.setattr(cli, "_is_interactive", lambda: True)
     monkeypatch.setattr(cli, "run_scan", _fake_run(scanned))
     monkeypatch.setattr(redirects, "check_address", lambda url, **kw: None)
-    answers = _answers(url="example.com", confirm="y")
+    answers = _answers(url="example.com", confirm="y") + "\n"  # Enter: start the scan
     out = " ".join(CliRunner().invoke(main, ["wizard"], input=answers).output.split())
     assert "Couldn't check the page first" in out and "connection refused" in out
-    assert scanned
+    assert "Start the scan? [Y/n]" in out and scanned
 
 
 def test_several_numbers_may_be_separated_by_spaces_or_commas():
@@ -96,7 +96,7 @@ def test_several_numbers_may_be_separated_by_spaces_or_commas():
 
 
 def _typed_scan(monkeypatch, typed: str):
-    """`scan example.com` with a person there: Enter at "Scan with these settings?", then `typed`."""
+    """`scan example.com` with a person there: the defaults at the options question, then `typed`."""
     from magnacoda.browser import redirects
     from tests.cli.test_screen import _fake_run
 
@@ -107,14 +107,44 @@ def _typed_scan(monkeypatch, typed: str):
     monkeypatch.setattr(cli, "_is_interactive", lambda: True)
     monkeypatch.setattr(cli, "run_scan", _fake_run(seen))
     monkeypatch.setattr(redirects, "check_address", lambda url, **kw: None)
-    result = CliRunner().invoke(main, ["scan", "example.com"], input=f"\n{typed}\n")
+    result = CliRunner().invoke(main, ["scan", "example.com"], input=f"defaults\n{typed}\n")
     return " ".join(result.output.split()), seen
 
 
 def test_a_typed_scan_says_how_long_and_offers_faster_settings_too(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
     out, seen = _typed_scan(monkeypatch, "")  # Enter: run as-is
-    assert "Scan with these settings? [Y/n]" in out and "Estimated time: about" in out
+    assert "Options »" in out and "Estimated time: about" in out
     assert "[run as-is]" in out and seen and seen[0].quick is False
     out, seen = _typed_scan(monkeypatch, "1\n")  # the quick scan, then run it as it now is
     assert "--quick" in out.split("Equivalent command:")[-1] and seen[0].quick is True
+
+
+def test_a_short_scan_has_nothing_to_speed_up_so_it_asks_whether_to_start(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    small = dataclasses.replace(PROBE, startup=0.5, settle=0.1, elements=20, images=0, forms=0, fields=0,
+                                focusable=3, hover=0, toggles=0)  # fmt: skip
+    monkeypatch.setattr(estimate, "probe_page", lambda config: small)
+    for answer, runs in (("", True), ("n", False)):
+        seen: list = []
+        load = preferences.load
+        monkeypatch.setattr(preferences, "load", lambda load=load: dataclasses.replace(load(), estimate=True))
+        monkeypatch.setattr(cli, "_is_interactive", lambda: True)
+        from magnacoda.browser import redirects
+        from tests.cli.test_screen import _fake_run
+
+        monkeypatch.setattr(cli, "run_scan", _fake_run(seen))
+        monkeypatch.setattr(redirects, "check_address", lambda url, **kw: None)
+        result = CliRunner().invoke(main, ["scan", "example.com"], input=f"defaults\n{answer}\n")
+        out = " ".join(result.output.split())
+        assert "Estimated time" in out and "To go faster" not in out and "Start the scan? [Y/n]" in out
+        assert bool(seen) is runs and ("Nothing was scanned." in out) is not runs
+
+
+def test_faster_settings_are_offered_by_the_time_that_is_shown(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    for total, offered in ((18.0, True), (17.0, False)):  # shown as about 20 and about 15 seconds
+        fixed = estimate.Estimate(per_scan=total, total=total)
+        monkeypatch.setattr(estimate, "estimate", lambda probe, choices, fixed=fixed: fixed)
+        out, _ = _typed_scan(monkeypatch, "")
+        assert ("To go faster" in out) is offered and ("Start the scan?" in out) is not offered, total

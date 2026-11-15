@@ -3,6 +3,9 @@
 The same three rules at every question: Ctrl+C or q cancels (click.Abort: "Cancelled."; clear does
 too, as Cleared, and the shell starts a fresh page), and Enter takes what the brackets show ([Y/n], a
 default). Call printed() after printing, so a question doesn't add a second blank line.
+
+Every question ends with the shell prompt's chevron, in the same blue, so the place to type looks the
+same everywhere. In screen reader mode it ends with a colon, which is read as a pause and not by name.
 """
 
 from __future__ import annotations
@@ -12,6 +15,7 @@ from typing import Any
 
 import click
 from click.types import convert_type
+from rich.console import Console
 
 from magnacoda import teletype
 from magnacoda.wrapping import wrap_for_stream
@@ -20,6 +24,32 @@ _last_blank = True
 CANCEL_WORDS = ("q",)  # typed alone at any question, like Ctrl+C
 CLEAR_WORDS = ("clear", "cls")  # cancel too, and the shell starts a fresh page, as clear does there
 CANCEL_HINT = "Ctrl+C or q cancels at any time."
+CHEVRON = "»"
+_accent: str | None = None  # the chevron's color as a Rich style ("" for none), once it is known
+
+
+def set_accent(style: str) -> None:
+    """The color the shell found for its own prompt's chevron, so the terminal isn't asked twice."""
+    global _accent
+    _accent = style
+
+
+def _suffix() -> str:
+    """What a question ends with, just before the answer is typed."""
+    from magnacoda import name_color, screenreader  # here: screenreader imports this module
+
+    global _accent
+    if screenreader.mode_on():
+        return ": "
+    console = Console()
+    if _accent is None:
+        found = name_color.style(console, name_color.background(console))
+        _accent = found.removeprefix(name_color.PLAIN).strip()
+    if not _accent or not console.is_terminal:
+        return f" {CHEVRON} "
+    with console.capture() as drawn:
+        console.print(f"[{_accent}]{CHEVRON}[/{_accent}]", end="")
+    return f" {drawn.get()} "
 
 
 def printed(message: str) -> None:
@@ -76,7 +106,7 @@ def ask(text: str, *, intro: str | None = None, err: bool = False, **kwargs: Any
         _check_cancel(value)
         return given(value)
 
-    answer = click.prompt(text, err=err, value_proc=value_proc, **kwargs)
+    answer = click.prompt(text, err=err, value_proc=value_proc, prompt_suffix=_suffix(), **kwargs)
     _space_below()
     return answer
 
@@ -100,7 +130,12 @@ def ask_yes_no(text: str, *, intro: str | None = None, default: bool = False, er
 
     suffix = "[Y/n]" if default else "[y/N]"
     answer: bool = click.prompt(
-        f"{text} {suffix}", default="", show_default=False, value_proc=value_proc, err=err
+        f"{text} {suffix}",
+        default="",
+        show_default=False,
+        value_proc=value_proc,
+        err=err,
+        prompt_suffix=_suffix(),
     )
     _space_below()
     return answer

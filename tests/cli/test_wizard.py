@@ -11,6 +11,7 @@ def _answers(**overrides) -> str:
         "ai": "",
         "color_scheme": "",
         "screen": "",
+        "other": "",
         "confirm": "n",
     }
     defaults.update(overrides)
@@ -19,6 +20,7 @@ def _answers(**overrides) -> str:
         "level",
         "ai",
         "screen",
+        "other",
         "confirm",
     ]
     return "\n".join(defaults[k] for k in order) + "\n"
@@ -61,7 +63,7 @@ def test_with_no_address_yet_enter_cancels_the_wizard_and_its_prompt_says_so(typ
     monkeypatch.setattr(cli, "_is_interactive", lambda: True)
     result = CliRunner().invoke(main, ["wizard"], input=typed)
     assert "Ctrl+C or q cancels at any time." in result.output
-    assert "or localhost:3000), or press Enter to cancel:" in result.output
+    assert "or localhost:3000), or press Enter to cancel »" in result.output
     assert "Cancelled." in result.output and "WCAG level" not in result.output
 
 

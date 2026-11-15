@@ -153,7 +153,7 @@ The easiest way to start is to run `magnacoda wizard` (or type `wizard` in the [
 
 ### Interactive shell
 
-Run `magnacoda` with no arguments to open its REPL (read-eval-print loop), the shell. It stays open across commands, so you type them without `magnacoda` in front, such as `scan example.com --ai explain`. Typing `scan` on its own asks for the address. At any question, `Ctrl+C`, `q` or `clear` cancels the command.
+Run `magnacoda` with no arguments to open its REPL (read-eval-print loop), the shell. It stays open across commands, so you type them without `magnacoda` in front, such as `scan example.com --ai explain`. Typing `scan` on its own asks for the page, and any options you want after it. At any question, `Ctrl+C`, `q` or `clear` cancels the command.
 
 The shell never erases anything, so earlier results stay in the scrollback. `menu` lists the commands, and `clear` starts a fresh page.
 

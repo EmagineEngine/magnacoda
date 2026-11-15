@@ -182,6 +182,6 @@ def test_help_at_the_question_shows_the_favorites_help_then_asks_again(monkeypat
     seen = _picking(monkeypatch)
     monkeypatch.setenv("MAGNACODA_PAGER", "off")
     output = _run("favorites", input="help\n\n").output
-    question = "or help for more, or press Enter to cancel:"
+    question = "or help for more, or press Enter to cancel »"
     after = output.split(f"{question} help", 1)[1]
     assert "favorites delete NUMBER" in after and question in after and seen == []

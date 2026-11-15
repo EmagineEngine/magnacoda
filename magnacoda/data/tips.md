@@ -26,6 +26,6 @@ HOW IT IS READ
 - At the end of the wizard you can save a scan as a favorite; `fav` lists your favorites.
 - `news` shows updates, what's new in them, and news about *magnacoda*. Your first shell of the day also tells you when there's something new.
 - `help` has an advanced section, with options for unusual pages: waiting longer, one theme only, an exact screen size.
-- Don't want to be asked before a scan with the default settings? Set `confirm = off` under [scan] in preferences.ini.
+- Don't want to be asked for options when you scan with only an address? Set `confirm = off` under [scan] in preferences.ini.
 - In help, press c to read it in other colors, like an old monitor's, or dark on light like print.
 - Don't want these tips? Set `tips = off` under [display] in preferences.ini.

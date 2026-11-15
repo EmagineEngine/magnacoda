@@ -11,7 +11,7 @@ from magnacoda_addons.favorites import store
 from magnacoda_addons.favorites.store import Favorite
 from magnacoda_addons.favorites.tests.helpers import fake_run
 
-BLANKS = ["", "", ""]  # level, AI, screens: keep every default
+BLANKS = ["", "", "", ""]  # level, AI, screens, other options: keep every default
 
 
 def _wizard(monkeypatch, *answers: str):
@@ -162,8 +162,9 @@ def test_a_name_needs_three_characters_and_q_cancels(monkeypatch):
 
 def test_a_changed_favorite_is_offered_for_updating_and_keeps_its_name_and_notes(monkeypatch):
     store.save_all([Favorite("Home", "scan https://home.test --level AA --ai off", "my note")])
-    # fav 1, the URL as it was, change: yes, level AAA, AI and screens as they were, update: yes, run: yes
-    result, seen = _wizard(monkeypatch, "fav", "1", "", "y", "AAA", "", "", "", "")
+    # fav 1, the URL as it was, change: yes, level AAA, AI, screens and other options as they were,
+    # update: yes, run: yes
+    result, seen = _wizard(monkeypatch, "fav", "1", "", "y", "AAA", "", "", "", "", "")
     assert "Update the favorite 'Home' with these settings? [Y/n]" in result.output
     assert "Save this as a favorite?" not in result.output
     (home,) = store.load()[0]
@@ -173,6 +174,6 @@ def test_a_changed_favorite_is_offered_for_updating_and_keeps_its_name_and_notes
 
 def test_not_updating_a_changed_favorite_offers_to_save_it_as_a_new_one(monkeypatch):
     store.save_all([Favorite("Home", "scan https://home.test --level AA --ai off")])
-    result, _ = _wizard(monkeypatch, "fav", "1", "", "y", "AAA", "", "", "n", "n", "n")
+    result, _ = _wizard(monkeypatch, "fav", "1", "", "y", "AAA", "", "", "", "n", "n", "n")
     assert "Update the favorite" in result.output and "Save this as a favorite?" in result.output
     assert [f.command for f in store.load()[0]] == ["scan https://home.test --level AA --ai off"]

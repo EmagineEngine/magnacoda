@@ -59,7 +59,7 @@ def setup(gio, monkeypatch):
 
 
 def test_setup_offers_shortcuts_and_then_to_remove_them(setup):
-    assert "Add a magnacoda shortcut to (menu, desktop, both, skip) [skip]:" in setup("both\n")
+    assert "Add a magnacoda shortcut to (menu, desktop, both, skip) [skip] »" in setup("both\n")
     assert len(shortcuts.existing()) == 2
     assert "in your app menu and on your desktop.\nRemove them? [y/N]" in setup("\n")
     assert len(shortcuts.existing()) == 2
@@ -70,7 +70,7 @@ def test_with_one_shortcut_setup_offers_the_other_or_removing_it(setup):
     shortcuts.add(menu=False, desktop=True)
     added = setup("menu\n")
     assert (
-        "on your desktop.\nAdd one to your app menu too, or remove it? (menu, remove, keep) [keep]:" in added
+        "on your desktop.\nAdd one to your app menu too, or remove it? (menu, remove, keep) [keep] »" in added
     )
     assert len(shortcuts.existing()) == 2
     shortcuts.remove()

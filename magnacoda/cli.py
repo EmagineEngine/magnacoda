@@ -191,26 +191,146 @@ def _record_history(typed_url: str | None = None, url: str | None = None) -> Non
         history.record(shlex.join(savedcommand.redact(args)))
 
 
+_CANCEL_HINT_SHOWN = "magnacoda.cancel_hint_shown"
+
+
+def _say_cancel_hint(ctx: click.Context) -> None:
+    """The line about q and Ctrl+C, once per command."""
+    if not ctx.meta.get(_CANCEL_HINT_SHOWN):
+        ctx.meta[_CANCEL_HINT_SHOWN] = True
+        _echo(questions.CANCEL_HINT)
+
+
+def _default_settings(wcag_version: str, level: str, quick: bool) -> str:
+    quick_note = ", quick (set in preferences.ini)" if quick else ""
+    return f"WCAG {wcag_version} {level}, a desktop screen, light and dark mode, no AI{quick_note}"
+
+
 def _ask_address() -> str:
-    """`scan` without an address: ask for one (help shows the scan section), or the usual error
-    without a person there."""
+    """`scan` without an address: one short prompt for the page and any options, a group of saved scans
+    (fav, recent), wizard or help; each explanation comes when it is needed. Only an address comes back
+    (the scan then asks for its options); everything else is run here and ends the command. Without a
+    person there, the usual error."""
     if not _is_interactive():
         raise click.UsageError("Missing argument 'URL'.")
     ctx = click.get_current_context()
+    root = ctx.find_root()
+    given = list(ctx.meta.get(_ARGS_KEY) or ["scan"])[1:]
+    groups = _start_groups()
+    words = _group_words(groups)
+    _say_cancel_hint(ctx)
+    choices = ", ".join(["an address", *(group.key for group in groups), "wizard", "help"])
+    # Short lines, so nothing wraps in an 80-column window, and the prompt stays at the left.
+    about = (
+        "Scan a page. Options can follow its address, as in example.com --option.\n"
+        f"You can type: {choices}. Enter cancels."
+    )
+    intro: str | None = about
     while True:
         typed = _ask(
-            "Page to scan (such as example.com), help for more, or press Enter to cancel",
-            default="",
-            show_default=False,
-            value_proc=_nonempty_or_cancel,
+            "Page to scan", intro=intro, default="", show_default=False, value_proc=_nonempty_or_cancel
         )
-        if typed.lower() != "help":
-            break
-        ctx.invoke(help_cmd, words=("scan",))
-    args = ctx.meta.get(_ARGS_KEY)
-    if args is not None:
-        ctx.meta[_ARGS_KEY] = [*args, typed]  # for history.md
-    return typed
+        intro = None
+        word = " ".join(typed.lower().split())
+        if word == "help":
+            ctx.invoke(help_cmd, words=("scan",))
+            intro = about  # the help viewer took the screen
+            continue
+        if word == "wizard":
+            with wizard.make_context("wizard", [], parent=root) as wizard_ctx:
+                wizard.invoke(wizard_ctx)
+            raise click.exceptions.Exit(0)
+        group = words.get(word)
+        if group is not None:
+            chosen_scan = _pick_scan(group, "That entry could not be read.")
+            if chosen_scan is None:
+                continue
+            _run_chosen(root, chosen_scan)
+            raise click.exceptions.Exit(0)
+        try:
+            tokens = shlex.split(typed)
+        except ValueError:
+            _echo("The quotes don't match. Type the page to scan, then any options.")
+            continue
+        if tokens[0].startswith("-"):
+            _echo("Start with the page to scan, as in example.com --option.")
+            continue
+        if "--option" in tokens:
+            _echo("--option stands for any of the scan options. To see them, type help.")
+            continue
+        if len(tokens) == 1:
+            ctx.meta[_ARGS_KEY] = ["scan", *given, typed]  # for history.md
+            return typed
+        _scan_with(root, [*given, *tokens])
+
+
+def _scan_with(root: click.Context, args: list[str]) -> bool:
+    """Run the scan command with these words. A mistake in them is said and gives False; otherwise the
+    scan runs and the command ends."""
+    try:
+        chosen = scan_cmd.make_context("scan", args, parent=root)
+    except click.NoSuchOption as exc:
+        _echo(f"scan has no option {exc.option_name}. To see its options, type help.")
+        return False
+    except click.UsageError as exc:
+        _echo(exc.format_message())
+        return False
+    with chosen:
+        scan_cmd.invoke(chosen)
+    raise click.exceptions.Exit(0)
+
+
+def _ask_options(typed_url: str, url: str, defaults: str) -> None:
+    """A page given alone, typed after `scan` or at its prompt: add options, use the defaults, repeat one
+    of the page's saved scans (fav, recent), or cancel with Enter. Nothing is checked or run before this
+    is answered. Returns for the defaults; anything else runs here and ends the command."""
+    ctx = click.get_current_context()
+    root = ctx.find_root()
+    # The full address goes on, so a scheme that was added is only mentioned once.
+    given = [url if arg == typed_url else arg for arg in list(ctx.meta.get(_ARGS_KEY) or ["scan", url])[1:]]
+    shown = url.removeprefix("https://")
+    groups = _page_groups(url)
+    words = _group_words(groups)
+    about = f"The defaults: {defaults}.\n"
+    if groups:
+        counted = [f"{group.title.lower()} ({len(group.entries)})" for group in groups]
+        about += f"{shown} is in your {' and '.join(counted)}.\n"
+        keys = ", ".join(group.key for group in groups)
+        about += f"You can type: options, defaults, {keys}, help. Enter cancels."
+    else:
+        about += "You can type: options (such as --option), defaults, help. Enter cancels."
+    _say_cancel_hint(ctx)
+    intro: str | None = about
+    while True:
+        typed = _ask("Options", intro=intro, default="", show_default=False, value_proc=_nonempty_or_cancel)
+        intro = None
+        word = " ".join(typed.lower().split())
+        if word in ("default", "defaults"):
+            return
+        if word == "help":
+            ctx.invoke(help_cmd, words=("scan",))
+            intro = about
+            continue
+        group = words.get(word)
+        if group is not None:
+            titled = plugins.StartGroup(f"{group.title} of {shown}", group.entries, word=group.key)
+            chosen = _pick_scan(titled, "That entry could not be read.")
+            if chosen is None:
+                continue
+            _run_chosen(root, chosen)
+            raise click.exceptions.Exit(0)
+        try:
+            tokens = shlex.split(typed)
+        except ValueError:
+            _echo("The quotes don't match. Type the options as you would after the address.")
+            continue
+        if "--option" in tokens:
+            _echo("--option stands for any of the scan options. To see them, type help.")
+            continue
+        if not tokens[0].startswith("-"):
+            _echo("Options start with dashes, as in --fail-on minor. For the defaults, type defaults.")
+            continue
+        _scan_with(root, [*given, *tokens])
 
 
 def _address_for(typed: str) -> addresses.Address:
@@ -1550,6 +1670,7 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
     name = name_color.style(console, background)
     blue = name.removeprefix(name_color.PLAIN).strip()  # the name's blue, without its bold
     arrow = f"[{blue}]»[/{blue}]" if blue else "»"
+    questions.set_accent(blue)  # questions end with the same chevron
     prompt = f"[italic]{plugins.PRODUCT}[/italic] {arrow} "
 
     name_markup = f"[{name} italic]{escape(names.display_name)}[/{name} italic]"
@@ -1890,31 +2011,7 @@ def scan_cmd(
     )
 
     if not yes and _is_interactive() and preferences.load().confirm and _address_alone():
-        _echo(questions.CANCEL_HINT)  # as setup and the wizard do; Enter takes each question's default
-        quick_note = ", quick (set in preferences.ini)" if config.quick else ""
-        defaults = f"WCAG {wcag_version} {level}, a desktop screen, light and dark mode, no AI{quick_note}"
-        saved = _saved_scans_for(url)
-        if saved:
-            chosen = _choose_saved_scan(url, saved, defaults)
-            if chosen is not None:
-                for note in chosen.notes:
-                    _echo(note)
-                parent = click.get_current_context().find_root()
-                _echo("Equivalent command:\n  " + savedcommand.display_command(chosen))
-                if _ask_yes_no("Change anything?", default=False):
-                    _finish_and_run(parent, _ask_settings(chosen, chosen.url, fresh=False))
-                else:
-                    _run_saved_scan(parent, chosen)
-                return
-        elif not _ask_yes_no(
-            "Scan with these settings?", intro=f"The default settings: {defaults}.", default=True
-        ):
-            program = _program()
-            _echo(
-                f"Nothing was scanned. To choose the settings step by step, type {program}wizard; to see "
-                f"the options, type {program}help (the scan section)."
-            )
-            return
+        _ask_options(typed_url, url, _default_settings(wcag_version, level, config.quick))
 
     # How long it will take, with faster settings offered: here, so it's the same however the scan
     # was started (typed, the wizard, a favorite, a saved scan). Once a run; not with -y or in scripts.
@@ -1924,6 +2021,9 @@ def scan_cmd(
         planned = savedcommand.parse(shlex.join(ctx.meta[_ARGS_KEY]), takes_value=_scan_option_takes_value)
         if planned is not None:
             faster = estimate.offer_faster(planned, echo=_echo)
+            if faster is None:
+                _echo("Nothing was scanned.")
+                return
             if faster is not planned:
                 _echo("Equivalent command:\n  " + savedcommand.display_command(faster))
                 _run_saved_scan(ctx.find_root(), faster)
@@ -2336,32 +2436,34 @@ def _same_page(url: str) -> str:
     return url.strip().lower().removeprefix("https://").rstrip("/")
 
 
-def _saved_scans_for(url: str) -> list[tuple[str, savedcommand.SavedScan]]:
-    """(label, scan) for each saved scan of this page with other than the default settings: add-ons'
-    (favorites, if installed) first, then the latest from history.md."""
+def _page_groups(url: str) -> list[plugins.StartGroup]:
+    """This page's saved scans with other than the default settings, as the groups a bare scan offers:
+    the add-ons' (favorites, if installed), then the recent ones. Empty groups are left out."""
     page = _same_page(url)
     seen = {savedcommand.canonical(f"scan {url}")}  # the defaults are offered anyway
-    found: list[tuple[str, savedcommand.SavedScan]] = []
 
-    def add(label: str, command: str) -> bool:
+    def settings(command: str) -> str | None:
         scan = savedcommand.parse(command, takes_value=_scan_option_takes_value)
         key = savedcommand.canonical(command)
         if scan is None or _same_page(scan.url) != page or key in seen:
-            return False
-        scan.origin = command
+            return None
         seen.add(key)
-        found.append((label, scan))
-        return True
+        return _settings_of(scan)
 
+    groups = []
     for group in plugins.start_groups():
-        for label, command in group.entries:
-            add(f"{label} ({group.title})", command)
+        entries = [
+            (f"{label}: {found}", command)
+            for label, command in group.entries
+            if (found := settings(command)) is not None
+        ]
+        groups.append(plugins.StartGroup(group.title, entries, word=group.key))
+    recent: list[tuple[str, str]] = []
     for entry in history.read():
-        scan = savedcommand.parse(entry.command, takes_value=_scan_option_takes_value)
-        if scan is not None and _same_page(scan.url) == page:
-            add(f"as on {_ran_on(entry.when)}", entry.command)
-            break  # only the latest
-    return found
+        if len(recent) < _PICKER_RECENT and (found := settings(entry.command)) is not None:
+            recent.append((f"{found} ({_ran_on(entry.when)})", entry.command))
+    groups.append(plugins.StartGroup("Recent scans", recent, word="recent"))
+    return [group for group in groups if group.entries]
 
 
 def _settings_of(scan: savedcommand.SavedScan) -> str:
@@ -2374,29 +2476,16 @@ def _settings_of(scan: savedcommand.SavedScan) -> str:
     return shlex.join(tokens) or "the default settings"
 
 
-def _choose_saved_scan(
-    url: str, saved: list[tuple[str, savedcommand.SavedScan]], defaults: str
-) -> savedcommand.SavedScan | None:
-    """Offer the saved settings for this page, then the defaults; None means the defaults."""
-    lines = [f"{label}: {_settings_of(scan)}" for label, scan in saved] + [
-        f"the default settings: {defaults}"
-    ]
-    digits = len(str(len(lines)))
-    _echo()
-    with teletype.listing():
-        _echo(f"{url.removeprefix('https://')} was scanned before. Scan it with:")
-        for number, line in enumerate(lines, start=1):
-            _echo(f"  {number:>{digits}}. {line}")
-    questions.printed("\n")
-
-    def check(value: str) -> int:
-        value = value.strip() or "1"
-        if value.isdigit() and 1 <= int(value) <= len(lines):
-            return int(value)
-        raise click.BadParameter(f"type one of the numbers above (1 to {len(lines)}), or q to cancel.")
-
-    choice = _ask("Choose", default="1", value_proc=check)
-    return saved[choice - 1][1] if choice <= len(saved) else None
+def _run_chosen(root: click.Context, chosen: savedcommand.SavedScan) -> None:
+    """A saved scan that was picked: its notes, the equivalent command, and whether to change anything
+    before it runs."""
+    for note in chosen.notes:
+        _echo(note)
+    _echo("Equivalent command:\n  " + savedcommand.display_command(chosen))
+    if _ask_yes_no("Change anything?", default=False):
+        _finish_and_run(root, _ask_settings(chosen, chosen.url, fresh=False))
+    else:
+        _run_saved_scan(root, chosen)
 
 
 def _group_words(groups: list[plugins.StartGroup]) -> dict[str, plugins.StartGroup | None]:
@@ -2440,9 +2529,12 @@ def _choose_group(groups: list[plugins.StartGroup]) -> plugins.StartGroup | None
     return words[answer]
 
 
-def _choose_start_point() -> savedcommand.SavedScan | None:
-    """The wizard's start: a new scan, or one from an add-on's group (see plugins.py) or the recent
-    scans, each listed on its own and numbered from 1. None means a new scan."""
+_GROUP_ON_SCREEN = 12  # a longer group is offered for viewing, not printed
+
+
+def _start_groups() -> list[plugins.StartGroup]:
+    """What the wizard's start and a bare scan offer to repeat: the add-ons' groups (favorites), then the
+    recent scans that aren't in one of them. Empty groups are left out."""
     groups = plugins.start_groups()
     seen = {savedcommand.canonical(command) for group in groups for _, command in group.entries}
     recent: list[tuple[str, str]] = []
@@ -2453,33 +2545,86 @@ def _choose_start_point() -> savedcommand.SavedScan | None:
             recent.append((entry.when, entry.command))
         if len(recent) == _PICKER_RECENT:
             break
+    recent_group = None
     if recent:
         width = max(len(_address_of(command)) for _, command in recent)
         entries = [(_recent_label(when, command, width), command) for when, command in recent]
         recent_group = plugins.StartGroup("Recent scans", entries, word="recent")
-    groups = [g for g in groups if g.entries] + ([recent_group] if recent else [])
-    if not groups:
-        return None
+    return [g for g in groups if g.entries] + ([recent_group] if recent_group else [])
 
-    while True:
-        group = _choose_group(groups)
-        if group is None:
-            return None
-        digits = len(str(len(group.entries)))
+
+def _view_group(group: plugins.StartGroup) -> None:
+    """A long group, numbered, in the same viewer as help."""
+    text = "\n".join(f"{number}. {label}" for number, (label, _) in enumerate(group.entries, start=1))
+    show_pages(
+        click.get_current_context(),
+        [(group.title, text)],
+        pager_options(group.title),
+        format=formats.MARKDOWN,
+    )
+
+
+def _pick_in_group(group: plugins.StartGroup) -> int:
+    """List the group and ask for a number (0-based back). A long group isn't printed: it is offered for
+    viewing, and the person can still type a number they know."""
+    count = len(group.entries)
+    if count <= _GROUP_ON_SCREEN:
+        digits = len(str(count))
         with teletype.listing():
             _echo(group.title)
             for number, (label, _) in enumerate(group.entries, start=1):
                 _echo(f"  {number:>{digits}}. {label}")
-        index = _pick_number("Type a number", len(group.entries))
-        command = group.entries[index][1]
-        scan = savedcommand.parse(command, takes_value=_scan_option_takes_value)
-        if scan is None:
-            _echo("That entry could not be read, so starting fresh.", err=True)
-            return None
-        scan.origin = command
-        for note in scan.notes:
-            _echo(note)
-        return scan
+        return _pick_number("Type a number", count)
+
+    _echo(f"{group.title} has {count} entries. Type view to read them, or a number.")
+
+    def check(value: str) -> int:
+        value = value.strip()
+        if not value:
+            raise click.Abort
+        if value.lower() == "view":
+            return 0
+        if value.isdigit() and 1 <= int(value) <= count:
+            return int(value)
+        raise click.BadParameter(f"type view, or a number from 1 to {count}, or press Enter to cancel.")
+
+    while True:
+        chosen = _ask(
+            "Type view or a number, or press Enter to cancel",
+            default="",
+            show_default=False,
+            value_proc=check,
+        )
+        if chosen:
+            return int(chosen) - 1
+        _view_group(group)
+
+
+def _pick_scan(group: plugins.StartGroup, unreadable: str) -> savedcommand.SavedScan | None:
+    """One saved scan from a group, listed or offered for viewing. None (with `unreadable` said) when the
+    entry can't be read."""
+    command = group.entries[_pick_in_group(group)][1]
+    scan = savedcommand.parse(command, takes_value=_scan_option_takes_value)
+    if scan is None:
+        _echo(unreadable, err=True)
+        return None
+    scan.origin = command
+    return scan
+
+
+def _choose_start_point() -> savedcommand.SavedScan | None:
+    """The wizard's start: a new scan, or one from an add-on's group (see plugins.py) or the recent
+    scans, each listed on its own and numbered from 1. None means a new scan."""
+    groups = _start_groups()
+    if not groups:
+        return None
+    group = _choose_group(groups)
+    if group is None:
+        return None
+    scan = _pick_scan(group, "That entry could not be read, so starting fresh.")
+    for note in scan.notes if scan else []:
+        _echo(note)
+    return scan
 
 
 @main.command()
@@ -2559,9 +2704,83 @@ def _ask_settings(start: savedcommand.SavedScan, url: str, fresh: bool) -> saved
     )
     if screen_choice == "desktop":
         screen_choice = "system"  # desktop is what a scan does without --screen
-    return dataclasses.replace(
+    scan = dataclasses.replace(
         start, url=url, level=level, ai=ai, screen=screen_choice, extras=list(start.extras), notes=[]
     )
+    return _ask_other_options(scan)
+
+
+def _other_options(scan: savedcommand.SavedScan) -> list[str]:
+    """The options a scan has besides its address, level, AI and screens (the wizard's own questions)."""
+    tokens = savedcommand.to_tokens(scan)[2:]
+    kept: list[str] = []
+    i = 0
+    while i < len(tokens):
+        if tokens[i] in ("--level", "--ai", "--screen"):
+            i += 2
+            continue
+        kept.append(tokens[i])
+        i += 1
+    return kept
+
+
+def _ask_other_options(scan: savedcommand.SavedScan) -> savedcommand.SavedScan:
+    """The wizard's last question: any other options, as they would be typed after the address. Enter keeps
+    the ones the scan has, - removes them, and what is typed replaces them."""
+    ctx = click.get_current_context()
+    shown = shlex.join(_other_options(scan))
+    about = (
+        f"This scan has other options: {shown}\n"
+        "You can type: new options, - to remove them, help. Enter keeps them."
+        if shown
+        else "Other options can be added, as you'd type them after the address.\n"
+        "You can type: options (such as --option), help. Enter adds none."
+    )
+    intro: str | None = about
+    core = ["--level", scan.level, "--ai", scan.ai] + (
+        ["--screen", scan.screen] if scan.screen != "system" else []
+    )
+    while True:
+        typed = _ask(
+            "Other options",
+            intro=intro,
+            default=shown,
+            show_default=False,  # the line above says them; in brackets they'd push the prompt far right
+            value_proc=lambda value: value.strip(),
+        )
+        intro = None
+        if typed == shown:
+            return scan
+        if typed.lower() in ("help", "--help", "-h"):
+            ctx.invoke(help_cmd, words=("scan",))
+            intro = about
+            continue
+        try:
+            tokens = [] if typed == "-" else shlex.split(typed)
+        except ValueError:
+            _echo("The quotes don't match. Type the options as you would after the address.")
+            continue
+        if "--option" in tokens:
+            _echo("--option stands for any of the scan options. To see them, type help.")
+            continue
+        if tokens and not tokens[0].startswith("-"):
+            _echo("Options start with dashes, as in --fail-on minor. To see them, type help.")
+            continue
+        args = [scan.url, *core, *tokens]
+        try:
+            scan_cmd.make_context("scan", list(args), parent=ctx.find_root())  # checks them; runs nothing
+        except click.NoSuchOption as exc:
+            _echo(f"scan has no option {exc.option_name}. To see its options, type help.")
+            continue
+        except click.UsageError as exc:
+            _echo(exc.format_message())
+            continue
+        parsed = savedcommand.parse(shlex.join(["scan", *args]), takes_value=_scan_option_takes_value)
+        if parsed is None:
+            _echo("Those options could not be read.")
+            continue
+        parsed.origin = scan.origin
+        return parsed
 
 
 def _finish_and_run(ctx: click.Context, scan: savedcommand.SavedScan, already_shown: bool = False) -> None:

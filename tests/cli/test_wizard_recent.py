@@ -8,7 +8,7 @@ from magnacoda import cli, history, preferences
 from magnacoda.cli import main
 from tests.cli.test_screen import _fake_run
 
-BLANKS = ["", "", ""]  # level, AI, screens: keep every default
+BLANKS = ["", "", "", ""]  # level, AI, screens, other options: keep every default
 
 
 def _wizard(monkeypatch, *answers: str):
@@ -212,3 +212,40 @@ def test_enter_at_a_list_cancels_and_an_unknown_word_asks_again(monkeypatch):
     assert "Error: type new, recent, or press Enter to cancel." in text
     assert text.count("Type new, recent, or press Enter to cancel") == 2  # a typo asks just this line again
     assert "Type a number, or press Enter to cancel" in text and seen == []
+
+
+def test_the_last_question_shows_the_other_options_and_typing_replaces_them(monkeypatch):
+    history.record("scan https://old.test --level AAA --fail-on minor --color-scheme dark")
+    result, seen = _wizard(
+        monkeypatch, "recent", "1", "https://old.test", "y", "", "", "", "--fail-on critical", "y"
+    )
+    assert "This scan has other options: --fail-on minor --color-scheme dark" in result.output
+    assert "Enter keeps them." in result.output
+    assert seen[0].fail_on == "critical" and seen[0].level == "AAA"
+    assert "--color-scheme" not in result.output.split("Equivalent command:")[-1]  # replaced, not added to
+
+
+def test_a_dash_removes_the_other_options_and_enter_keeps_them(monkeypatch):
+    history.record("scan https://old.test --fail-on minor")
+    _, seen = _wizard(monkeypatch, "recent", "1", "https://old.test", "y", "", "", "", "-", "y")
+    assert seen[0].fail_on == "serious"
+    history.record("scan https://old2.test --fail-on minor")
+    _, seen = _wizard(monkeypatch, "recent", "1", "https://old2.test", "y", "", "", "", "", "y")
+    assert seen[0].fail_on == "minor"
+
+
+def test_a_new_scan_can_have_other_options_typed_and_a_mistake_asks_again(monkeypatch):
+    result, seen = _wizard(
+        monkeypatch,
+        "https://a.test",
+        "",
+        "",
+        "",
+        "--fail-onn x",
+        "--option",
+        "fail-on minor",
+        "--fail-on minor",
+        "y",
+    )
+    assert "scan has no option --fail-onn" in result.output and "stands for any" in result.output
+    assert "Options start with dashes" in result.output and seen[0].fail_on == "minor"

@@ -395,9 +395,9 @@ def test_a_scan_from_saved_settings_prints_below_without_a_page(monkeypatch, tmp
     history.history_path().write_text(
         history.HEADER + "- 2026-10-17 09:00 `scan https://example.com --level AAA --ai off`\n"
     )
-    # scan example.com: the saved settings, Enter (the last scan), Enter (no changes)
-    output = CliRunner().invoke(main, ["shell"], input="scan example.com\n\n\nexit\n").output
-    assert "scanned before" in output and FEED not in output
+    # scan example.com: its recent scans, the first, Enter (no changes)
+    output = CliRunner().invoke(main, ["shell"], input="scan example.com\nrecent\n1\n\nexit\n").output
+    assert "Recent scans of example.com" in output and FEED not in output
 
 
 def test_q_and_ctrl_c_at_the_prompt_ask_before_leaving(monkeypatch):

@@ -176,11 +176,18 @@ def estimate(probe: PageProbe, choices: Choices) -> Estimate:
     return Estimate(per_scan=per_scan, total=per_scan * max(choices.scans, 1), parts=page)
 
 
+def shown_seconds(seconds: float) -> int:
+    """The seconds an estimate is shown as: rounded to what it can promise (5 s, or 10 s from a minute)."""
+    nearest_five = round(seconds / 5) * 5
+    return max(5, nearest_five) if nearest_five < 60 else round(seconds / 10) * 10
+
+
 def duration(seconds: float) -> str:
-    """'about 40 seconds', 'about 1 min 40 s', rounded to what an estimate can promise."""
-    if round(seconds / 5) * 5 < 60:
-        return f"about {max(5, round(seconds / 5) * 5)} seconds"
-    minutes, rest = divmod(round(seconds / 10) * 10, 60)
+    """'about 40 seconds', 'about 1 min 40 s'."""
+    shown = shown_seconds(seconds)
+    if shown < 60:
+        return f"about {shown} seconds"
+    minutes, rest = divmod(shown, 60)
     return f"about {minutes} min" + (f" {rest} s" if rest else "")
 
 
@@ -262,8 +269,10 @@ def _faster_ways(scan: SavedScan) -> list[tuple[str, Change]]:
     return ways
 
 
-def offer_faster(scan: SavedScan, echo: Callable[[str], None] | None = None) -> SavedScan:
-    """Probe the page, show the estimate and offer faster settings; returns the (maybe changed) scan.
+def offer_faster(scan: SavedScan, echo: Callable[[str], None] | None = None) -> SavedScan | None:
+    """Probe the page, show the estimate and offer faster settings; returns the (maybe changed) scan, or
+    None when the person says not to start it. There is always one question before the scan starts:
+    the faster settings when there are some to offer, else whether to start.
 
     Also stores the estimate in the Click context's meta for the spinner.
     """
@@ -273,7 +282,7 @@ def offer_faster(scan: SavedScan, echo: Callable[[str], None] | None = None) -> 
         probe = _probe(scan)
     except (MagnacodaError, addresses.NotAnAddress) as exc:
         _echo(f"Couldn't check the page first ({str(exc).splitlines()[0]}); the scan will say more.")
-        return scan
+        return scan if _start() else None
     while True:
         result = estimate(probe, _choices(scan))
         click.get_current_context().meta["magnacoda.estimate"] = result.total  # for the spinner
@@ -290,8 +299,8 @@ def offer_faster(scan: SavedScan, echo: Callable[[str], None] | None = None) -> 
                 + "."
             )
         ways = _faster_ways(scan)
-        if not ways or result.total < 20:
-            return scan
+        if not ways or shown_seconds(result.total) < 20:  # by the figure shown, so the two agree
+            return scan if _start() else None
         _echo("\nTo go faster:")
         for number, (what, change) in enumerate(ways, start=1):
             saved = result.total - estimate(probe, _choices(change(scan))).total
@@ -301,6 +310,10 @@ def offer_faster(scan: SavedScan, echo: Callable[[str], None] | None = None) -> 
             return scan
         for index in picked:
             scan = ways[index][1](scan)
+
+
+def _start() -> bool:
+    return questions.ask_yes_no("Start the scan?", default=True)
 
 
 def _pick_numbers(text: str, count: int) -> list[int]:

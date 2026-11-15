@@ -122,6 +122,11 @@ def settings_on() -> list[str]:
     return [key for _, key in _SETTINGS if getattr(current, key)]
 
 
+def mode_on() -> bool:
+    """Screen reader mode: typing, the spinner and paging are all off."""
+    return not settings_on()
+
+
 def set_mode(reader: bool) -> None:
     """With `reader`, typing, the spinner and paging off; else on. The offer isn't made again.
     Raises OSError."""

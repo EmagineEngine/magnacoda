@@ -120,7 +120,7 @@ def test_consent_counts_each_screen_not_the_dark_pass(monkeypatch):
 def test_the_wizard_tests_both_screens_unless_told_otherwise(monkeypatch):
     seen: list = []
     monkeypatch.setattr(cli, "run_scan", _fake_run(seen))
-    answers = "https://example.test\n\n\n\ny\n"  # level, AI, screens (Enter: both), run
+    answers = "https://example.test\n\n\n\n\ny\n"  # level, AI, screens (Enter: both), other options, run
     result = CliRunner().invoke(main, ["wizard"], input=answers)
     assert "Screens to test" in result.output and "Pixel 8 Pro" in result.output
     assert "Color scheme" not in result.output
@@ -131,12 +131,12 @@ def test_the_wizard_tests_both_screens_unless_told_otherwise(monkeypatch):
 def test_wizard_offers_the_screen_choice_and_shows_it_in_the_command(monkeypatch):
     seen: list = []
     monkeypatch.setattr(cli, "run_scan", _fake_run(seen))
-    answers = "https://example.test\n\n\nmobile\ny\n"  # level, AI, screens, run
+    answers = "https://example.test\n\n\nmobile\n\ny\n"  # level, AI, screens, other options, run
     result = CliRunner().invoke(main, ["wizard"], input=answers)
     assert "--screen mobile" in result.output
     assert seen and seen[0].screen == "mobile" and seen[0].viewport_width is None
     seen.clear()
-    answers = "new\nhttps://example.test\n\n\ndesktop\ny\n"  # new: not a recent scan
+    answers = "new\nhttps://example.test\n\n\ndesktop\n\ny\n"  # new: not a recent scan
     result = CliRunner().invoke(main, ["wizard"], input=answers)
     assert "--screen" not in result.output.split("Equivalent command:")[1]  # desktop is the default
     assert [c.screen for c in seen] == [None]

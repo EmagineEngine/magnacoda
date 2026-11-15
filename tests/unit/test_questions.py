@@ -23,7 +23,7 @@ def test_text_then_a_question_then_text_are_set_apart():
         questions.ask("Name", default="x")
         click.echo("After.")
 
-    assert _run(steps, "Ann\n") == "Some text.\n\nName [x]: Ann\n\nAfter.\n"
+    assert _run(steps, "Ann\n") == "Some text.\n\nName [x] » Ann\n\nAfter.\n"
 
 
 def test_an_explanation_sits_right_above_its_question_with_the_blank_line_above_it():
@@ -32,7 +32,7 @@ def test_an_explanation_sits_right_above_its_question_with_the_blank_line_above_
         questions.printed("Before.")
         questions.ask_yes_no("Go on?", intro="This explains the question.")
 
-    assert _run(steps, "y\n") == "Before.\n\nThis explains the question.\nGo on? [y/N]: y\n\n"
+    assert _run(steps, "y\n") == "Before.\n\nThis explains the question.\nGo on? [y/N] » y\n\n"
 
 
 def test_two_questions_in_a_row_have_one_blank_line_between_them():
@@ -41,7 +41,7 @@ def test_two_questions_in_a_row_have_one_blank_line_between_them():
         questions.ask_yes_no("Second?")
 
     output = _run(steps, "n\nn\n")
-    assert "First? [y/N]: n\n\nSecond? [y/N]: n\n" in output and "\n\n\n" not in output
+    assert "First? [y/N] » n\n\nSecond? [y/N] » n\n" in output and "\n\n\n" not in output
 
 
 def test_after_a_blank_line_a_question_adds_no_second_one():
@@ -50,7 +50,7 @@ def test_after_a_blank_line_a_question_adds_no_second_one():
         questions.printed("Text, then a blank line.\n")
         questions.ask_yes_no("Ready?", default=True)
 
-    assert _run(steps, "\n") == "Text, then a blank line.\n\nReady? [Y/n]: \n\n"
+    assert _run(steps, "\n") == "Text, then a blank line.\n\nReady? [Y/n] » \n\n"
 
 
 # The same rules at every question: Ctrl+C or q cancels, Enter takes what the brackets show.
@@ -90,9 +90,9 @@ def test_ctrl_c_cancels_too():
         ("n\n", True, False),
     ],
 )
-def test_yes_no_looks_as_before_and_enter_takes_the_capital_letter(typed, default, expected):
+def test_yes_no_shows_its_default_in_brackets_and_enter_takes_the_capital_letter(typed, default, expected):
     result = _answer(lambda: questions.ask_yes_no("Continue?", default=default), typed)
-    assert ("Continue? [Y/n]: " if default else "Continue? [y/N]: ") in result.output
+    assert ("Continue? [Y/n] » " if default else "Continue? [y/N] » ") in result.output
     assert f"ANSWER={expected!r}" in result.output
 
 
@@ -111,3 +111,11 @@ def test_other_answers_and_converters_work_as_before():
     assert (
         "ANSWER='quiet'" in _answer(lambda: questions.ask("Name"), "quiet\n").output
     )  # only q alone cancels
+
+
+def test_in_screen_reader_mode_a_question_ends_with_a_colon(monkeypatch):
+    from magnacoda import screenreader
+
+    monkeypatch.setattr(screenreader, "mode_on", lambda: True)
+    output = _run(lambda: (questions.ask("Name", default="x"), questions.ask_yes_no("Go on?")), "Ann\ny\n")
+    assert "Name [x]: Ann" in output and "Go on? [y/N]: y" in output and questions.CHEVRON not in output

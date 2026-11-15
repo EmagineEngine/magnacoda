@@ -50,7 +50,7 @@ This is the easiest way to start, and you don't need to know any options. Type `
 
 The wizard asks for the page's address, then a few questions: the WCAG level, AI reasoning, and which screens to test (a desktop and a phone, unless you choose only one). Dark mode is checked, without asking. Each question is explained in a line and has a default, which you accept by pressing `Enter`.
 
-Before scanning, the wizard shows the full command it built, so you can learn the options over time. It also estimates how long the scan will take and offers settings that make it faster. Nothing runs until you say so.
+Before scanning, the wizard shows the full command it built, so you can learn the options over time. It also estimates how long the scan will take and offers settings that make it faster, or asks whether to start when there are none to offer. Nothing runs until you say so.
 
 Next time, the wizard will ask whether to start a new scan or a recent one. If you type recent, you can pick a scan by number to run it again, on the same page or on a new address that you type.
 
@@ -185,7 +185,7 @@ From inside the shell:
 - `scan`
   Asks for the address.
 - `scan example.com`
-  Shows the default settings and asks before it starts. Press `Enter` to scan, or `n` to stop. Scanned it before? Its saved settings come first.
+  Shows the defaults and asks for options. Type them, or `defaults`. `Enter` cancels. Scanned it before? Type `recent` or `fav` for its saved scans.
 - `q`, `clear`
   Cancel at any question, as `Ctrl+C` does.
 

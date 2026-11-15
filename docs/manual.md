@@ -119,7 +119,7 @@ Colors are `#rrggbb`. The text and the accent need a contrast of at least 7:1 ag
 
 Every option for `scan`, with more than `help scan` has room for. Type them after the address: `scan example.com --screen both` in the shell, or `magnacoda scan example.com --screen both` from the command line. The rarely needed ones are in [Advanced scan options](#advanced-scan-options).
 
-**With only an address, or none.** `scan` on its own asks for the address. `scan example.com` shows the default settings and asks before it starts. Press `Enter` to scan, or `n` to stop (to choose settings, type `wizard`). If you've scanned the page before, its saved settings come first: a favorite, then your last scan. `q`, `clear` or `Ctrl+C` cancels at any question. There's no question when you give an option, with `-y`, or in scripts and CI; to turn it off, set `confirm = off` under `[scan]` in `preferences.ini`.
+**With only an address, or none.** `scan` on its own asks for the page, and you can type options after it, as in `example.com --screen mobile`. At that first question, type `recent` (or `fav`, with the favorites add-on) to pick an earlier scan by number, `wizard` to choose step by step, or `help` for the options. A group of more than 12 entries isn't printed; type `view` to read it in the viewer, then its number. `Enter` cancels. With only a page, typed there or as `scan example.com`, it shows the defaults and asks for options. Type them, or `defaults`, or press `Enter` to cancel, so nothing runs until you answer. If you've scanned the page before with other settings, it says so, and `recent` or `fav` lists that page's saved scans to pick by number. `q`, `clear` or `Ctrl+C` cancels at any question. There's no question when you give an option, with `-y`, or in scripts and CI; to turn it off, set `confirm = off` under `[scan]` in `preferences.ini`.
 
 The address can be short, such as `example.com` or `localhost:3000`; see [URL rules](#url-rules).
 
@@ -362,7 +362,7 @@ Sites that only switch themes with a button on the page (no `prefers-color-schem
 
 - **`history.md`**: every scan that actually runs, whether from the wizard, the shell or the command line, newest first. The oldest entries are dropped beyond the limit.
 
-In the wizard, type `recent` to run one of them again. And when you scan an address you've scanned before, *magnacoda* offers its saved settings first: a favorite, then your last scan.
+In the wizard, type `recent` to run one of them again. And when you scan an address you've scanned before, *magnacoda* says so, and `recent` or `fav` lists its saved scans.
 
 The values of `--cookie` and `--extra-http-header` are never stored. The history holds the URLs you scan, so on Linux and macOS it's readable only by you. See [SECURITY.md](../SECURITY.md).
 
