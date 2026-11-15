@@ -426,3 +426,10 @@ def test_exit_and_quit_leave_at_once(monkeypatch):
 def test_other_launch_options_typed_in_the_shell_start_no_second_shell():
     result = CliRunner().invoke(main, ["shell"], input="--force-setup-notice\nexit\n")
     assert "works when you start magnacoda" in result.output and result.output.count("Welcome to") == 1
+
+
+def test_enter_alone_says_nothing_happens_every_third_time():
+    output = CliRunner().invoke(main, ["shell"], input="\n" * 7 + "--version\nexit\n").output
+    assert output.count("Nothing happens.") == 2  # after the third and the sixth
+    assert "Obvious paths" not in output
+    assert CliRunner().invoke(main, ["shell"], input="\n\nexit\n").output.count("Nothing happens.") == 0

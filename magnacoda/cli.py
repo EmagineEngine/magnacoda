@@ -1600,18 +1600,20 @@ _SHELL_DETAILS_WORD = "details"  # the older name of `errors`
 _PROGRAM_NAMES = ("magnacoda", "magnacode", "magnaconda")  # the command and its typo aliases
 # Typing the program's name inside its own shell: these in turn, the last one for good, each followed
 # by the same real paths.
+_NOTHING_HAPPENS = "Nothing happens."
+_EMPTY_ENTERS_FOR_A_REPLY = 3  # Enter alone at the prompt says it every third time
 _ALREADY_HERE = (
     "You are in a maze of twisty little prompts, all alike.",
     'A sign here reads: "You are here."',
     "You are carrying one {name} shell. It is already open.",
     "You hear the faint hum of a terminal. It is yours.",
-    "Nothing happens.",
+    _NOTHING_HAPPENS,
 )
 _OBVIOUS_PATHS = "Obvious paths: help, scan URL, wizard."
 # Words from the old adventure games, answered in the shell (a command of the same name comes first).
 _ADVENTURE_WORDS = {
-    "xyzzy": "Nothing happens.",
-    "plugh": "Nothing happens.",
+    "xyzzy": _NOTHING_HAPPENS,
+    "plugh": _NOTHING_HAPPENS,
     "look": _ALREADY_HERE[0],
     "inventory": "You are carrying one {name} shell.",
     "i": "You are carrying one {name} shell.",
@@ -1807,6 +1809,12 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
                 break
             continue
         if not line:
+            # Enter alone: every third time, the old adventure games' answer.
+            shell_state["empty_enters"] = shell_state.get("empty_enters", 0) + 1
+            if shell_state["empty_enters"] % _EMPTY_ENTERS_FOR_A_REPLY == 0:
+                console.print()
+                teletype.say(console, _NOTHING_HAPPENS)
+                after_output = True
             continue
         console.print()  # each command's output starts after a blank line under the prompt
         questions.printed("")  # so a question first doesn't add a second one

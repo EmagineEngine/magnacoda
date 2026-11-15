@@ -12,6 +12,7 @@ All notable changes to this project are documented in this file.
 - `scan example.com` asks the same options question as `scan` and then the address. A page's saved scans are listed when you type `recent` or `fav`.
 - In the wizard, picking a recent or favorite scan no longer asks for its page again.
 - The menu lists `wizard` before `scan`.
+- Pressing Enter alone at the prompt gets an answer every third time.
 - The wizard ends with a question for any other options, which can be typed after the address; Enter keeps a saved scan's own.
 - `update` also downloads the browser a new version needs, and a scan that finds its browser missing offers to download it.
 - A message that something unexpected went wrong is now one short line. `errors` shows the details, and `errors on` always does.
