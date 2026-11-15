@@ -352,7 +352,7 @@ def test_addon_groups_come_before_recent_scans_and_duplicates_show_once(addons, 
 def test_picking_an_addon_entry_prefills_the_wizard(addons, monkeypatch):
     group = StartGroup("Saved", [("Dark", "scan https://old.test --color-scheme dark")])
     addons(_hooks(wizard_start_options=lambda: [group]))
-    result, seen = _wizard(monkeypatch, "saved", "1", "https://new.test", "", "y")
+    result, seen = _wizard(monkeypatch, "saved", "1", "y", "https://new.test", *BLANKS, "y")
     assert [(c.url, c.color_scheme) for c in seen] == [("https://new.test", "dark")]
 
 

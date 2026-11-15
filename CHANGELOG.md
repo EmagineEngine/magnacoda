@@ -10,6 +10,7 @@ All notable changes to this project are documented in this file.
 - Every question ends with the prompt's chevron, in its color, to show where to type. In screen reader mode it stays a colon.
 - `scan` on its own asks for the page and any options, and offers favorites and recent scans as the wizard does. A long list is offered for viewing, not printed.
 - `scan example.com` asks the same options question as `scan` and then the address. A page's saved scans are listed when you type `recent` or `fav`.
+- In the wizard, picking a recent or favorite scan no longer asks for its page again.
 - The menu lists `wizard` before `scan`.
 - The wizard ends with a question for any other options, which can be typed after the address; Enter keeps a saved scan's own.
 - A message that something unexpected went wrong is now one short line. `errors` shows the details, and `errors on` always does.

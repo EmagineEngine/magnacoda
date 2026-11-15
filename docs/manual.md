@@ -362,13 +362,13 @@ Sites that only switch themes with a button on the page (no `prefers-color-schem
 
 - **`history.md`**: every scan that actually runs, whether from the wizard, the shell or the command line, newest first. The oldest entries are dropped beyond the limit.
 
-In the wizard, type `recent` to run one of them again. And when you scan an address you've scanned before, *magnacoda* says so, and `recent` or `fav` lists its saved scans.
+In the wizard, type `recent` to run one of them again, or answer yes to "Change anything?" to use its settings on another page. And when you scan an address you've scanned before, *magnacoda* says so, and `recent` or `fav` lists its saved scans.
 
 The values of `--cookie` and `--extra-http-header` are never stored. The history holds the URLs you scan, so on Linux and macOS it's readable only by you. See [SECURITY.md](../SECURITY.md).
 
 ### Favorites
 
-Save the scans you run often, and start them again from the wizard. At the end of the wizard, answer yes to "Save this as a favorite?" and give it a name. At the start of the wizard, type `fav` to list them by name, then pick one to run it again, or to change just the URL. If you change its settings, *magnacoda* offers to update the favorite.
+Save the scans you run often, and start them again from the wizard. At the end of the wizard, answer yes to "Save this as a favorite?" and give it a name. At the start of the wizard, type `fav` to list them by name, then pick one to run it again. To change just the URL, answer yes to "Change anything?". If you change its settings, *magnacoda* offers to update the favorite.
 
 - **`favorites`** lists them, numbered, with their commands. Type a number to run one, or `help` for more. **`favorites delete NUMBER`** deletes one after asking (you can give its name instead, in quotes if it has spaces; add `--yes` to skip the question). `fav` and `favs` are short forms, as in `fav delete 2`.
 - They are kept in **`favorites.md`**, next to `history.md`, and you can edit that file by hand.

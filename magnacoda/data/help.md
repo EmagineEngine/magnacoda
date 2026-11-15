@@ -52,7 +52,7 @@ The wizard asks for the page's address, then a few questions: the WCAG level, AI
 
 Before scanning, the wizard shows the full command it built, so you can learn the options over time. It also estimates how long the scan will take and offers settings that make it faster, or asks whether to start when there are none to offer. Nothing runs until you say so.
 
-Next time, the wizard will ask whether to start a new scan or a recent one. If you type recent, you can pick a scan by number to run it again, on the same page or on a new address that you type.
+Next time, the wizard will ask whether to start a new scan or a recent one. If you type recent, you can pick a scan by number to run it again, or answer yes to "Change anything?" to use it on a new address.
 
 ## url-rules
 

@@ -39,22 +39,25 @@ def test_no_picker_appears_when_there_is_nothing_saved(monkeypatch):
     assert "favorite" not in result.output.lower()
 
 
-def test_loading_a_recent_scan_keeps_its_values_and_lets_the_url_change(monkeypatch):
+def test_loading_a_recent_scan_keeps_its_values_and_does_not_ask_for_the_page(monkeypatch):
     history.record("scan https://old.test --level AAA --color-scheme dark --fail-on minor")
-    result, seen = _wizard(monkeypatch, "recent", "1", "https://new.test", "", "y")
-    assert "Recent scans" in result.output
-    assert "magnacoda scan https://new.test --level AAA" in result.output
+    result, seen = _wizard(monkeypatch, "recent", "1", "", "y")
+    assert "Recent scans" in result.output and "Page to scan" not in result.output
+    assert "magnacoda scan https://old.test --level AAA" in result.output
     assert "--color-scheme dark" in result.output and "--fail-on minor" in result.output
     assert "Change anything? [y/N]" in result.output
     assert "WCAG level" not in result.output  # none of the questions were asked
     assert result.output.count("Equivalent command:") == 1  # shown once, not again after "no"
-    assert [c.url for c in seen] == ["https://new.test"]
+    assert [c.url for c in seen] == ["https://old.test"]
     assert seen[0].color_scheme == "dark"
 
 
-def test_saying_yes_to_more_changes_asks_every_question_defaulting_to_the_saved_scan(monkeypatch):
+def test_saying_yes_to_changes_asks_the_page_then_every_question_defaulting_to_the_saved_scan(monkeypatch):
     history.record("scan https://old.test --level AAA --color-scheme dark --fail-on minor")
-    result, seen = _wizard(monkeypatch, "recent", "1", "https://new.test", "y", "A", *BLANKS[1:], "y")
+    result, seen = _wizard(monkeypatch, "recent", "1", "y", "https://new.test", "A", *BLANKS[1:], "y")
+    assert (
+        "Page to scan (an address such as example.com or localhost:3000) [https://old.test]" in result.output
+    )
     assert "WCAG level (A, AA, AAA) [AAA]" in result.output
     assert "Screens to test (both, desktop, mobile) [desktop]" in result.output  # as the saved scan did
     assert "Color scheme" not in result.output  # not asked; the saved scan's dark is kept
@@ -65,21 +68,21 @@ def test_saying_yes_to_more_changes_asks_every_question_defaulting_to_the_saved_
 
 def test_options_the_wizard_does_not_ask_about_are_kept_and_used(monkeypatch):
     history.record("scan https://a.test --browser firefox")
-    result, seen = _wizard(monkeypatch, "recent", "1", "", "", "y")
+    result, seen = _wizard(monkeypatch, "recent", "1", "", "y")
     assert "--browser firefox" in result.output
     assert seen and seen[0].browser_name == "firefox"
 
 
 def test_redacted_history_values_are_dropped_with_a_note(monkeypatch):
     history.record("scan https://a.test --cookie 'sid=<redacted>'")
-    result, _ = _wizard(monkeypatch, "recent", "1", "", "", "n", "n")
+    result, _ = _wizard(monkeypatch, "recent", "1", "", "n")
     assert "Left out --cookie" in result.output
     assert "--cookie" not in result.output.split("Equivalent command:")[1]
 
 
 def test_a_number_outside_the_list_is_asked_again(monkeypatch):
     history.record("scan https://home.test")
-    result, _ = _wizard(monkeypatch, "recent", "7", "1", "", "", "n", "n")
+    result, _ = _wizard(monkeypatch, "recent", "7", "1", "", "n")
     assert "type one of the numbers above" in result.output.lower()
 
 
@@ -217,7 +220,7 @@ def test_enter_at_a_list_cancels_and_an_unknown_word_asks_again(monkeypatch):
 def test_the_last_question_shows_the_other_options_and_typing_replaces_them(monkeypatch):
     history.record("scan https://old.test --level AAA --fail-on minor --color-scheme dark")
     result, seen = _wizard(
-        monkeypatch, "recent", "1", "https://old.test", "y", "", "", "", "--fail-on critical", "y"
+        monkeypatch, "recent", "1", "y", "https://old.test", "", "", "", "--fail-on critical", "y"
     )
     assert "This scan has other options: --fail-on minor --color-scheme dark" in result.output
     assert "Enter keeps them." in result.output
@@ -227,10 +230,10 @@ def test_the_last_question_shows_the_other_options_and_typing_replaces_them(monk
 
 def test_a_dash_removes_the_other_options_and_enter_keeps_them(monkeypatch):
     history.record("scan https://old.test --fail-on minor")
-    _, seen = _wizard(monkeypatch, "recent", "1", "https://old.test", "y", "", "", "", "-", "y")
+    _, seen = _wizard(monkeypatch, "recent", "1", "y", "https://old.test", "", "", "", "-", "y")
     assert seen[0].fail_on == "serious"
     history.record("scan https://old2.test --fail-on minor")
-    _, seen = _wizard(monkeypatch, "recent", "1", "https://old2.test", "y", "", "", "", "", "y")
+    _, seen = _wizard(monkeypatch, "recent", "1", "y", "https://old2.test", "", "", "", "", "y")
     assert seen[0].fail_on == "minor"
 
 

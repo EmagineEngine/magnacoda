@@ -58,18 +58,18 @@ def test_the_same_command_is_not_saved_twice(monkeypatch):
     assert len(store.load()[0]) == 1
 
 
-def test_loading_a_favorite_keeps_its_values_and_lets_the_url_change(monkeypatch):
+def test_loading_a_favorite_keeps_its_values_and_does_not_ask_for_the_page(monkeypatch):
     store.save_all(
         [Favorite("Dark blog", "scan https://old.test --level AAA --color-scheme dark --fail-on minor")]
     )
-    result, seen = _wizard(monkeypatch, "fav", "1", "https://new.test", "", "n", "", "y")
+    result, seen = _wizard(monkeypatch, "fav", "1", "", "y")  # no changes; run
     assert "Dark blog" in result.output
-    assert "magnacoda scan https://new.test --level AAA" in result.output
+    assert "magnacoda scan https://old.test --level AAA" in result.output
     assert "--color-scheme dark" in result.output and "--fail-on minor" in result.output
     assert "Change anything? [y/N]" in result.output
-    assert "WCAG level" not in result.output  # none of the questions were asked
+    assert "WCAG level" not in result.output and "Page to scan" not in result.output  # nothing was asked
     assert result.output.count("Equivalent command:") == 1  # shown once, not again after "no"
-    assert [c.url for c in seen] == ["https://new.test"]
+    assert [c.url for c in seen] == ["https://old.test"]
     assert seen[0].color_scheme == "dark"
 
 
@@ -77,7 +77,7 @@ def test_saying_yes_to_more_changes_asks_every_question_defaulting_to_the_favori
     store.save_all(
         [Favorite("Dark blog", "scan https://old.test --level AAA --color-scheme dark --fail-on minor")]
     )
-    result, seen = _wizard(monkeypatch, "fav", "1", "https://new.test", "y", "A", *BLANKS[1:], "n", "", "y")
+    result, seen = _wizard(monkeypatch, "fav", "1", "y", "https://new.test", "A", *BLANKS[1:], "n", "", "y")
     assert "WCAG level (A, AA, AAA) [AAA]" in result.output
     assert "Color scheme" not in result.output  # not asked; the favorite's dark is kept
     assert "Fail on" not in result.output and seen[0].fail_on == "minor"  # not asked, but kept
@@ -96,7 +96,7 @@ def test_recent_scans_are_offered_after_favorites_and_duplicates_show_once(monke
     store.save_all([Favorite("Home", "scan https://home.test --level AA")])
     history.record("scan https://home.test --level AA")  # same as the favorite: shown once
     history.record("scan https://blog.test --level A")
-    result, seen = _wizard(monkeypatch, "recent", "1", "", "", "n", "", "y")
+    result, seen = _wizard(monkeypatch, "recent", "1", "", "n", "", "y")
     assert "favorites (1) or recent scans (1)?" in " ".join(result.output.split())  # favorites first
     listed = result.output.split("Recent scans", 1)[1].split("Type a number", 1)[0]
     assert "blog.test" in listed and "home.test" not in listed  # the favorite isn't repeated
@@ -162,9 +162,9 @@ def test_a_name_needs_three_characters_and_q_cancels(monkeypatch):
 
 def test_a_changed_favorite_is_offered_for_updating_and_keeps_its_name_and_notes(monkeypatch):
     store.save_all([Favorite("Home", "scan https://home.test --level AA --ai off", "my note")])
-    # fav 1, the URL as it was, change: yes, level AAA, AI, screens and other options as they were,
+    # fav 1, change: yes, the URL as it was, level AAA, AI, screens and other options as they were,
     # update: yes, run: yes
-    result, seen = _wizard(monkeypatch, "fav", "1", "", "y", "AAA", "", "", "", "", "")
+    result, seen = _wizard(monkeypatch, "fav", "1", "y", "", "AAA", "", "", "", "", "")
     assert "Update the favorite 'Home' with these settings? [Y/n]" in result.output
     assert "Save this as a favorite?" not in result.output
     (home,) = store.load()[0]
@@ -174,6 +174,6 @@ def test_a_changed_favorite_is_offered_for_updating_and_keeps_its_name_and_notes
 
 def test_not_updating_a_changed_favorite_offers_to_save_it_as_a_new_one(monkeypatch):
     store.save_all([Favorite("Home", "scan https://home.test --level AA --ai off")])
-    result, _ = _wizard(monkeypatch, "fav", "1", "", "y", "AAA", "", "", "", "n", "n", "n")
+    result, _ = _wizard(monkeypatch, "fav", "1", "y", "", "AAA", "", "", "", "n", "n", "n")
     assert "Update the favorite" in result.output and "Save this as a favorite?" in result.output
     assert [f.command for f in store.load()[0]] == ["scan https://home.test --level AA --ai off"]

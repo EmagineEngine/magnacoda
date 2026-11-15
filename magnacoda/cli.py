@@ -2650,26 +2650,25 @@ def wizard(ctx: click.Context, force_setup_notice: bool) -> None:
     picked = _choose_start_point()
     start = picked or savedcommand.SavedScan()
 
-    if start.url:
-        url = _prompt_nonempty(
-            "Page to scan (an address such as example.com or localhost:3000)", default=start.url
-        )
+    page_question = "Page to scan (an address such as example.com or localhost:3000)"
+    if picked and start.url:
+        # Starting from a saved scan: the page was part of the choice, so show the command and ask only
+        # whether to change anything. Changing starts with the page (its default is the saved one), so the
+        # settings can still be used on another page, and then goes through every question.
+        scan = dataclasses.replace(start, extras=list(start.extras), notes=[])
+        _echo("Equivalent command:\n  " + savedcommand.display_command(scan))
+        ask_everything = _ask_yes_no("Change anything?", default=False)
+        if ask_everything:
+            url = _prompt_nonempty(page_question, default=start.url)
+            scan = _ask_settings(start, url, fresh=False)
     else:
         url = _ask(
-            "Page to scan (an address such as example.com or localhost:3000), or press Enter to cancel",
+            f"{page_question}, or press Enter to cancel",
             default="",
             show_default=False,
             value_proc=_nonempty_or_cancel,
         )
-
-    scan = dataclasses.replace(start, url=url, extras=list(start.extras), notes=[])
-    ask_everything = True
-    if picked:
-        # Starting from a saved scan: show the command with the new URL and only go through every
-        # question if something besides the URL needs to change (each then defaults to the saved value).
-        _echo("Equivalent command:\n  " + savedcommand.display_command(scan))
-        ask_everything = _ask_yes_no("Change anything?", default=False)
-    if ask_everything:
+        ask_everything = True
         scan = _ask_settings(start, url, fresh=picked is None)
     _finish_and_run(ctx, scan, already_shown=not ask_everything)
 
