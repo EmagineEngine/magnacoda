@@ -637,7 +637,7 @@ def pages(env: dict[str, str] | None = None, paged: bool = True, fetch: Fetch | 
         entries.append((item.id, f"{item.date} · {item.title}{new}", item.title, page))
     if entries:
         listed = "\n".join(f"{n}. {line}" for n, (_, line, _, _) in enumerate(entries, start=1))
-        how = "\n\nTo read one, type its number and press Enter, or pick it with Tab." if paged else ""
+        how = "\n\nTo read one, type its number and press Enter, or pick it with the arrows." if paged else ""
         parts.append(f"## News\n\n{listed}{how}")
     if not parts:
         return Pages([], [])

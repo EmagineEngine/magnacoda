@@ -272,6 +272,24 @@ class PagerState:
         on = self.front_page and self.index == 0 and self.focus is not None
         return on and bool(self.links[self.focus or 0].section)
 
+    def _pick_listed(self, forward: bool) -> bool:
+        """An arrow on a front page starts picking from its list, as in the g list: down takes the first
+        item from the top of the screen on, up the last one above its bottom."""
+        if not (self.front_page and self.index == 0):
+            return False
+        listed = [(n, link.parts[0][0]) for n, link in enumerate(self.links) if link.section]
+        if forward:
+            found = [n for n, line in listed if line >= self.top][:1]
+        else:
+            found = [n for n, line in listed if line < self.top + self.body_height][-1:]
+        if not found:
+            return False
+        self.focus = found[0]
+        line = self.links[self.focus].parts[0][0]
+        if line >= self.top + self.body_height:
+            self.top = min(line - self.body_height + 1, self.max_top)
+        return True
+
     def _follow(self) -> Action:
         link = self.links[self.focus or 0]
         self.focus = None
@@ -961,6 +979,8 @@ class PagerState:
                 return Action.NOTHING
             self.menu, self.typed = True, key  # the list opens with the digit typed; Enter goes
             return Action.REDRAW
+        if key in ("up", "down") and self._pick_listed(key == "down"):
+            return Action.REDRAW
         if key in ("down", "j", "up", "k"):
             return self._scroll_line(1 if key in ("down", "j") else -1)
         if key == "home":
@@ -1247,9 +1267,9 @@ class PagerState:
         if self.index == 0:
             first = _fit(
                 width,
-                "Read one: its number then Enter, or Tab | Scroll: ↑ ↓ | Quit: Esc",
-                "Read: number Enter, or Tab | ↑↓ scroll | Esc quit",
-                "Read: number Enter | ↑↓ scroll | Esc quit",
+                "Read one: its number then Enter | Pick: ↑ ↓ Tab | Quit: Esc",
+                "Read: number Enter | ↑↓ Tab pick | Esc quit",
+                "Read: number Enter | ↑↓ pick | Esc quit",
                 "number Enter | Esc quit",
                 "Esc quit",
             )
@@ -1267,6 +1287,8 @@ class PagerState:
             return [first]
         last = min(self.top + self.body_height, len(self.lines))
         where = f"{self.top + 1}-{last} of {len(self.lines)}"
+        if self.index == 0:  # the arrows pick here
+            return [first, _fit(width, f"More: Space | lines {where}", f"lines {where}", where)]
         return [first, _fit(width, f"Scroll: ↑ ↓ | lines {where}", f"↑↓ lines {where}", where)]
 
     def status(self, width: int) -> str:

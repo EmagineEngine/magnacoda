@@ -164,7 +164,7 @@ def test_a_digit_on_a_page_opens_the_section_list_with_it_typed_and_enter_goes_t
 def test_a_front_page_lists_the_others_from_1_and_b_goes_back_to_it():
     state = PagerState([("News", ["1. First", "2. Second"]), ("First", ["a"]), ("Second", ["b"] * 12)], 9)
     state.use_front_page()
-    assert "number then Enter, or Tab" in state.status(80)
+    assert "number then Enter | Pick: ↑ ↓ Tab" in state.status(80)
     for key in "2", "enter":
         state.handle(key)
     assert state.index == 2 and state.status(80).startswith("2/2 Second | Back to the list: b")
@@ -190,6 +190,18 @@ def test_on_a_front_page_tab_and_the_arrows_pick_from_its_list_and_enter_reads()
     state.handle("down")
     assert state.handle("down") is Action.NOTHING and state.focus == 1
     assert state.handle("enter") is Action.REDRAW and state.index == 2
+
+
+@pytest.mark.parametrize(("key", "picked"), [("down", 1), ("up", 3)])
+def test_on_a_front_page_an_arrow_starts_picking_without_tab(key, picked):
+    lines = ["\x1b[11mNews", "", " 1 First", " 2 Second", " 3 Third", *[""] * 10]
+    state = PagerState([("News", lines), ("First", ["a"]), ("Second", ["b"]), ("Third", ["c"])], 9)
+    state.use_front_page()
+    assert state.handle(key) is Action.REDRAW and state.status(80).startswith(f"{picked}, ")
+    state.handle("esc")
+    state.handle("3")  # off the front page, the arrows scroll as ever
+    state.handle("enter")
+    assert state.handle(key) is Action.NOTHING and state.focus is None
 
 
 def test_g_lists_the_sections_under_a_field_to_type_in():

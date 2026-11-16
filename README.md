@@ -168,7 +168,7 @@ The shell never erases anything, so earlier results stay in the scrollback. `men
 - `o` opens another document: the manual, the README, the license and more, or any `.md` or `.txt` file. Add a section's name to open it there, as in `manual starting`.
 - `/` searches every section, not just the one showing.
 - `c` picks colors: your terminal's own, retro monitor looks, or dark on light.
-- `Tab` moves through the links on a page, and `Enter` opens one. On the `news` page, `Tab` and then the arrows pick a news item.
+- `Tab` moves through the links on a page, and `Enter` opens one. On the `news` page, the up and down arrows pick a news item.
 
 <!-- cli -->To open a page this one mentions, such as `docs starting`, press `o`, type it and press `Enter`. For other commands, first press `q` or `Esc` to close the help viewer.<!-- /cli -->
 
