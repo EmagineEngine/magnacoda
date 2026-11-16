@@ -77,10 +77,10 @@ def test_text_from_outside_cant_drive_the_terminal():
     assert news.clean("line one\nline two\ttab") == "line one\nline two\ttab"
 
 
-def test_at_most_twenty_items_are_kept():
+def test_at_most_ten_items_are_kept():
     many = "".join(f"## 2026-01-{n:02d} Item {n}\n\ntext\n" for n in range(1, 31))
     items = news.parse_feed(many)
-    assert len(items) == 20 and items[0].title == "Item 30"
+    assert len(items) == 10 and items[0].title == "Item 30"
 
 
 def test_release_labels_and_numbers():

@@ -30,6 +30,7 @@ from magnacoda import __version__, plugins, preferences
 from magnacoda.userdir import config_dir, write_private
 
 NEWS_URL = "https://news.magnacoda.dev/v1/news.md"
+NEWS_PAGE = "https://magnacoda.dev/news"  # every item, for people
 PYPI_URL = "https://pypi.org/pypi/{name}/json"
 ENV_OFF_SWITCH = "MAGNACODA_NEWS"
 OFF_VALUES = {"off", "0", "false", "no"}
@@ -38,7 +39,7 @@ TIMEOUT = 3.0  # seconds, per request
 START_WAIT = 2.0  # seconds the shell's start waits for the day's check
 MAX_FEED_BYTES = 64 * 1024
 MAX_PYPI_BYTES = 4 * 1024 * 1024
-MAX_FEED_ITEMS = 20
+MAX_FEED_ITEMS = 10
 SHOWN_DAYS = 3  # news and release notes are mentioned on the first shell of a day, this many days
 # Updates are mentioned on the first shell of every day until they're installed.
 NOTES_URL = "https://raw.githubusercontent.com/EmagineEngine/magnacoda/v{version}/magnacoda/data/whats-new.md"
@@ -602,7 +603,7 @@ NOTES_ITEM = "whats-new"
 
 def _notes_page(state: State, available: list[Update], fetch: Fetch | None) -> tuple[str, str, bool] | None:
     """What's new, as (title, Markdown, new): in the versions an update would bring, else in this one
-    until it's been read after updating; None when neither is news."""
+    (new until it's been read after updating); None when there are no notes."""
     ours = next((u for u in available if u.name == "magnacoda"), None)
     found = notes_before_update(ours.installed, ours.latest, fetch) if ours else []
     if len(found) == 1:
@@ -610,8 +611,9 @@ def _notes_page(state: State, available: list[Update], fetch: Fetch | None) -> t
     if found:
         sections = "\n\n".join(f"### {version}\n\n{as_markdown(notes)}" for version, notes in found)
         return f"What's new since {release_label(ours.installed if ours else __version__)}", sections, False
-    if notes_unseen(state):
-        return f"What's new in {release_label(__version__)}", as_markdown(notes_for(__version__)), True
+    ours_now = notes_for(__version__)
+    if ours_now:
+        return f"What's new in {release_label(__version__)}", as_markdown(ours_now), notes_unseen(state)
     return None
 
 
@@ -638,7 +640,7 @@ def pages(env: dict[str, str] | None = None, paged: bool = True, fetch: Fetch | 
     if entries:
         listed = "\n".join(f"{n}. {line}" for n, (_, line, _, _) in enumerate(entries, start=1))
         how = "\n\nTo read one, type its number and press Enter, or pick it with the arrows." if paged else ""
-        parts.append(f"## News\n\n{listed}{how}")
+        parts.append(f"## News\n\n{listed}{how}\n\nAll news: {NEWS_PAGE}")
     if not parts:
         return Pages([], [])
     sections = [("News", "\n\n".join(parts)), *((name, page) for _, _, name, page in entries)]

@@ -93,13 +93,15 @@ def test_news_lists_the_items_numbered_on_its_first_page_and_each_on_its_own(set
     other = FeedItem("2026-11-01 Older", "2026-11-01", "Older", "Before.")
     setup(feed=[ITEM, other], seen=[other.id], notes_seen="0.4.0")
     _, (sections, start_at, _, front_page) = _paged(monkeypatch)
-    assert front_page and start_at is None and [name for name, _ in sections] == ["News", ITEM.title, "Older"]
-    assert "1. 2026-11-02 · Version 1.0 is here (new)\n2. 2026-11-01 · Older\n" in sections[0][1]
-    assert "type its number and press Enter" in sections[0][1] and "What's new" not in sections[0][1]
-    assert sections[1][1].startswith("## Version 1.0 is here\n\n*2026-11-02*\n\nmagnacoda 1.0")
+    names = [name for name, _ in sections]
+    assert front_page and start_at is None and names == ["News", "What's new in 0.4.0", ITEM.title, "Older"]
+    listed = "1. What's new in 0.4.0\n2. 2026-11-02 · Version 1.0 is here (new)\n3. 2026-11-01 · Older\n"
+    assert listed in sections[0][1] and "type its number and press Enter" in sections[0][1]
+    assert sections[0][1].endswith(f"All news: {news.NEWS_PAGE}")
+    assert sections[2][1].startswith("## Version 1.0 is here\n\n*2026-11-02*\n\nmagnacoda 1.0")
 
 
-def test_after_updating_what_s_new_comes_first_until_it_is_read_and_items_count_once_opened(
+def test_after_updating_what_s_new_is_marked_new_until_it_is_read_and_items_count_once_opened(
     setup, monkeypatch
 ):
     other = FeedItem("2026-11-01 Older", "2026-11-01", "Older", "Before.")
@@ -113,9 +115,9 @@ def test_after_updating_what_s_new_comes_first_until_it_is_read_and_items_count_
     shown(3)
     assert news.load_state().seen == [other.id] and news.load_state().notes_seen == "0.4.0"
     _, (sections, *_) = _paged(monkeypatch)
-    assert "What's new" not in sections[0][1]  # read: no longer news
-    result, _ = _paged(monkeypatch, "3")
-    assert result.exit_code == 1 and "No news item 3: they go from 1 to 2." in result.output
+    assert "1. What's new in 0.4.0\n" in sections[0][1]  # read: still listed, no longer new
+    result, _ = _paged(monkeypatch, "4")
+    assert result.exit_code == 1 and "No news item 4: they go from 1 to 3." in result.output
 
 
 def test_notes_for_several_new_versions_are_one_item_newest_first(setup, monkeypatch):
@@ -134,12 +136,11 @@ def test_news_with_nothing_to_show_says_so(setup, monkeypatch):
     assert CliRunner().invoke(main, ["news"]).output == "Nothing new to show.\n"
 
 
-def test_with_checks_off_news_shows_only_unread_notes(setup, monkeypatch):
+def test_with_checks_off_news_shows_only_the_notes(setup, monkeypatch):
     setup(latest={"magnacoda": "0.5.0"}, feed=[ITEM], notes_seen="0.3.0")
     monkeypatch.setenv("MAGNACODA_NEWS", "off")
     output = CliRunner().invoke(main, ["news"]).output
     assert "What's new in 0.4.0" in output and "Updates" not in output and "Version 1.0 is here" not in output
-    assert CliRunner().invoke(main, ["news"]).output == "Nothing new to show.\n"
 
 
 # --- the banner ------------------------------------------------------------------------------------
@@ -331,7 +332,8 @@ def test_update_shows_the_new_versions_notes_before_asking(setup, installed_with
     assert news.load_state().notes_seen == "0.5.0"  # not announced again after the update
 
 
-def test_without_news_items_news_is_one_page(setup, monkeypatch):
+def test_without_news_items_news_lists_this_versions_notes(setup, monkeypatch):
     setup(latest={"magnacoda": "0.5.0"}, notes_seen="0.4.0")  # the new version's notes can't be fetched
     _, (sections, *_) = _paged(monkeypatch)
-    assert len(sections) == 1 and "Updates available" in sections[0][1] and "News" not in sections[0][1]
+    assert [name for name, _ in sections] == ["News", "What's new in 0.4.0"]  # this version's, then
+    assert "Updates available" in sections[0][1]

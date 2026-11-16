@@ -75,6 +75,7 @@ favorites = "magnacoda_addons.favorites.plugin"
 Homepage = "https://github.com/emagineengine/magnacoda"
 Website = "https://magnacoda.dev"
 Issues = "https://github.com/emagineengine/magnacoda/issues"
+Changelog = "https://github.com/emagineengine/magnacoda/blob/main/CHANGELOG.md"
 Documentation = "https://github.com/emagineengine/magnacoda/blob/main/docs/manual.md"
 
 # The version comes from git tags (v0.1.0 -> 0.1.0); commits after a tag are dev versions such as

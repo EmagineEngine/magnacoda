@@ -134,7 +134,7 @@ Like an old terminal printer, the shell never erases anything. Each command's ou
 - `recheck [FOLDER]`
   Once you've fixed some problems, pick the scan, as with review, and *magnacoda* tests just those problems again, in a few seconds. Each fix it confirms is ticked in the checklist. To recheck one scan without choosing, give its folder. For more, type `docs reviewing`.
 - `news`, `news 2`
-  Show available updates and the news about *magnacoda*, numbered, starting with what's new in a newer version or the one you just updated to. To read an item, type its number and press Enter, or add it to the command. When there's something new, your first shell of the day mentions it: a newer version every day until you install it, news on up to three days.
+  Show available updates and the news about *magnacoda*, numbered, starting with what's new in a newer version or in this one. To read an item, type its number and press Enter, or add it to the command. When there's something new, your first shell of the day mentions it: a newer version every day until you install it, news on up to three days.
 - `update`
   Update *magnacoda*, and any add-ons published on PyPI, to the latest version. It shows you what's new and what it will run, and asks first (`update --yes` doesn't ask). When one is waiting, leaving the shell offers it, once a day. For more, type `docs updates`.
 - `uninstall`
