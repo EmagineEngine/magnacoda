@@ -16,6 +16,7 @@ from rich import themes
 from rich.style import Style
 
 from magnacoda.pager import winpalette
+from magnacoda.pager.colors import contrast
 from magnacoda.pager.screen import RGB, windows_console_reply
 
 _ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
@@ -26,13 +27,26 @@ _BACKGROUND = re.compile(r"\x1b\]11;rgb:([0-9a-fA-F]{1,4})/([0-9a-fA-F]{1,4})/([
 
 @cache
 def bold_color() -> tuple[int, int, int] | None:
-    """The text color to give bold text, or None to leave it to the terminal. On Windows, mintty gets our
-    output through a console layer that turns bold default-color text into bright white, which is
-    unreadable on a light theme; bold in the theme's own text color is not changed."""
-    if sys.platform != "win32" or os.environ.get("TERM_PROGRAM") != "mintty":
+    """The text color to give bold text, or None to leave it to the terminal. On Windows, the console
+    layer draws bold default-color text in a bright color (white for mintty, which gets our output
+    through that layer; the palette's bright twin in the classic console), which is hard to read on a
+    light background. Bold in the terminal's own text color is not changed."""
+    if sys.platform != "win32":
         return None
-    pair = winpalette.mintty(os.environ, Path.home())
-    return pair[0] if pair else None
+    if os.environ.get("TERM_PROGRAM") == "mintty":
+        pair = winpalette.mintty(os.environ, Path.home())
+        return pair[0] if pair else None
+    pair = winpalette.console_palette()
+    if pair is None or not _light(pair[1]):
+        return None
+    # Other terminals hand us a console whose palette isn't what they show; theirs is dark, or they answer.
+    answer = background()
+    return pair[0] if answer in (None, pair[1]) else None
+
+
+def _light(color: RGB) -> bool:
+    shade = "#{:02x}{:02x}{:02x}".format(*color)
+    return contrast("#000000", shade) > contrast("#ffffff", shade)
 
 
 def enable_virtual_terminal() -> bool:
@@ -40,10 +54,10 @@ def enable_virtual_terminal() -> bool:
     does handles full color, but none says so in COLORTERM, which the pager goes by; so this does."""
     if sys.platform != "win32":
         return True
-    if color := bold_color():
-        themes.DEFAULT.styles["bold"] = Style(bold=True, color="#{:02x}{:02x}{:02x}".format(*color))
     _enable(_STD_ERROR_HANDLE)
     enabled = _enable(_STD_OUTPUT_HANDLE)
+    if color := bold_color():
+        themes.DEFAULT.styles["bold"] = Style(bold=True, color="#{:02x}{:02x}{:02x}".format(*color))
     if enabled and not os.environ.get("COLORTERM"):
         os.environ["COLORTERM"] = "truecolor"
     return enabled

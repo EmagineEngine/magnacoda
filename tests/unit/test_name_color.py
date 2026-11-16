@@ -72,3 +72,23 @@ def test_bold_in_mintty_on_windows_is_drawn_in_the_themes_text_color(monkeypatch
     winconsole.bold_color.cache_clear()
     assert winconsole.bold_color() is None
     winconsole.bold_color.cache_clear()
+
+
+@pytest.mark.parametrize(
+    ("palette", "answer", "expected"),
+    [
+        (((0, 0, 0), (255, 255, 255)), None, (0, 0, 0)),
+        (((0, 0, 0), (255, 255, 255)), (255, 255, 255), (0, 0, 0)),
+        (((0, 0, 0), (255, 255, 255)), (30, 30, 30), None),  # another terminal: the palette isn't its own
+        (((204, 204, 204), (12, 12, 12)), None, None),  # dark: bright bold reads well
+        (None, None, None),
+    ],
+)
+def test_bold_in_a_light_classic_console_is_drawn_in_its_text_color(monkeypatch, palette, answer, expected):
+    monkeypatch.setattr(winconsole.sys, "platform", "win32")
+    monkeypatch.delenv("TERM_PROGRAM", raising=False)
+    monkeypatch.setattr(winconsole.winpalette, "console_palette", lambda: palette)
+    monkeypatch.setattr(winconsole, "background", lambda: answer)
+    winconsole.bold_color.cache_clear()
+    assert winconsole.bold_color() == expected
+    winconsole.bold_color.cache_clear()

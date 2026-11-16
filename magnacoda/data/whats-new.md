@@ -24,6 +24,7 @@ HOW IT IS READ
 - `update` also downloads the browser a new version needs, and a scan that finds its browser missing offers to download it.
 - A message that something unexpected went wrong is now one short line. `errors` shows the details, and `errors on` always does.
 - On Windows, the review page's Done button no longer ends with an error.
+- On Windows, bold text in the classic console is readable on a light background.
 
 ## 0.1.8
 

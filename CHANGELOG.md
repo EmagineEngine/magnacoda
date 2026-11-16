@@ -21,6 +21,7 @@ All notable changes to this project are documented in this file.
 ### Fixed
 
 - On Windows, the review page's Done button no longer ends with an error.
+- On Windows, bold text in the classic console is readable on a light background.
 
 ## [0.1.8] - 2026-11-10
 
