@@ -41,6 +41,7 @@ MAX_FEED_BYTES = 64 * 1024
 MAX_PYPI_BYTES = 4 * 1024 * 1024
 MAX_FEED_ITEMS = 10
 MAX_LISTED = 10  # earlier releases and news items in the `news` list, under what's new
+MAX_LISTED_NEWS = 5  # of those, the news items; earlier releases get the rest
 SHOWN_DAYS = 3  # news and release notes are mentioned on the first shell of a day, this many days
 # Updates are mentioned on the first shell of every day until they're installed.
 NOTES_URL = "https://raw.githubusercontent.com/EmagineEngine/magnacoda/v{version}/magnacoda/data/whats-new.md"
@@ -667,13 +668,14 @@ def pages(env: dict[str, str] | None = None, paged: bool = True, fetch: Fetch | 
     if coming and not paged:  # this version's notes aren't printed then; they count as read with these
         coming = (NOTES_ITEM, *coming[1:])
     first = [coming] if coming else [entry for _, entry in releases[:1]]
-    dated = (releases if coming else releases[1:]) if paged else []
-    for item in state.feed if checks else []:
+    feed = state.feed[:MAX_LISTED_NEWS] if checks else []
+    dated = (releases if coming else releases[1:])[: MAX_LISTED - len(feed)] if paged else []
+    for item in feed:
         new = "" if item.id in state.seen else " (new)"
         page = f"## {item.title}\n\n*{item.date}*\n\n{item.body}".rstrip()
         dated.append((item.date, (item.id, f"{item.date} · {item.title}{new}", item.title, page)))
     dated.sort(key=lambda entry: entry[0], reverse=True)  # stable: releases stay in their order
-    entries = first + [entry for _, entry in dated[:MAX_LISTED]]
+    entries = first + [entry for _, entry in dated]
     if entries:
         listed = "\n".join(f"{n}. {line}" for n, (_, line, _, _) in enumerate(entries, start=1))
         how = "\n\nTo read one, type its number and press Enter, or pick it with the arrows." if paged else ""
