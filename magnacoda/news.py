@@ -40,6 +40,7 @@ START_WAIT = 2.0  # seconds the shell's start waits for the day's check
 MAX_FEED_BYTES = 64 * 1024
 MAX_PYPI_BYTES = 4 * 1024 * 1024
 MAX_FEED_ITEMS = 10
+MAX_LISTED = 10  # earlier releases and news items in the `news` list, under what's new
 SHOWN_DAYS = 3  # news and release notes are mentioned on the first shell of a day, this many days
 # Updates are mentioned on the first shell of every day until they're installed.
 NOTES_URL = "https://raw.githubusercontent.com/EmagineEngine/magnacoda/v{version}/magnacoda/data/whats-new.md"
@@ -170,17 +171,27 @@ def parse_feed(text: str) -> list[FeedItem]:
     return items[:MAX_FEED_ITEMS]
 
 
-_NOTES_HEADING = re.compile(r"^##[ \t]+v?(\d+(?:\.\d+)*)\b.*$")
+_NOTES_HEADING = re.compile(r"^##[ \t]+v?(\d+(?:\.\d+)*)\b(?:[ \t]+-[ \t]+(\d{4}-\d{2}-\d{2}))?.*$")
+
+
+def _packaged_notes() -> str:
+    try:
+        return (resources.files("magnacoda") / "data" / "whats-new.md").read_text(encoding="utf-8")
+    except OSError:
+        return ""
+
+
+def release_dates() -> dict[str, str]:
+    """{version: date} for the packaged notes' headings that give one (`## X.Y.Z - YYYY-MM-DD`)."""
+    found = (_NOTES_HEADING.match(line) for line in _COMMENT.sub("", _packaged_notes()).splitlines())
+    return {match.group(1): match.group(2) for match in found if match and match.group(2)}
 
 
 def release_notes(text: str | None = None) -> dict[str, str]:
     """{version: notes} from a whats-new.md (one `## X.Y.Z` section per release), the packaged one by
     default."""
     if text is None:
-        try:
-            text = (resources.files("magnacoda") / "data" / "whats-new.md").read_text(encoding="utf-8")
-        except OSError:
-            return {}
+        text = _packaged_notes()
     notes: dict[str, list[str]] = {}
     current: list[str] | None = None
     for line in _COMMENT.sub("", text).splitlines():
@@ -592,7 +603,8 @@ def as_markdown(notes: str) -> str:
 @dataclass(frozen=True)
 class Pages:
     """`news` as Markdown pages: the first has the updates and a numbered list of the rest; then one
-    page each, `ids` saying what it is (NOTES_ITEM, a feed item's id, "" for the first)."""
+    page each, `ids` saying what it is (NOTES_ITEM, a feed item's id, "" for the first and for earlier
+    releases)."""
 
     sections: list[tuple[str, str]]
     ids: list[str]
@@ -601,20 +613,40 @@ class Pages:
 NOTES_ITEM = "whats-new"
 
 
-def _notes_page(state: State, available: list[Update], fetch: Fetch | None) -> tuple[str, str, bool] | None:
-    """What's new, as (title, Markdown, new): in the versions an update would bring, else in this one
-    (new until it's been read after updating); None when there are no notes."""
+Entry = tuple[str, str, str, str]  # (id, line in the list, page name, page)
+
+
+def _update_notes(available: list[Update], fetch: Fetch | None) -> Entry | None:
+    """What's new in the versions an update would bring, as one entry."""
     ours = next((u for u in available if u.name == "magnacoda"), None)
     found = notes_before_update(ours.installed, ours.latest, fetch) if ours else []
+    if not ours or not found:
+        return None
     if len(found) == 1:
-        return f"What's new in {found[0][0]}", as_markdown(found[0][1]), False
-    if found:
-        sections = "\n\n".join(f"### {version}\n\n{as_markdown(notes)}" for version, notes in found)
-        return f"What's new since {release_label(ours.installed if ours else __version__)}", sections, False
-    ours_now = notes_for(__version__)
-    if ours_now:
-        return f"What's new in {release_label(__version__)}", as_markdown(ours_now), notes_unseen(state)
-    return None
+        title, text = f"What's new in {found[0][0]}", as_markdown(found[0][1])
+    else:
+        title = f"What's new since {release_label(ours.installed)}"
+        text = "\n\n".join(f"### {version}\n\n{as_markdown(notes)}" for version, notes in found)
+    return "", title, title, f"## {title}\n\n{text}"
+
+
+def _release_entries(state: State) -> list[tuple[str, Entry]]:
+    """(date, entry) for this version's notes and each earlier release's, newest first. This version's
+    is new until it's been read after updating, and sorts as the newest when it has no date yet."""
+    ours, dates = release_numbers(__version__), release_dates()
+    found = []
+    for version, notes in release_notes().items():
+        numbers = release_numbers(version)
+        if ours is None or numbers is None or numbers > ours:
+            continue
+        current = numbers == ours
+        title, date = f"What's new in {version}", dates.get(version, "")
+        new = " (new)" * (current and notes_unseen(state))
+        line = (f"{date} · " if date and not current else "") + title + new
+        page = f"## {title}\n\n" + (f"*{date}*\n\n" if date else "") + as_markdown(notes)
+        found.append((numbers, date or "9" * current, (NOTES_ITEM if current else "", line, title, page)))
+    found.sort(key=lambda release: release[0], reverse=True)
+    return [(date, entry) for _, date, entry in found]
 
 
 def pages(env: dict[str, str] | None = None, paged: bool = True, fetch: Fetch | None = None) -> Pages:
@@ -628,15 +660,20 @@ def pages(env: dict[str, str] | None = None, paged: bool = True, fetch: Fetch | 
         lines = "\n".join(f"- {u.name} {u.installed} -> {u.latest}" for u in available)
         them = "it" if len(available) == 1 else "them"
         parts.append(f"## Updates available\n\n{lines}\n\nType `update` from the shell to install {them}.")
-    entries: list[tuple[str, str, str, str]] = []  # (id, line in the list, page name, page)
-    notes = _notes_page(state, available, fetch)
-    if notes:
-        title, text, unread = notes
-        entries.append((NOTES_ITEM, title + " (new)" * unread, title, f"## {title}\n\n{text}"))
+    # What's new comes first: in an update's versions, else in this one. Then earlier releases and the
+    # news together, newest first. Printed, every item follows the list, so earlier releases stay out.
+    releases = _release_entries(state)
+    coming = _update_notes(available, fetch)
+    if coming and not paged:  # this version's notes aren't printed then; they count as read with these
+        coming = (NOTES_ITEM, *coming[1:])
+    first = [coming] if coming else [entry for _, entry in releases[:1]]
+    dated = (releases if coming else releases[1:]) if paged else []
     for item in state.feed if checks else []:
         new = "" if item.id in state.seen else " (new)"
         page = f"## {item.title}\n\n*{item.date}*\n\n{item.body}".rstrip()
-        entries.append((item.id, f"{item.date} · {item.title}{new}", item.title, page))
+        dated.append((item.date, (item.id, f"{item.date} · {item.title}{new}", item.title, page)))
+    dated.sort(key=lambda entry: entry[0], reverse=True)  # stable: releases stay in their order
+    entries = first + [entry for _, entry in dated[:MAX_LISTED]]
     if entries:
         listed = "\n".join(f"{n}. {line}" for n, (_, line, _, _) in enumerate(entries, start=1))
         how = "\n\nTo read one, type its number and press Enter, or pick it with the arrows." if paged else ""

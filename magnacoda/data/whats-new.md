@@ -5,7 +5,7 @@ The notes shown by `news` (section "whats-new") for the version that is installe
 
 HOW IT IS READ
   * Anything inside an HTML comment, like this one, is a note to editors. It is never shown.
-  * "## X.Y.Z" starts the notes for that release (text after the number, such as a date, is ignored). Add a section, newest first, before tagging each release; a version without a section shows no notes and isn't announced.
+  * "## X.Y.Z" starts the notes for that release (with its date, as in "## 0.4.0 - 2026-11-10", which the `news` list shows). Add a section, newest first, before tagging each release; a version without a section shows no notes and isn't announced.
   * Write for people who use *magnacoda*, not for developers: what they can do now, in plain words, one long line per paragraph. Terms and lists work as in help.md.
   * Keep each entry to one short sentence, two at most. Leave the details to the manual and help.
 -->
@@ -21,32 +21,32 @@ HOW IT IS READ
 - Pressing Enter alone at the prompt gets an answer every third time.
 - The shell's text has a little space at the left and right edges of the window.
 - On the `news` page, the up and down arrows pick a news item without `Tab` first.
-- `news` keeps this version's notes listed after you've read them, shows up to ten news items, and links to all the news on the website.
+- `news` always lists this version's notes, then earlier versions' notes and the news by date, ten at most. It links to all the news on the website.
 - The wizard ends with a question for any other options, which can be typed after the address; Enter keeps a saved scan's own.
 - `update` also downloads the browser a new version needs, and a scan that finds its browser missing offers to download it.
 - A message that something unexpected went wrong is now one short line. `errors` shows the details, and `errors on` always does.
 - On Windows, the review page's Done button no longer ends with an error.
 - On Windows, bold text in the classic console is readable on a light background.
 
-## 0.1.8
+## 0.1.8 - 2026-11-10
 
 - The start waits up to two seconds for the day's update check, so a new version is announced right away.
 - In the shell, a command can start with a period, as in Node's shell (`.help`, `.exit`).
 - On Windows, links in the help viewer are clickable in VS Code's and PyCharm's terminals.
 - On Windows, the classic console and Git Bash show the right colors with a light color scheme.
 
-## 0.1.7
+## 0.1.7 - 2026-11-09
 
 - In the help viewer's `g` list, the arrow keys pick a section without `Tab`, and `/` searches the whole document.
 - The docs are easier to use. The guide to writing add-ons is its own document, `view add-ons.md`, and `view contributing.md` is shorter.
 
-## 0.1.6
+## 0.1.6 - 2026-11-05
 
 - On Windows, the shortcut opens Windows Terminal. Remake it with `shortcut remove`, then `shortcut`.
 - The help viewer now shows its full colors and code shading on Windows.
 - The classic Windows console shows ticks as `[x]`, since its fonts lack `✓`.
 
-## 0.1.5
+## 0.1.5 - 2026-11-05
 
 - `menu`
   Lists the commands. `clear` starts a fresh page.
@@ -58,7 +58,7 @@ HOW IT IS READ
 - Colors show on Windows too.
 - Setup offers a shortcut even when you skip Chromium.
 
-## 0.1.4
+## 0.1.4 - 2026-11-03
 
 - `news`
   Numbered, starting with what's new in a newer version. Type a number to read an item.
@@ -67,14 +67,14 @@ HOW IT IS READ
 - News and updates show on the title screen, and `update` shows what's new before installing.
 - In a section list (`g`), the arrows go on from what your typing highlights.
 
-## 0.1.3
+## 0.1.3 - 2026-11-01
 
 - `--title`
   Shows the title screen. Set how often with `title` in preferences.
 - The review page shows the *magnacoda* logo.
 - An option typed alone in the shell no longer opens a second shell.
 
-## 0.1.2
+## 0.1.2 - 2026-11-01
 
 Getting started is smoother, and *magnacoda*'s AI works better alongside your AI coding agent.
 
@@ -91,14 +91,14 @@ Getting started is smoother, and *magnacoda*'s AI works better alongside your AI
 - Images hidden from screen readers no longer show up as missing their text alternative.
 - Code examples in numbered steps stay in their step, closer to the left edge.
 
-## 0.1.1
+## 0.1.1 - 2026-10-31
 
 A small update that makes updating easier.
 
 - `update`
   If you installed *magnacoda* with uv, `update` now upgrades it for you, along with any add-ons, instead of showing a command to run yourself. It still asks first.
 
-## 0.1.0
+## 0.1.0 - 2026-10-30
 
 The first public release of *magnacoda*: scan a web page for WCAG 2 accessibility issues in a real browser, with plain-language explanations and fix suggestions.
 

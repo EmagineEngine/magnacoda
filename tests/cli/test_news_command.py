@@ -120,6 +120,29 @@ def test_after_updating_what_s_new_is_marked_new_until_it_is_read_and_items_coun
     assert result.exit_code == 1 and "No news item 4: they go from 1 to 3." in result.output
 
 
+def test_earlier_releases_are_listed_with_the_news_by_date_ten_at_most(setup, monkeypatch):
+    notes = {"0.4.0": "Four.", "0.3.0": "Three.", "0.2.0": "Two.", "0.5.0": "Not installed yet."}
+    monkeypatch.setattr(news, "release_notes", lambda text=None: notes)
+    monkeypatch.setattr(news, "release_dates", lambda: {"0.3.0": "2026-11-03", "0.2.0": "2026-10-20"})
+    setup(feed=[ITEM], seen=[ITEM.id], notes_seen="0.4.0")
+    _, (sections, _, shown, _) = _paged(monkeypatch)
+    listed = ["1. What's new in 0.4.0", "2. 2026-11-03 · What's new in 0.3.0"]
+    listed += ["3. 2026-11-02 · Version 1.0 is here", "4. 2026-10-20 · What's new in 0.2.0\n"]
+    assert "\n".join(listed) in sections[0][1] and "0.5.0" not in sections[0][1]
+    assert sections[2] == ("What's new in 0.3.0", "## What's new in 0.3.0\n\n*2026-11-03*\n\nThree.")
+    shown(2)  # an earlier release has nothing to mark
+    assert news.load_state().seen == [ITEM.id]
+    many = [FeedItem(f"2026-12-{n:02d} Item", f"2026-12-{n:02d}", "Item", "Text.") for n in range(1, 11)]
+    setup(feed=many, notes_seen="0.4.0")
+    _, (sections, *_) = _paged(monkeypatch)
+    assert len(sections) == 12 and "0.3.0" not in sections[0][1]  # the list, this version, ten news items
+    _notes_online(monkeypatch)
+    setup(latest={"magnacoda": "0.5.0"}, notes_seen="0.3.0")
+    _, (sections, *_) = _paged(monkeypatch)
+    listed = ["1. What's new in 0.5.0", "2. What's new in 0.4.0 (new)", "3. 2026-11-03 · What's new in 0.3.0"]
+    assert "\n".join(listed) in sections[0][1]
+
+
 def test_notes_for_several_new_versions_are_one_item_newest_first(setup, monkeypatch):
     _notes_online(monkeypatch, "## 0.6.0\n\nSix.\n\n## 0.5.0\n\nFive.\n\n## 0.4.0\n\nFour is out.\n")
     setup(latest={"magnacoda": "0.6.0"}, notes_seen="0.4.0")
