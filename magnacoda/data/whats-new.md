@@ -10,7 +10,7 @@ HOW IT IS READ
   * Keep each entry to one short sentence, two at most. Leave the details to the manual and help.
 -->
 
-## 0.1.9
+## 0.1.9 - 2026-11-16
 
 - After the time estimate, a scan asks whether to start when it has no faster settings to offer.
 - Every question ends with the prompt's chevron, in its color, to show where to type. In screen reader mode it stays a colon.
