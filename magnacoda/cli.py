@@ -1252,21 +1252,40 @@ _SEPARATOR = " [dim]·[/dim] "  # narrow, so the banner's commands fit in 80 col
 _BANNER_ADDON_COMMANDS = 5  # more than this and the line points to `about` for the rest
 
 
-def _command_words(names: list[str]) -> str:
-    """Commands for the banner, `·` between them."""
-    return _SEPARATOR.join(escape(name) for name in names)
+_BANNER_HANG = 2  # a banner line that wraps goes on indented by this much
 
 
-def _addon_commands_line() -> str:
-    """The banner's third line, listing commands that add-ons added, or "" when there are none."""
+def _flow(start: Text, items: list[Text], separator: Text, width: int) -> Text:
+    """`start`, a space and the items with `separator` between them, wrapped to `width`. A line breaks only
+    between items and drops the separator there, so no line starts or ends with one; the lines after the
+    first are indented by _BANNER_HANG. Worked out at each call, so it follows a resized window."""
+    lines = [start.copy()]
+    for index, item in enumerate(items):
+        joint = Text(" ") if index == 0 else separator
+        if lines[-1].cell_len + joint.cell_len + item.cell_len <= width or lines[-1].cell_len <= _BANNER_HANG:
+            lines[-1].append_text(joint)
+        else:
+            lines.append(Text(" " * _BANNER_HANG))
+        lines[-1].append_text(item)
+    return Text("\n").join(lines)
+
+
+def _command_line(label: str, names: list[str], width: int) -> Text:
+    """A banner line of commands, `·` between them."""
+    items = [Text(name) for name in names]
+    return _flow(Text.assemble((label, "bold")), items, Text.from_markup(_SEPARATOR), width)
+
+
+def _addon_commands_line(width: int) -> Text | None:
+    """The banner's third line, listing commands that add-ons added, or None when there are none."""
     plugins.add_commands(main)  # normally done already while parsing; repeating it is harmless
     names = [name for added in plugins.added_commands().values() for name in added]
     if not names:
-        return ""
-    shown = _command_words(names[:_BANNER_ADDON_COMMANDS])
+        return None
+    shown = names[:_BANNER_ADDON_COMMANDS]
     if len(names) > _BANNER_ADDON_COMMANDS:
-        shown += _SEPARATOR + "… (all in about)"
-    return f"[bold]Add-on commands:[/bold] {shown}\n"
+        shown.append("… (all in about)")
+    return _command_line("Add-on commands:", shown, width)
 
 
 @main.command(name="news")
@@ -1719,11 +1738,17 @@ def shell(force_setup_notice: bool, from_shortcut: bool) -> None:
 
     banner_commands = ["wizard", "scan", "help", "setup", "review", "update", "about", "menu"]
 
-    def banner() -> str:
-        return (
-            f"{name_markup} accessibility scanner - type a command, or exit to leave.\n"
-            f"[bold]Commands:[/bold] {_command_words(banner_commands)}\n{_addon_commands_line()}"
-        )
+    def banner() -> Text:
+        width = console.width
+        words = "accessibility scanner - type a command, or exit to leave.".split()
+        lines = [
+            _flow(Text.from_markup(name_markup), [Text(word) for word in words], Text(" "), width),
+            _command_line("Commands:", banner_commands, width),
+        ]
+        addons = _addon_commands_line(width)
+        if addons:
+            lines.append(addons)
+        return Text("\n").join(lines) + Text("\n")
 
     news.note_first_run()
 

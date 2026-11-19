@@ -71,6 +71,20 @@ def test_dot_commands_work_in_the_shell_like_the_plain_ones():
     assert "No such command" not in result.output and "Unknown" not in result.output
 
 
+@pytest.mark.parametrize("columns", ["30", "44"])
+def test_the_menu_wraps_at_whole_words_and_between_commands_in_a_narrow_window(monkeypatch, columns):
+    monkeypatch.setenv("COLUMNS", columns)
+    output = CliRunner().invoke(main, ["shell"], input="menu\nexit\n").output
+    start = output.index("magnacoda accessibility")
+    banner = output[start : output.index("\n\n", start)].splitlines()
+    assert all(len(line) <= int(columns) for line in banner) and len(banner) > 2
+    assert all(line.startswith("  ") for line in banner[1:] if not line.startswith("Commands:"))
+    assert not any(line.strip().startswith("·") or line.strip().endswith("·") for line in banner)
+    words = " ".join(line.strip() for line in banner).replace(" · ", " ").split()
+    assert words[-8:] == ["wizard", "scan", "help", "setup", "review", "update", "about", "menu"]
+    assert "command, or exit to leave." in " ".join(words)
+
+
 @pytest.mark.parametrize("exit_word", ["exit", "quit", "q"])
 def test_shell_accepts_any_exit_word(exit_word):
     result = CliRunner().invoke(main, ["shell"], input=f"{exit_word}\n")
