@@ -70,6 +70,7 @@ visible focus, enough contrast in light and dark, and everything readable withou
   .sev-moderate { background: var(--moderate); } .sev-minor { background: var(--minor); }
   #status { min-height: 1.5rem; color: var(--ok); font-weight: 600; }
   .on-page { margin: .25rem 0 0; color: var(--muted); }
+  .parts-intro { margin: 1rem 0 0; }
   details.part { margin-top: 2rem; border-top: 2px solid var(--line); }
   details.part > summary { cursor: pointer; padding: .5rem 0; }
   details.part > summary h2 { display: inline; margin: 0; border: 0; padding: 0; }
@@ -96,10 +97,11 @@ visible focus, enough contrast in light and dark, and everything readable withou
   <h1 id="top">{{heading}}</h1>
   <nav aria-label="On this page" class="on-page"><ul><li>On this page:</li><li><a href="#findings">Findings</a></li><li><a href="#checklist">Checklist</a></li></ul></nav>
   <p id="status" role="status" aria-live="polite"></p>
+  <p class="parts-intro">Findings explains each problem and how to fix it. The checklist is where you tick what you've fixed and checked.</p>
   <noscript><p>Ticking items needs JavaScript; everything else on this page works without it. You can also tick items in the checklist file with a Markdown editor.</p></noscript>
-  <!-- Native disclosure sections: open and close without JavaScript. The findings start open, the
-       checklist closed; each line says what's inside. -->
-  <details class="part" id="findings-part" open>
+  <!-- Native disclosure sections: open and close without JavaScript. Both start closed, so the page opens as an
+       overview; each line says what's inside. A link to something inside one opens it. -->
+  <details class="part" id="findings-part">
     <summary><h2 id="findings">Findings</h2><span class="count">{{findings_count}}</span></summary>
     {{findings}}
   </details>
@@ -166,6 +168,18 @@ visible focus, enough contrast in light and dark, and everything readable withou
       recheck.disabled = false;
     }
   });
+  // A link to a place inside a closed part (On this page, the checklist's own links) opens that part first.
+  const openFor = (hash) => {
+    const target = hash.length > 1 && document.getElementById(decodeURIComponent(hash.slice(1)));
+    const part = target && target.closest("details.part");
+    if (part && !part.open) part.open = true;
+    return target;
+  };
+  document.addEventListener("click", (event) => {
+    const link = event.target.closest('a[href^="#"]');
+    if (link) openFor(link.getAttribute("href"));
+  });
+  if (location.hash) openFor(location.hash)?.scrollIntoView();
   // Remember which parts this browser had open (a convenience: without it the defaults apply).
   for (const part of document.querySelectorAll("details.part")) {
     const key = "magnacoda-review-" + part.id;

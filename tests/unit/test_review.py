@@ -72,8 +72,8 @@ def test_the_page_has_one_h1_the_variant_links_progress_and_the_report(tmp_path)
     html_text = review_page.page(variants, dark)
     visible = html_text.split("<script>")[0]  # the script holds the "Done" page's own heading
     assert visible.count("<h1") == 1 and "Accessibility review: http://example.test (Dark)" in visible
-    # Findings first and open, the checklist after and closed; each line says what's inside.
-    findings, checklist_part = visible.index('id="findings-part" open'), visible.index('id="checklist-part">')
+    # Findings first, then the checklist, both closed; each line says what's inside.
+    findings, checklist_part = visible.index('id="findings-part">'), visible.index('id="checklist-part">')
     assert (
         findings < checklist_part
         and '<span class="count">1 problem on 1 element (1 serious)</span>' in visible

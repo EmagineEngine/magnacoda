@@ -204,8 +204,9 @@ When *magnacoda* creates the scans folder it also puts a `.gitignore` containing
 
 `review` lists the scans in your scans folder (or `review FOLDER` for another one), newest first, with how far along each checklist is. Pick one by number and it opens in your browser, in one tab:
 
-- **The findings,** open at the start: what the scan found, counts by severity, the failing rules and where they are, the top 10 explained and the suggested fixes, with severity colors.
+- **The findings,** with what the scan found, counts by severity, the failing rules and where they are, the top 10 explained and the suggested fixes, with severity colors.
 - **The checklist,** below them, with each page element's screenshot and a real checkbox to tick. Ticking saves straight into the scan's `checklist.md`, so the same ticks show up in a Markdown editor, and the other way round.
+- **Both start closed,** so the page opens as an overview: each line says what's inside, such as how many items are checked. Click one to open it.
 - **For a scan with several variants,** links at the top switch between them (Desktop · light, Mobile · dark and so on); each has its own ticks.
 
 **Besides problems,** the review page also lists **Passed checks** (rules axe-core evaluated that found no violation, ordered by WCAG success criterion) and **Needs manual review** (what axe-core couldn't decide, with the element and the reason, such as text over a background image), and ends with how many rules did not apply. The results file has them too (`passed`, `needs_review`, `inapplicable_count`), and `--show-findings` prints them in the terminal.
