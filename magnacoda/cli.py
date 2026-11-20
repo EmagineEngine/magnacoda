@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import textwrap
 import threading
 import time
 import traceback
@@ -2321,6 +2322,9 @@ class _ScanTime:
         return ", ".join(parts)
 
 
+_SPINNER_WIDTH = 2  # the spinner's character and the space after it
+
+
 @contextmanager
 def _scan_progress(
     url: str, verb: str = "Scanning", expected: float | None = None
@@ -2351,14 +2355,25 @@ def _scan_progress(
     with console.status("", spinner="line") as status:
 
         def show(what: str) -> None:
-            # The page and the time on the spinner's line, the step under it (it changes often).
+            # The page and the time on the spinner's line, the step under it (it changes often). When the
+            # time doesn't fit beside the page, it goes on a line of its own, whole, above the step.
             where["what"] = what
             spent = clock.text()
-            status.update(
-                f"{verb} {escape(url)}"
-                + (f" - {escape(spent)}" if spent else "")
-                + f"\n  {escape(what)}{escape(where['text'])}"
+            page = f"{verb} {url}"
+            if not spent:
+                time_part = ""
+            elif _SPINNER_WIDTH + len(page) + len(" - ") + len(spent) <= console.width:
+                time_part = f" - {escape(spent)}"
+            else:
+                time_part = f"\n  {escape(spent)}"
+            step = textwrap.fill(
+                what + where["text"],
+                width=max(console.width - _SPINNER_WIDTH, 20),
+                initial_indent="  ",
+                subsequent_indent="  ",
+                break_long_words=False,
             )
+            status.update(f"{escape(page)}{time_part}\n{escape(step)}")
 
         def next_pass(number: int, total: int, label: str | None) -> None:
             where["text"] = place(number, total, label)

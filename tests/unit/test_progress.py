@@ -19,13 +19,13 @@ def test_steps_reach_a_listener_only_while_it_listens():
     assert heard == ["loading the page", "running the checks"]
 
 
-def _terminal(monkeypatch):
+def _terminal(monkeypatch, width=120):
     out = io.StringIO()
     monkeypatch.setattr(
         cli,
         "Console",
         lambda **kw: Console(
-            file=out, force_terminal=True, width=120, **{k: v for k, v in kw.items() if k != "stderr"}
+            file=out, force_terminal=True, width=width, **{k: v for k, v in kw.items() if k != "stderr"}
         ),
     )
     return out
@@ -52,6 +52,18 @@ def test_the_spinner_shows_the_pass_and_the_step(monkeypatch):
         progress.step("running the accessibility checks")
     two_lines = "Scanning https://a.test\n  running the accessibility checks (mobile, dark: 1 of 4)"
     assert two_lines in out.getvalue()
+
+
+def test_the_time_goes_on_a_line_of_its_own_when_it_does_not_fit_beside_the_page(monkeypatch):
+    wide = _terminal(monkeypatch)
+    with cli._scan_progress("https://unrealbakeshop.example/", expected=120) as next_pass:
+        next_pass(1, 1, None)
+    assert "Scanning https://unrealbakeshop.example/ - about 2 min estimated\n" in wide.getvalue()
+    narrow = _terminal(monkeypatch, width=44)
+    with cli._scan_progress("https://unrealbakeshop.example/", expected=120) as next_pass:
+        next_pass(1, 1, None)
+    page_time_step = "Scanning https://unrealbakeshop.example/\n  about 2 min estimated\n  starting"
+    assert page_time_step in narrow.getvalue()
 
 
 def test_not_on_a_terminal_nothing_is_shown(capsys):

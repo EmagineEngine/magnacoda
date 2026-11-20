@@ -82,6 +82,34 @@ def _intro(intro: str | None, err: bool) -> None:
         teletype.write(stream, text + "\n")  # typed out in the shell, like magnacoda's other text
 
 
+_GLUE = "\u00a0"  # textwrap doesn't break here
+
+
+def _wrapped(text: str, stream: Any) -> str:
+    """The question wrapped to the terminal at whole words. Its last word stays on one line with the
+    chevron, which click adds after it, and a last word in brackets ("[Y/n]", "[skip]") also keeps the
+    word before it. Worked out each time it's asked, so it follows a resized window; piped output is
+    left alone."""
+    head, _, last = text.rpartition(" ")
+    if head and last.startswith("["):
+        head, _, before = head.rpartition(" ")
+        last = f"{before}{_GLUE}{last}"
+    glued = f"{head} {last}{_GLUE}{CHEVRON}" if head else f"{last}{_GLUE}{CHEVRON}"
+    return wrap_for_stream(glued, stream).removesuffix(_GLUE + CHEVRON).replace(_GLUE, " ")
+
+
+def _shown(text: str, kwargs: dict[str, Any]) -> str:
+    """What click would show before the chevron: the text, the choices in parentheses and the default in
+    brackets. Built here so the whole question can be wrapped; click is then told not to add them."""
+    kind = kwargs.get("type")
+    if kwargs.pop("show_choices", True) and isinstance(kind, click.Choice):
+        text += f" ({', '.join(map(str, kind.choices))})"
+    default = kwargs.get("default")
+    if kwargs.pop("show_default", True) and default is not None:
+        text += f" [{default}]"
+    return text
+
+
 class Cleared(click.Abort):
     """Cancelled with clear (or cls)."""
 
@@ -106,7 +134,16 @@ def ask(text: str, *, intro: str | None = None, err: bool = False, **kwargs: Any
         _check_cancel(value)
         return given(value)
 
-    answer = click.prompt(text, err=err, value_proc=value_proc, prompt_suffix=_suffix(), **kwargs)
+    shown = _wrapped(_shown(text, kwargs), sys.stderr if err else sys.stdout)
+    answer = click.prompt(
+        shown,
+        err=err,
+        value_proc=value_proc,
+        prompt_suffix=_suffix(),
+        show_default=False,
+        show_choices=False,
+        **kwargs,
+    )
     _space_below()
     return answer
 
@@ -130,7 +167,7 @@ def ask_yes_no(text: str, *, intro: str | None = None, default: bool = False, er
 
     suffix = "[Y/n]" if default else "[y/N]"
     answer: bool = click.prompt(
-        f"{text} {suffix}",
+        _wrapped(f"{text} {suffix}", sys.stderr if err else sys.stdout),
         default="",
         show_default=False,
         value_proc=value_proc,

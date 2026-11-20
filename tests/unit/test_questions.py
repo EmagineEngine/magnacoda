@@ -119,3 +119,28 @@ def test_in_screen_reader_mode_a_question_ends_with_a_colon(monkeypatch):
     monkeypatch.setattr(screenreader, "mode_on", lambda: True)
     output = _run(lambda: (questions.ask("Name", default="x"), questions.ask_yes_no("Go on?")), "Ann\ny\n")
     assert "Name [x]: Ann" in output and "Go on? [y/N]: y" in output and questions.CHEVRON not in output
+
+
+class _Terminal:
+    def isatty(self):
+        return True
+
+
+@pytest.mark.parametrize("columns", ["24", "41"])
+def test_a_long_question_wraps_at_whole_words_with_its_brackets_beside_the_chevron(monkeypatch, columns):
+    monkeypatch.setenv("COLUMNS", columns)
+    text = questions._shown(
+        "Add a magnacoda shortcut to",
+        {"type": click.Choice(["menu", "desktop", "both", "skip"]), "default": "skip"},
+    )
+    lines = questions._wrapped(text, _Terminal()).splitlines()
+    assert len(lines) > 1 and all(len(line) + len(" » ") <= int(columns) for line in lines[-1:])
+    assert all(len(line) < int(columns) for line in lines)
+    assert " ".join(lines) == "Add a magnacoda shortcut to (menu, desktop, both, skip) [skip]"
+    assert lines[-1].endswith("skip) [skip]")
+
+
+def test_a_question_is_left_whole_when_piped():
+    assert questions._wrapped("Use your Claude plan for the AI tiers? [Y/n]", None) == (
+        "Use your Claude plan for the AI tiers? [Y/n]"
+    )
