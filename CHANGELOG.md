@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.1.10] - 2026-11-20
+
+### Changed
+
+- The review page opens with Findings and the checklist closed, and says what each part holds, so the checklist is easy to find.
+
+### Fixed
+
+- In a narrow window, the menu, the questions and the scan's progress break between words.
+
 ## [0.1.9] - 2026-11-16
 
 ### Changed

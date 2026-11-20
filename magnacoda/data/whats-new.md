@@ -10,6 +10,11 @@ HOW IT IS READ
   * Keep each entry to one short sentence, two at most. Leave the details to the manual and help.
 -->
 
+## 0.1.10 - 2026-11-20
+
+- The review page opens with Findings and the checklist closed, and says what each part holds, so the checklist is easy to find.
+- In a narrow window, the menu, the questions and the scan's progress break between words.
+
 ## 0.1.9 - 2026-11-16
 
 - After the time estimate, a scan asks whether to start when it has no faster settings to offer.
